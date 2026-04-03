@@ -1,4 +1,5 @@
 import { Heart, Users, Globe, Shield } from 'lucide-react';
+import { SUPPORT_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_TEL } from '@/lib/site';
 
 const values = [
   {
@@ -88,9 +89,13 @@ const AboutUs = () => (
       <div className="container mx-auto px-6 max-w-3xl text-center">
         <h2 className="font-display text-2xl text-foreground mb-4">Get in touch</h2>
         <p className="font-body text-muted-foreground">
-          Questions, partnerships, or just want to say hello? Reach us at{' '}
-          <a href="mailto:support@nawewellness.com" className="text-primary hover:underline">
-            support@nawewellness.com
+          Questions, partnerships, or callback requests? Reach us at{' '}
+          <a href={SUPPORT_PHONE_TEL} className="text-primary hover:underline">
+            {SUPPORT_PHONE}
+          </a>{' '}
+          or{' '}
+          <a href={`mailto:${SUPPORT_EMAIL}`} className="text-primary hover:underline">
+            {SUPPORT_EMAIL}
           </a>
         </p>
       </div>

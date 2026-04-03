@@ -1,3 +1,5 @@
+import { PRIVACY_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_TEL } from '@/lib/site';
+
 const PrivacyPolicy = () => (
   <div className="min-h-screen bg-background">
     <div className="container mx-auto px-6 py-16 max-w-3xl">
@@ -79,7 +81,17 @@ const PrivacyPolicy = () => (
 
         <section>
           <h2 className="font-display text-xl text-foreground">12. Contact us</h2>
-          <p>For privacy-related questions or to exercise your rights, contact us at <span className="text-primary">privacy@nawewellness.com</span>.</p>
+          <p>
+            For privacy-related questions or to exercise your rights, contact us at{' '}
+            <a href={SUPPORT_PHONE_TEL} className="text-primary hover:underline">
+              {SUPPORT_PHONE}
+            </a>{' '}
+            or{' '}
+            <a href={`mailto:${PRIVACY_EMAIL}`} className="text-primary hover:underline">
+              {PRIVACY_EMAIL}
+            </a>
+            .
+          </p>
         </section>
       </div>
     </div>

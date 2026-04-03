@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { SUPPORT_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_TEL } from '@/lib/site';
 
 const Terms = () => (
   <div className="min-h-screen bg-background">
@@ -77,7 +78,17 @@ const Terms = () => (
 
         <section>
           <h2 className="font-display text-xl text-foreground">13. Contact</h2>
-          <p>For questions about these Terms, contact us at <span className="text-primary">support@nawewellness.com</span>.</p>
+          <p>
+            For questions about these Terms, contact us at{' '}
+            <a href={SUPPORT_PHONE_TEL} className="text-primary hover:underline">
+              {SUPPORT_PHONE}
+            </a>{' '}
+            or{' '}
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="text-primary hover:underline">
+              {SUPPORT_EMAIL}
+            </a>
+            .
+          </p>
         </section>
       </div>
     </div>

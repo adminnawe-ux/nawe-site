@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Phone } from 'lucide-react';
+import { SUPPORT_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_TEL } from '@/lib/site';
 
 const CrisisFooter = () => (
   <div className="bg-foreground/5 border-t border-border py-3 text-center">
@@ -51,6 +52,21 @@ const Footer = () => (
               <li><Link to="/about" className="hover:text-primary transition-colors">About Us</Link></li>
               <li><Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
               <li><Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-ui font-semibold text-foreground mb-3 text-sm uppercase tracking-wider">Contact</h4>
+            <ul className="space-y-2 font-body text-sm text-muted-foreground">
+              <li>
+                <a href={SUPPORT_PHONE_TEL} className="hover:text-primary transition-colors">
+                  {SUPPORT_PHONE}
+                </a>
+              </li>
+              <li>
+                <a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-primary transition-colors">
+                  {SUPPORT_EMAIL}
+                </a>
+              </li>
             </ul>
           </div>
         </div>
