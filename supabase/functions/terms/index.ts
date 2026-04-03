@@ -19,7 +19,7 @@ const terms = {
     { title: "Limitation of Liability", content: "To the maximum extent permitted by law, Nawe shall not be liable for any indirect, incidental, or consequential damages." },
     { title: "Termination", content: "We reserve the right to suspend or terminate accounts that violate these Terms. Users may delete their accounts at any time." },
     { title: "Changes to Terms", content: "We may update these Terms from time to time. Continued use after changes constitutes acceptance." },
-    { title: "Contact", content: "For questions about these Terms, contact us at +254716231112 or support@nawewellness.com." },
+    { title: "Contact", content: "For questions about these Terms, contact us at +254716231112 or support@nawe.co.ke." },
   ],
 };
 
