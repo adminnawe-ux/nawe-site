@@ -1,0 +1,1 @@
+ALTER TABLE public.therapists ADD CONSTRAINT therapists_user_id_unique UNIQUE (user_id);

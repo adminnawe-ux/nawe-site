@@ -1,0 +1,1 @@
+ALTER TABLE public.intake_responses ADD CONSTRAINT intake_responses_user_id_unique UNIQUE (user_id);

@@ -1,0 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Serif+Display:ital@0;1&family=Lora:ital,wght@0,400..700;1,400..700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Nawe Wellness — logo palette */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 7%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 7%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 7%;
+
+    --primary: 203 83% 51%; /* logo blue */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 43 74% 47%; /* mustard yellow */
+    --secondary-foreground: 0 0% 7%;
+
+    --muted: 40 100% 96%;
+    --muted-foreground: 0 0% 35%;
+
+    --accent: 43 100% 50%; /* logo yellow */
+    --accent-foreground: 0 0% 7%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 203 83% 51%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 43 100% 50%;
+    --warning-foreground: 0 0% 7%;
+
+    --border: 40 30% 88%;
+    --input: 40 30% 88%;
+    --ring: 203 83% 51%;
+
+    --radius: 1rem;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 7%;
+    --sidebar-primary: 203 83% 51%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 40 100% 96%;
+    --sidebar-accent-foreground: 0 0% 7%;
+    --sidebar-border: 40 30% 88%;
+    --sidebar-ring: 203 83% 51%;
+
+    /* Custom Nawe tokens */
+    --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.06);
+    --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.04);
+    --radius-card: 1.25rem;
+  }
+
+  .dark {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 100%;
+
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 203 83% 51%;
+    --primary-foreground: 0 0% 7%;
+
+    --secondary: 43 74% 47%;
+    --secondary-foreground: 0 0% 7%;
+
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 70%;
+
+    --accent: 43 100% 50%;
+    --accent-foreground: 0 0% 7%;
+
+    --destructive: 0 55% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 203 83% 51%;
+    --success-foreground: 0 0% 7%;
+
+    --warning: 43 100% 50%;
+    --warning-foreground: 0 0% 7%;
+
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 203 83% 51%;
+
+    --sidebar-background: 0 0% 7%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 203 83% 51%;
+    --sidebar-primary-foreground: 0 0% 7%;
+    --sidebar-accent: 0 0% 14%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 18%;
+    --sidebar-ring: 203 83% 51%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}

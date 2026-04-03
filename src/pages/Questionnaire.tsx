@@ -1,0 +1,482 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
+import { Card, CardContent } from '@/components/ui/card';
+import { Slider } from '@/components/ui/slider';
+import { ArrowLeft, ArrowRight, Shield, Phone, Heart } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+const TOTAL_STEPS = 6;
+
+const CONCERNS = [
+  'Anxiety', 'Depression', 'Stress', 'Grief & Loss', 'Relationship Issues',
+  'Trauma / PTSD', 'Self-Esteem', 'Family Conflict', 'Life Transitions',
+  'Anger Management', 'Substance Use', 'Eating & Body Image',
+  'Identity & Belonging', 'Work / Career', 'Parenting', 'Sexual Health',
+];
+
+const SESSION_FORMATS = ['Video Call', 'Phone Call', 'In-Person', 'Chat / Messaging'];
+
+interface FormData {
+  age_range: string;
+  gender_identity: string;
+  cultural_background: string;
+  cultural_background_important: boolean;
+  presenting_concerns: string[];
+  previous_therapy: boolean | null;
+  crisis_flag: boolean;
+  session_format_preference: string[];
+  frequency_preference: string;
+  session_time_preference: string;
+  therapist_gender_preference: string;
+  experience_level_preference: string;
+  language_preference: string;
+  specialisation_importance: number;
+  budget_range: string;
+  insurance_coverage: string;
+  sliding_scale_needed: boolean;
+  additional_notes: string;
+}
+
+const initialData: FormData = {
+  age_range: '',
+  gender_identity: '',
+  cultural_background: '',
+  cultural_background_important: false,
+  presenting_concerns: [],
+  previous_therapy: null,
+  crisis_flag: false,
+  session_format_preference: [],
+  frequency_preference: '',
+  session_time_preference: '',
+  therapist_gender_preference: '',
+  experience_level_preference: '',
+  language_preference: 'English',
+  specialisation_importance: 3,
+  budget_range: '',
+  insurance_coverage: '',
+  sliding_scale_needed: false,
+  additional_notes: '',
+};
+
+const Questionnaire = () => {
+  const [step, setStep] = useState(1);
+  const [data, setData] = useState<FormData>(initialData);
+  const [submitting, setSubmitting] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const progress = (step / TOTAL_STEPS) * 100;
+
+  const update = <K extends keyof FormData>(key: K, value: FormData[K]) =>
+    setData((prev) => ({ ...prev, [key]: value }));
+
+  const toggleArray = (key: 'presenting_concerns' | 'session_format_preference', value: string) => {
+    setData((prev) => ({
+      ...prev,
+      [key]: prev[key].includes(value)
+        ? prev[key].filter((v) => v !== value)
+        : [...prev[key], value],
+    }));
+  };
+
+  const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS));
+  const back = () => setStep((s) => Math.max(s - 1, 1));
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        toast({ title: 'Please sign in first', description: 'You need to be logged in to save your questionnaire.', variant: 'destructive' });
+        navigate('/login');
+        return;
+      }
+
+      const { error } = await supabase.from('intake_responses').upsert({
+        user_id: session.session.user.id,
+        ...data,
+        completed: true,
+      }, { onConflict: 'user_id' });
+
+      if (error) throw error;
+
+      toast({ title: 'Questionnaire saved!', description: "We're finding your best matches." });
+      navigate('/matches');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Please try again.';
+      toast({ title: 'Something went wrong', description: message, variant: 'destructive' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="border-b border-border bg-card">
+        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+          <button onClick={() => navigate('/')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground font-ui text-sm transition-colors">
+            <ArrowLeft className="h-4 w-4" /> Back
+          </button>
+          <div className="flex items-center gap-2 text-muted-foreground font-ui text-xs">
+            <Shield className="h-3.5 w-3.5" /> Private & Secure
+          </div>
+        </div>
+        <div className="container mx-auto px-6 pb-4">
+          <Progress value={progress} className="h-2" />
+          <p className="font-ui text-xs text-muted-foreground mt-2">Step {step} of {TOTAL_STEPS}</p>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="container mx-auto px-6 py-10 max-w-2xl">
+        {/* Crisis banner (shown on step 2 if flagged) */}
+        {data.crisis_flag && (
+          <div className="mb-6 p-4 rounded-card bg-destructive/10 border border-destructive/30 flex items-start gap-3">
+            <Phone className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-ui text-sm font-medium text-destructive">If you're in immediate danger, please reach out now</p>
+              <p className="font-body text-xs text-muted-foreground mt-1">
+                Kenya: 0800 723 253 · Tanzania: 116 · Uganda: 0800 21 21 21
+              </p>
+            </div>
+          </div>
+        )}
+
+        {step === 1 && <StepAboutYou data={data} update={update} />}
+        {step === 2 && <StepConcerns data={data} update={update} toggleArray={toggleArray} />}
+        {step === 3 && <StepSessionPrefs data={data} update={update} toggleArray={toggleArray} />}
+        {step === 4 && <StepTherapistPrefs data={data} update={update} />}
+        {step === 5 && <StepFinancial data={data} update={update} />}
+        {step === 6 && <StepFinal data={data} update={update} />}
+
+        {/* Navigation */}
+        <div className="flex justify-between mt-10">
+          <Button variant="ghost" onClick={back} disabled={step === 1} className="font-ui">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back
+          </Button>
+          {step < TOTAL_STEPS ? (
+            <Button onClick={next} className="font-ui rounded-full px-8">
+              Continue <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          ) : (
+            <Button onClick={handleSubmit} disabled={submitting} className="font-ui rounded-full px-8 bg-accent hover:bg-accent/90 text-accent-foreground">
+              {submitting ? 'Saving…' : 'Find My Matches'}
+              <Heart className="ml-2 h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Step Components ─── */
+
+const StepHeading = ({ title, subtitle }: { title: string; subtitle: string }) => (
+  <div className="mb-8">
+    <h2 className="font-display text-2xl md:text-3xl text-foreground mb-2">{title}</h2>
+    <p className="font-body text-muted-foreground">{subtitle}</p>
+  </div>
+);
+
+const OptionCard = ({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`w-full text-left p-4 rounded-card border transition-all font-ui text-sm ${
+      selected
+        ? 'border-primary bg-primary/5 shadow-sm'
+        : 'border-border bg-card hover:border-primary/40'
+    }`}
+  >
+    {children}
+  </button>
+);
+
+// Step 1: About You
+const StepAboutYou = ({ data, update }: { data: FormData; update: <K extends keyof FormData>(k: K, v: FormData[K]) => void }) => (
+  <div>
+    <StepHeading title="About You" subtitle="Just a few basics so we can personalise your experience. Everything is confidential." />
+
+    <div className="space-y-6">
+      <div>
+        <Label className="font-ui text-sm mb-3 block">What's your age range?</Label>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {['18–24', '25–34', '35–44', '45–54', '55–64', '65+'].map((range) => (
+            <OptionCard key={range} selected={data.age_range === range} onClick={() => update('age_range', range)}>
+              {range}
+            </OptionCard>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <Label className="font-ui text-sm mb-3 block">How do you identify? (optional)</Label>
+        <div className="grid grid-cols-2 gap-3">
+          {['Woman', 'Man', 'Non-binary', 'Prefer not to say'].map((g) => (
+            <OptionCard key={g} selected={data.gender_identity === g} onClick={() => update('gender_identity', g)}>
+              {g}
+            </OptionCard>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <Label className="font-ui text-sm mb-3 block">Cultural background (optional)</Label>
+        <Input
+          value={data.cultural_background}
+          onChange={(e) => update('cultural_background', e.target.value)}
+          placeholder="e.g. Kenyan, Ugandan, East African, etc."
+          className="rounded-card"
+          maxLength={100}
+        />
+        <label className="flex items-center gap-2 mt-3 font-ui text-sm text-muted-foreground cursor-pointer">
+          <Checkbox
+            checked={data.cultural_background_important}
+            onCheckedChange={(v) => update('cultural_background_important', v === true)}
+          />
+          Cultural understanding is important to me in a therapist
+        </label>
+      </div>
+    </div>
+  </div>
+);
+
+// Step 2: What Brings You Here
+const StepConcerns = ({ data, update, toggleArray }: {
+  data: FormData;
+  update: <K extends keyof FormData>(k: K, v: FormData[K]) => void;
+  toggleArray: (key: 'presenting_concerns' | 'session_format_preference', v: string) => void;
+}) => (
+  <div>
+    <StepHeading title="What brings you here?" subtitle="Select as many as apply. There's no wrong answer — this helps us find the right fit." />
+
+    <div className="space-y-6">
+      <div>
+        <Label className="font-ui text-sm mb-3 block">What would you like support with?</Label>
+        <div className="grid grid-cols-2 gap-3">
+          {CONCERNS.map((c) => (
+            <OptionCard key={c} selected={data.presenting_concerns.includes(c)} onClick={() => toggleArray('presenting_concerns', c)}>
+              {c}
+            </OptionCard>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <Label className="font-ui text-sm mb-3 block">Have you been to therapy before?</Label>
+        <RadioGroup
+          value={data.previous_therapy === null ? '' : data.previous_therapy ? 'yes' : 'no'}
+          onValueChange={(v) => update('previous_therapy', v === 'yes')}
+          className="flex gap-4"
+        >
+          <label className="flex items-center gap-2 font-ui text-sm cursor-pointer">
+            <RadioGroupItem value="yes" /> Yes
+          </label>
+          <label className="flex items-center gap-2 font-ui text-sm cursor-pointer">
+            <RadioGroupItem value="no" /> No
+          </label>
+        </RadioGroup>
+      </div>
+
+      <div>
+        <label className="flex items-center gap-3 p-4 rounded-card border border-border bg-card font-ui text-sm cursor-pointer">
+          <Checkbox
+            checked={data.crisis_flag}
+            onCheckedChange={(v) => update('crisis_flag', v === true)}
+          />
+          <span>I'm currently experiencing a crisis or thoughts of self-harm</span>
+        </label>
+      </div>
+    </div>
+  </div>
+);
+
+// Step 3: Session Preferences
+const StepSessionPrefs = ({ data, update, toggleArray }: {
+  data: FormData;
+  update: <K extends keyof FormData>(k: K, v: FormData[K]) => void;
+  toggleArray: (key: 'presenting_concerns' | 'session_format_preference', v: string) => void;
+}) => (
+  <div>
+    <StepHeading title="Session Preferences" subtitle="Help us understand how you'd like to connect with your therapist." />
+
+    <div className="space-y-6">
+      <div>
+        <Label className="font-ui text-sm mb-3 block">Preferred session format (select all that work)</Label>
+        <div className="grid grid-cols-2 gap-3">
+          {SESSION_FORMATS.map((f) => (
+            <OptionCard key={f} selected={data.session_format_preference.includes(f)} onClick={() => toggleArray('session_format_preference', f)}>
+              {f}
+            </OptionCard>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <Label className="font-ui text-sm mb-3 block">How often would you like sessions?</Label>
+        <div className="grid grid-cols-2 gap-3">
+          {['Weekly', 'Fortnightly', 'Monthly', 'Not sure yet'].map((f) => (
+            <OptionCard key={f} selected={data.frequency_preference === f} onClick={() => update('frequency_preference', f)}>
+              {f}
+            </OptionCard>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <Label className="font-ui text-sm mb-3 block">What time works best for you?</Label>
+        <div className="grid grid-cols-2 gap-3">
+          {['Morning (8am–12pm)', 'Afternoon (12pm–5pm)', 'Evening (5pm–9pm)', 'Flexible'].map((t) => (
+            <OptionCard key={t} selected={data.session_time_preference === t} onClick={() => update('session_time_preference', t)}>
+              {t}
+            </OptionCard>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Step 4: Therapist Preferences
+const StepTherapistPrefs = ({ data, update }: { data: FormData; update: <K extends keyof FormData>(k: K, v: FormData[K]) => void }) => (
+  <div>
+    <StepHeading title="Therapist Preferences" subtitle="Tell us what matters to you in a therapist. We'll do our best to match accordingly." />
+
+    <div className="space-y-6">
+      <div>
+        <Label className="font-ui text-sm mb-3 block">Therapist gender preference</Label>
+        <div className="grid grid-cols-2 gap-3">
+          {['Female', 'Male', 'Non-binary', 'No preference'].map((g) => (
+            <OptionCard key={g} selected={data.therapist_gender_preference === g} onClick={() => update('therapist_gender_preference', g)}>
+              {g}
+            </OptionCard>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <Label className="font-ui text-sm mb-3 block">Experience level preference</Label>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {['Early-career (1–3 yrs)', 'Experienced (4–10 yrs)', 'No preference'].map((e) => (
+            <OptionCard key={e} selected={data.experience_level_preference === e} onClick={() => update('experience_level_preference', e)}>
+              {e}
+            </OptionCard>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <Label className="font-ui text-sm mb-3 block">Preferred language</Label>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {['English', 'Swahili', 'French', 'Luganda', 'Other'].map((l) => (
+            <OptionCard key={l} selected={data.language_preference === l} onClick={() => update('language_preference', l)}>
+              {l}
+            </OptionCard>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <Label className="font-ui text-sm mb-3 block">
+          How important is it that your therapist specialises in your specific concern?
+        </Label>
+        <div className="px-2">
+          <Slider
+            value={[data.specialisation_importance]}
+            onValueChange={([v]) => update('specialisation_importance', v)}
+            min={1}
+            max={5}
+            step={1}
+          />
+          <div className="flex justify-between mt-2 font-ui text-xs text-muted-foreground">
+            <span>Not important</span>
+            <span>Very important</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Step 5: Financial & Access
+const StepFinancial = ({ data, update }: { data: FormData; update: <K extends keyof FormData>(k: K, v: FormData[K]) => void }) => (
+  <div>
+    <StepHeading title="Financial & Access" subtitle="We want to make sure therapy is accessible for you. This helps us find therapists within your budget." />
+
+    <div className="space-y-6">
+      <div>
+        <Label className="font-ui text-sm mb-3 block">What's your budget per session? (KES)</Label>
+        <div className="grid grid-cols-2 gap-3">
+          {['Under 2,000', '2,000–5,000', '5,000–10,000', '10,000+', 'Not sure'].map((b) => (
+            <OptionCard key={b} selected={data.budget_range === b} onClick={() => update('budget_range', b)}>
+              {b}
+            </OptionCard>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <Label className="font-ui text-sm mb-3 block">Do you have insurance coverage for therapy?</Label>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {['Yes', 'No', 'Not sure'].map((i) => (
+            <OptionCard key={i} selected={data.insurance_coverage === i} onClick={() => update('insurance_coverage', i)}>
+              {i}
+            </OptionCard>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="flex items-center gap-3 p-4 rounded-card border border-border bg-card font-ui text-sm cursor-pointer">
+          <Checkbox
+            checked={data.sliding_scale_needed}
+            onCheckedChange={(v) => update('sliding_scale_needed', v === true)}
+          />
+          <span>I'd benefit from a sliding-scale (reduced) fee</span>
+        </label>
+      </div>
+    </div>
+  </div>
+);
+
+// Step 6: Final Context
+const StepFinal = ({ data, update }: { data: FormData; update: <K extends keyof FormData>(k: K, v: FormData[K]) => void }) => (
+  <div>
+    <StepHeading title="Anything else?" subtitle="Is there anything you'd like your matched therapist to know? This is completely optional." />
+
+    <div className="space-y-6">
+      <Textarea
+        value={data.additional_notes}
+        onChange={(e) => update('additional_notes', e.target.value)}
+        placeholder="For example: 'I'd prefer someone who is LGBTQ+ affirming', 'I have mobility challenges', 'I'm looking for faith-based counselling', etc."
+        className="rounded-card min-h-[140px]"
+        maxLength={1000}
+      />
+
+      <Card className="bg-primary/5 border-primary/20">
+        <CardContent className="p-5 flex items-start gap-3">
+          <Shield className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-ui text-sm font-medium text-foreground">Your privacy matters</p>
+            <p className="font-body text-xs text-muted-foreground mt-1">
+              Everything you share here is encrypted and only used to find your best therapist match.
+              Your therapist will not see your questionnaire answers unless you choose to share them.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  </div>
+);
+
+export default Questionnaire;
