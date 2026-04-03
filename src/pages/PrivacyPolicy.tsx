@@ -1,4 +1,3 @@
-import { PRIVACY_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_TEL } from '@/lib/site';
 import { SITE_NAME, PRIVACY_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_TEL } from '@/lib/site';
 
 const PrivacyPolicy = () => (
