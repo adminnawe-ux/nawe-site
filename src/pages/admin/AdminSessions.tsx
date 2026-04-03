@@ -26,7 +26,6 @@ interface SessionRow {
   price: number | null;
   currency: string | null;
   notes_client: string | null;
-  notes_therapist: string | null;
   cancellation_reason: string | null;
   created_at: string;
   client_id: string;

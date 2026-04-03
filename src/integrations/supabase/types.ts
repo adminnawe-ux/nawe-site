@@ -302,7 +302,6 @@ export type Database = {
           duration_minutes: number | null
           id: string
           notes_client: string | null
-          notes_therapist: string | null
           price: number | null
           scheduled_at: string
           session_format: string | null
@@ -320,7 +319,6 @@ export type Database = {
           duration_minutes?: number | null
           id?: string
           notes_client?: string | null
-          notes_therapist?: string | null
           price?: number | null
           scheduled_at: string
           session_format?: string | null
@@ -338,7 +336,6 @@ export type Database = {
           duration_minutes?: number | null
           id?: string
           notes_client?: string | null
-          notes_therapist?: string | null
           price?: number | null
           scheduled_at?: string
           session_format?: string | null
@@ -351,6 +348,48 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "sessions_therapist_id_fkey"
+            columns: ["therapist_id"]
+            isOneToOne: false
+            referencedRelation: "therapists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          session_id: string
+          therapist_id: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          session_id: string
+          therapist_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          session_id?: string
+          therapist_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_notes_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_notes_therapist_id_fkey"
             columns: ["therapist_id"]
             isOneToOne: false
             referencedRelation: "therapists"

@@ -100,9 +100,18 @@ CREATE TABLE public.sessions (
   price integer,
   currency text DEFAULT 'KES'::text,
   notes_client text,
-  notes_therapist text,
   cancellation_reason text,
   session_link text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
+-- Private therapist notes
+CREATE TABLE public.session_notes (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  session_id uuid NOT NULL UNIQUE REFERENCES public.sessions(id) ON DELETE CASCADE,
+  therapist_id uuid NOT NULL REFERENCES public.therapists(id) ON DELETE CASCADE,
+  content text NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now()
 );

@@ -28,7 +28,6 @@ interface SessionWithTherapist {
   currency: string | null;
   cancellation_reason: string | null;
   session_link: string | null;
-  notes_therapist: string | null;
   therapist_id: string;
   therapist: {
     professional_title: string | null;
@@ -94,7 +93,7 @@ const ClientDashboard = () => {
       .from('sessions')
       .select(`
         id, scheduled_at, duration_minutes, status, session_format,
-        session_type, price, currency, cancellation_reason, session_link, notes_therapist, therapist_id,
+        session_type, price, currency, cancellation_reason, session_link, therapist_id,
         therapist:therapists!sessions_therapist_id_fkey (
           professional_title, photo_url, user_id
         )
@@ -309,12 +308,6 @@ const ClientDashboard = () => {
                   <span className="font-display text-xl text-foreground">
                     {receiptSession.currency || 'KES'} {receiptSession.price.toLocaleString()}
                   </span>
-                </div>
-              )}
-              {receiptSession.notes_therapist && (
-                <div className="space-y-1">
-                  <p className="font-ui text-xs text-muted-foreground uppercase tracking-wide">Therapist Notes</p>
-                  <p className="font-body text-sm text-foreground bg-muted/50 rounded-lg p-3">{receiptSession.notes_therapist}</p>
                 </div>
               )}
               <p className="font-ui text-[10px] text-muted-foreground text-center">
