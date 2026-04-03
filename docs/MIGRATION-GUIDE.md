@@ -35,20 +35,15 @@ Deploy the edge functions from `supabase/functions/`:
 | Function | Purpose |
 |---|---|
 | `terms` | Returns Terms & Conditions as JSON |
-| `seed-admin` | Creates initial admin user (run once) |
-| `seed-therapist` | Creates a demo therapist (run once) |
 
 ```bash
 supabase functions deploy terms
-supabase functions deploy seed-admin
-supabase functions deploy seed-therapist
 ```
 
 ### Edge Function Secrets
 
 These are auto-provided by Supabase:
 - `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_ANON_KEY`
 
 If you add AI features, set:
@@ -87,7 +82,6 @@ shadcn/ui components (radix-ui primitives)
 - [ ] Run `full-schema.sql` in SQL Editor
 - [ ] Deploy edge functions
 - [ ] Set environment variables
-- [ ] Run `seed-admin` function to create first admin
 - [ ] Update `src/integrations/supabase/client.ts` with your project URL/key
 - [ ] Regenerate types: `supabase gen types typescript --project-id your-id > src/integrations/supabase/types.ts`
 - [ ] Test signup flow (email confirmation + terms acceptance)
