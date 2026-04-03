@@ -110,7 +110,7 @@ const AdminAnalytics = () => {
       for (const [, v] of topEntries) {
         let name = 'Unknown';
         if (v.userId) {
-          const { data: p } = await supabase.from('profiles').select('first_name, last_name').eq('user_id', v.userId).maybeSingle();
+          const { data: p } = await supabase.from('therapist_public_profiles').select('first_name, last_name').eq('user_id', v.userId).maybeSingle();
           if (p) name = `${p.first_name || ''} ${p.last_name || ''}`.trim();
         }
         topList.push({ name, sessions: v.sessions, revenue: v.revenue });

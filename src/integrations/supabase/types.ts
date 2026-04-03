@@ -554,7 +554,15 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      therapist_public_profiles: {
+        Row: {
+          avatar_url: string | null
+          first_name: string | null
+          last_name: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {

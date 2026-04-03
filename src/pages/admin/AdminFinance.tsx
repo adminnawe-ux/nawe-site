@@ -43,7 +43,7 @@ const AdminFinance = () => {
         let therapist_name = 'Unknown';
         let client_name = 'Unknown';
         if (therapist?.user_id) {
-          const { data: tp } = await supabase.from('profiles').select('first_name, last_name').eq('user_id', therapist.user_id).maybeSingle();
+          const { data: tp } = await supabase.from('therapist_public_profiles').select('first_name, last_name').eq('user_id', therapist.user_id).maybeSingle();
           if (tp) therapist_name = `${tp.first_name || ''} ${tp.last_name || ''}`.trim();
         }
         const { data: cp } = await supabase.from('profiles').select('first_name, last_name').eq('user_id', s.client_id).maybeSingle();

@@ -120,7 +120,7 @@ const ClientDashboard = () => {
       const therapist = Array.isArray(s.therapist) ? s.therapist[0] : s.therapist;
       if (therapist?.user_id) {
         const { data: profile } = await supabase
-          .from('profiles')
+          .from('therapist_public_profiles')
           .select('first_name, last_name')
           .eq('user_id', therapist.user_id)
           .maybeSingle();

@@ -76,7 +76,7 @@ const BookSession = () => {
       const { data: t } = await supabase.from('therapists').select('*').eq('id', id).maybeSingle();
       setTherapist(t);
       if (t) {
-        const { data: p } = await supabase.from('profiles').select('first_name, last_name').eq('user_id', t.user_id).maybeSingle();
+        const { data: p } = await supabase.from('therapist_public_profiles').select('first_name, last_name').eq('user_id', t.user_id).maybeSingle();
         setProfileName(`${p?.first_name ?? ''} ${p?.last_name ?? ''}`.trim());
         if ((t.session_formats ?? []).length > 0) {
           setSelectedFormat(t.session_formats![0]);

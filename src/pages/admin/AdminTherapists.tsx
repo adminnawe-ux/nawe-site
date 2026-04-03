@@ -48,7 +48,7 @@ const AdminTherapists = () => {
     const enriched: TherapistRow[] = [];
     for (const t of data || []) {
       const { data: profile } = await supabase
-        .from('profiles')
+        .from('therapist_public_profiles')
         .select('first_name, last_name')
         .eq('user_id', t.user_id)
         .maybeSingle();

@@ -40,7 +40,7 @@ const TherapistProfile = () => {
 
       if (t) {
         const [profileRes, reviewRes] = await Promise.all([
-          supabase.from('profiles').select('first_name, last_name').eq('user_id', t.user_id).maybeSingle(),
+          supabase.from('therapist_public_profiles').select('first_name, last_name').eq('user_id', t.user_id).maybeSingle(),
           supabase.from('reviews').select('*').eq('therapist_id', t.id).order('created_at', { ascending: false }).limit(10),
         ]);
         setProfileName(`${profileRes.data?.first_name ?? ''} ${profileRes.data?.last_name ?? ''}`.trim());

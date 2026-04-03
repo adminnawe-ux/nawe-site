@@ -34,6 +34,19 @@ CREATE TABLE public.profiles (
   updated_at timestamp with time zone NOT NULL DEFAULT now()
 );
 
+-- Public therapist names and avatars only
+CREATE VIEW public.therapist_public_profiles AS
+SELECT
+  p.user_id,
+  p.first_name,
+  p.last_name,
+  p.avatar_url
+FROM public.profiles p
+JOIN public.therapists t ON t.user_id = p.user_id
+WHERE t.verified = true;
+
+GRANT SELECT ON public.therapist_public_profiles TO anon, authenticated;
+
 -- Role-based access control
 CREATE TABLE public.user_roles (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -310,9 +323,6 @@ CREATE POLICY "Users can view own profile" ON public.profiles FOR SELECT TO auth
 CREATE POLICY "Users can insert own profile" ON public.profiles FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = user_id);
 CREATE POLICY "Admins can view all profiles" ON public.profiles FOR SELECT TO authenticated USING (has_role(auth.uid(), 'admin'::app_role));
-CREATE POLICY "Anyone can view therapist profiles" ON public.profiles FOR SELECT USING (
-  EXISTS (SELECT 1 FROM therapists t WHERE t.user_id = profiles.user_id AND t.verified = true)
-);
 
 -- ---- user_roles ----
 CREATE POLICY "Users can view own roles" ON public.user_roles FOR SELECT TO authenticated USING (auth.uid() = user_id);
