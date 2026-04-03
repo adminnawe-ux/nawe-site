@@ -554,6 +554,24 @@ export type Database = {
       }
     }
     Views: {
+      reviews_public: {
+        Row: {
+          created_at: string
+          id: string
+          rating: number
+          therapist_id: string
+          verified: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_therapist_id_fkey"
+            columns: ["therapist_id"]
+            isOneToOne: false
+            referencedRelation: "therapists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       therapist_public_profiles: {
         Row: {
           avatar_url: string | null

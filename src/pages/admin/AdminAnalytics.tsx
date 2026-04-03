@@ -38,7 +38,7 @@ const AdminAnalytics = () => {
       const totalRevenue = completed.reduce((sum, s) => sum + (s.price || 0), 0);
 
       // Reviews
-      const { data: reviews } = await supabase.from('reviews').select('rating');
+      const { data: reviews } = await supabase.from('reviews_public').select('rating');
       const avgRating = reviews && reviews.length > 0
         ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
         : 0;

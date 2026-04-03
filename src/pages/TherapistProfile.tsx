@@ -28,7 +28,7 @@ const TherapistProfile = () => {
   const { user } = useAuth();
   const [therapist, setTherapist] = useState<Therapist | null>(null);
   const [profileName, setProfileName] = useState('');
-  const [reviews, setReviews] = useState<Tables<'reviews'>[]>([]);
+  const [reviews, setReviews] = useState<Tables<'reviews_public'>[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,7 +41,7 @@ const TherapistProfile = () => {
       if (t) {
         const [profileRes, reviewRes] = await Promise.all([
           supabase.from('therapist_public_profiles').select('first_name, last_name').eq('user_id', t.user_id).maybeSingle(),
-          supabase.from('reviews').select('*').eq('therapist_id', t.id).order('created_at', { ascending: false }).limit(10),
+          supabase.from('reviews_public').select('*').eq('therapist_id', t.id).order('created_at', { ascending: false }).limit(10),
         ]);
         setProfileName(`${profileRes.data?.first_name ?? ''} ${profileRes.data?.last_name ?? ''}`.trim());
         setReviews(reviewRes.data ?? []);
@@ -276,7 +276,6 @@ const TherapistProfile = () => {
                             <Badge variant="secondary" className="ml-2 text-[10px] font-ui bg-success/10 text-success border-0">Verified</Badge>
                           )}
                         </div>
-                        {r.text && <p className="font-body text-sm text-muted-foreground">{r.text}</p>}
                       </CardContent>
                     </Card>
                   ))}

@@ -47,6 +47,18 @@ WHERE t.verified = true;
 
 GRANT SELECT ON public.therapist_public_profiles TO anon, authenticated;
 
+-- Public review summary view without review text
+CREATE VIEW public.reviews_public AS
+SELECT
+  id,
+  therapist_id,
+  rating,
+  verified,
+  created_at
+FROM public.reviews;
+
+GRANT SELECT ON public.reviews_public TO anon, authenticated;
+
 -- Role-based access control
 CREATE TABLE public.user_roles (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -358,7 +370,7 @@ CREATE POLICY "Admins can manage sessions" ON public.sessions FOR ALL TO authent
   WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
 
 -- ---- reviews ----
-CREATE POLICY "Anyone can view reviews" ON public.reviews FOR SELECT USING (true);
+CREATE POLICY "Clients can view own reviews" ON public.reviews FOR SELECT TO authenticated USING (auth.uid() = client_id);
 CREATE POLICY "Clients can create reviews" ON public.reviews FOR INSERT TO authenticated WITH CHECK (auth.uid() = client_id);
 CREATE POLICY "Clients can update own reviews" ON public.reviews FOR UPDATE TO authenticated USING (auth.uid() = client_id);
 CREATE POLICY "Admins can manage reviews" ON public.reviews FOR ALL TO authenticated USING (has_role(auth.uid(), 'admin'::app_role));
