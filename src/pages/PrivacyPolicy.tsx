@@ -1,4 +1,5 @@
 import { PRIVACY_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_TEL } from '@/lib/site';
+import { SITE_NAME, PRIVACY_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_TEL } from '@/lib/site';
 
 const PrivacyPolicy = () => (
   <div className="min-h-screen bg-background">
@@ -9,7 +10,7 @@ const PrivacyPolicy = () => (
       <div className="prose prose-neutral dark:prose-invert font-body space-y-8 text-foreground/90">
         <section>
           <h2 className="font-display text-xl text-foreground">1. Introduction</h2>
-          <p>At Nawe Wellness ("we", "us", "the Platform"), your privacy matters deeply. This policy explains what data we collect, why we collect it, and how we protect it. We are committed to GDPR-aligned data practices.</p>
+          <p>At {SITE_NAME} ("we", "us", "the Platform"), your privacy matters deeply. This policy explains what data we collect, why we collect it, and how we protect it. We are committed to GDPR-aligned data practices.</p>
         </section>
 
         <section>
@@ -71,7 +72,7 @@ const PrivacyPolicy = () => (
 
         <section>
           <h2 className="font-display text-xl text-foreground">10. Children's privacy</h2>
-          <p>Nawe Wellness is intended for users aged 18 and above. We do not knowingly collect data from children under 18.</p>
+          <p>{SITE_NAME} is intended for users aged 18 and above. We do not knowingly collect data from children under 18.</p>
         </section>
 
         <section>

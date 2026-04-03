@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LayoutDashboard, Calendar, Users, DollarSign, UserCircle, LogOut } from 'lucide-react';
+import { SITE_NAME } from '@/lib/site';
 
 const navItems = [
   { to: '/therapist-portal', icon: LayoutDashboard, label: 'Dashboard' },
@@ -19,7 +20,7 @@ const TherapistLayout = () => {
       {/* Sidebar */}
       <aside className="w-64 bg-card border-r border-border flex flex-col">
         <div className="p-6">
-          <Link to="/" className="flex items-center"><img src="/logo.png" alt="Nawe Wellness" className="h-9" /></Link>
+          <Link to="/" className="flex items-center"><img src="/logo.png" alt={SITE_NAME} className="h-9" /></Link>
           <p className="font-ui text-xs text-muted-foreground mt-1">Therapist Portal</p>
         </div>
         <nav className="flex-1 px-4 space-y-1">

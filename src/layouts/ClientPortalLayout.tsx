@@ -2,6 +2,7 @@ import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { LogOut, Home, Search, Settings } from 'lucide-react';
+import { SITE_NAME } from '@/lib/site';
 
 const ClientPortalLayout = () => {
   const { user, signOut } = useAuth();
@@ -17,7 +18,7 @@ const ClientPortalLayout = () => {
       <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-6 flex items-center justify-between h-16">
           <Link to="/dashboard" className="flex items-center">
-            <img src="/logo.png" alt="Nawe Wellness" className="h-10" />
+            <img src="/logo.png" alt={SITE_NAME} className="h-10" />
           </Link>
           <div className="hidden md:flex items-center gap-1">
             <Link to="/dashboard">

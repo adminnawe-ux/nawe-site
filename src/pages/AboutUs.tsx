@@ -1,5 +1,5 @@
 import { Heart, Users, Globe, Shield } from 'lucide-react';
-import { SUPPORT_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_TEL } from '@/lib/site';
+import { SITE_NAME, SUPPORT_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_TEL } from '@/lib/site';
 
 const values = [
   {
@@ -37,7 +37,7 @@ const AboutUs = () => (
           Everyone deserves someone to talk to
         </h1>
         <p className="font-body text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-          Nawe Wellness is a mental health marketplace built for East Africa. We connect people with licensed, vetted therapists — making it simple, affordable, and dignifying to get the support you need.
+          {SITE_NAME} is a mental health marketplace built for East Africa. We connect people with licensed, vetted therapists — making it simple, affordable, and dignifying to get the support you need.
         </p>
       </div>
     </section>

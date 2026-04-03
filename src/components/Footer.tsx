@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Phone } from 'lucide-react';
-import { SUPPORT_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_TEL } from '@/lib/site';
+import { SITE_DOMAIN, SITE_NAME, SUPPORT_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_TEL } from '@/lib/site';
 
 const CrisisFooter = () => (
   <div className="bg-foreground/5 border-t border-border py-3 text-center">
@@ -26,7 +26,7 @@ const Footer = () => (
       <div className="container mx-auto px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <img src="/logo.png" alt="Nawe Wellness" className="h-20 mb-3" />
+            <img src="/logo.png" alt={SITE_NAME} className="h-20 mb-3" />
             <p className="font-body text-sm text-muted-foreground leading-relaxed">
               Find your calm. Find your person. Accessible mental health support for everyone.
             </p>
@@ -58,6 +58,11 @@ const Footer = () => (
             <h4 className="font-ui font-semibold text-foreground mb-3 text-sm uppercase tracking-wider">Contact</h4>
             <ul className="space-y-2 font-body text-sm text-muted-foreground">
               <li>
+                <a href={`https://${SITE_DOMAIN}`} target="_blank" rel="noreferrer" className="hover:text-primary transition-colors">
+                  {SITE_DOMAIN}
+                </a>
+              </li>
+              <li>
                 <a href={SUPPORT_PHONE_TEL} className="hover:text-primary transition-colors">
                   {SUPPORT_PHONE}
                 </a>
@@ -72,7 +77,7 @@ const Footer = () => (
         </div>
         <div className="mt-10 pt-6 border-t border-border text-center">
           <p className="font-ui text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Nawe Wellness. All rights reserved.
+            © {new Date().getFullYear()} {SITE_NAME}. All rights reserved.
           </p>
         </div>
       </div>

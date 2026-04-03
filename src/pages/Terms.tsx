@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
-import { SUPPORT_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_TEL } from '@/lib/site';
+import { SITE_NAME, SUPPORT_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_TEL } from '@/lib/site';
 
 const Terms = () => (
   <div className="min-h-screen bg-background">
     <nav className="border-b border-border bg-card/80 backdrop-blur-md">
       <div className="container mx-auto px-6 flex items-center h-16">
         <Link to="/" className="flex items-center">
-          <img src="/logo.png" alt="Nawe Wellness" className="h-10" />
+          <img src="/logo.png" alt={SITE_NAME} className="h-10" />
         </Link>
       </div>
     </nav>
@@ -18,12 +18,12 @@ const Terms = () => (
       <div className="prose prose-neutral dark:prose-invert font-body space-y-8 text-foreground/90">
         <section>
           <h2 className="font-display text-xl text-foreground">1. Acceptance of Terms</h2>
-          <p>By creating an account or using Nawe Wellness ("the Platform"), you agree to be bound by these Terms &amp; Conditions. If you do not agree, please do not use the Platform.</p>
+          <p>By creating an account or using {SITE_NAME} ("the Platform"), you agree to be bound by these Terms &amp; Conditions. If you do not agree, please do not use the Platform.</p>
         </section>
 
         <section>
           <h2 className="font-display text-xl text-foreground">2. Platform Overview</h2>
-          <p>Nawe Wellness is a therapy marketplace that connects clients with licensed therapists. We facilitate discovery, booking, and session management but do not provide therapy services directly.</p>
+          <p>{SITE_NAME} is a therapy marketplace that connects clients with licensed therapists. We facilitate discovery, booking, and session management but do not provide therapy services directly.</p>
         </section>
 
         <section>
@@ -38,7 +38,7 @@ const Terms = () => (
 
         <section>
           <h2 className="font-display text-xl text-foreground">5. Therapist Terms</h2>
-          <p>Therapists must hold valid, verifiable professional credentials. The Platform charges a tiered commission on session fees. Therapists are independent contractors, not employees of Nawe Wellness. Therapists are solely responsible for the quality and legality of their services.</p>
+          <p>Therapists must hold valid, verifiable professional credentials. The Platform charges a tiered commission on session fees. Therapists are independent contractors, not employees of {SITE_NAME}. Therapists are solely responsible for the quality and legality of their services.</p>
         </section>
 
         <section>
@@ -58,12 +58,12 @@ const Terms = () => (
 
         <section>
           <h2 className="font-display text-xl text-foreground">9. Disclaimer of Warranties</h2>
-          <p>The Platform is provided "as is" without warranties of any kind. Nawe Wellness does not guarantee the outcome of any therapy session. We are not liable for the actions or advice of therapists on the Platform.</p>
+          <p>The Platform is provided "as is" without warranties of any kind. {SITE_NAME} does not guarantee the outcome of any therapy session. We are not liable for the actions or advice of therapists on the Platform.</p>
         </section>
 
         <section>
           <h2 className="font-display text-xl text-foreground">10. Limitation of Liability</h2>
-          <p>To the maximum extent permitted by law, Nawe Wellness shall not be liable for any indirect, incidental, or consequential damages arising from your use of the Platform.</p>
+          <p>To the maximum extent permitted by law, {SITE_NAME} shall not be liable for any indirect, incidental, or consequential damages arising from your use of the Platform.</p>
         </section>
 
         <section>

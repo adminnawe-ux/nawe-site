@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SITE_NAME } from '@/lib/site';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -37,7 +38,7 @@ const ForgotPassword = () => {
     <div className="min-h-screen flex items-center justify-center bg-background px-6">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/"><img src="/logo.png" alt="Nawe Wellness" className="h-14 mx-auto" /></Link>
+          <Link to="/"><img src="/logo.png" alt={SITE_NAME} className="h-14 mx-auto" /></Link>
           <p className="font-body text-muted-foreground mt-2">Let's get you back into your account.</p>
         </div>
         <div className="bg-card rounded-card p-8 shadow-soft border border-border">

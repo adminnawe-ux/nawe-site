@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ClipboardList, Users, CalendarCheck, Heart, Shield, Lock, MessageCircle } from 'lucide-react';
+import { SITE_NAME } from '@/lib/site';
 
 const steps = [
   {
@@ -63,7 +64,7 @@ const faqs = [
   },
   {
     question: 'What if I\'m in crisis right now?',
-    answer: 'If you\'re in immediate danger, please call your local emergency number. You can also visit findahelpline.com for crisis support lines in your country. Nawe Wellness is not a crisis service.',
+    answer: 'If you\'re in immediate danger, please call your local emergency number. You can also visit findahelpline.com for crisis support lines in your country. Nawe is not a crisis service.',
   },
   {
     question: 'How are therapists verified?',
@@ -89,7 +90,7 @@ const HowItWorks = () => (
           <span className="text-primary">simple</span>
         </h1>
         <p className="font-body text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-          From your first question to your first session — here's how Nawe Wellness
+          From your first question to your first session — here's how {SITE_NAME}
           connects you with the right therapist, step by step.
         </p>
       </div>
