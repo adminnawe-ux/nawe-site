@@ -12,6 +12,7 @@ GRANT SELECT ON public.reviews_public TO anon, authenticated;
 
 DROP POLICY IF EXISTS "Anyone can view reviews" ON public.reviews;
 DROP POLICY IF EXISTS "Clients can view own reviews" ON public.reviews;
+DROP POLICY IF EXISTS "Admins can manage reviews" ON public.reviews;
 
 CREATE POLICY "Clients can view own reviews" ON public.reviews
   FOR SELECT TO authenticated
