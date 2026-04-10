@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Shield } from 'lucide-react';
-import { SITE_NAME } from '@/lib/site';
+import { APP_URL, SITE_NAME } from '@/lib/site';
 
 const Signup = () => {
   const [firstName, setFirstName] = useState('');
@@ -34,7 +34,7 @@ const Signup = () => {
       password,
       options: {
         data: { first_name: firstName },
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: APP_URL,
       },
     });
 

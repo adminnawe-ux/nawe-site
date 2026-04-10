@@ -26,6 +26,7 @@ Create a `.env` file in the project root:
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
 VITE_SUPABASE_PROJECT_ID=your-project-id
+VITE_APP_URL=https://nawe.co.ke
 ```
 
 ## 3. Edge Functions
@@ -54,6 +55,9 @@ If you add AI features, set:
 - Email auth is enabled by default
 - Email confirmation is **required** (do not enable auto-confirm)
 - The `handle_new_user` trigger auto-creates a profile and assigns the `client` role on signup
+- In Supabase Dashboard, set Authentication > URL Configuration > Site URL to your live site, for example `https://nawe.co.ke`
+- Add your live domain and any preview domains to the redirect allow list
+- The frontend uses `VITE_APP_URL` for sign-up and password-reset emails, so keep it aligned with your production domain
 
 ## 5. Storage
 
@@ -82,6 +86,7 @@ shadcn/ui components (radix-ui primitives)
 - [ ] Run `full-schema.sql` in SQL Editor
 - [ ] Deploy edge functions
 - [ ] Set environment variables
+- [ ] Set `VITE_APP_URL` to the production domain
 - [ ] Update `src/integrations/supabase/client.ts` with your project URL/key
 - [ ] Regenerate types: `supabase gen types typescript --project-id your-id > src/integrations/supabase/types.ts`
 - [ ] Test signup flow (email confirmation + terms acceptance)
