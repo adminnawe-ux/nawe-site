@@ -16,6 +16,7 @@ import AdminLayout from "@/layouts/AdminLayout";
 import Index from "@/pages/Index";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
+import TherapistSignup from "@/pages/TherapistSignup";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import ForTherapists from "@/pages/ForTherapists";
@@ -92,6 +93,7 @@ const App = () => (
             {/* Auth pages (no layout) */}
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/therapist-signup" element={<TherapistSignup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/auth-redirect" element={<AuthRedirect />} />

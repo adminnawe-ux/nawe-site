@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Users, Shield, DollarSign, Star } from 'lucide-react';
+import { Users, Shield, DollarSign, Star, LogIn, UserPlus } from 'lucide-react';
 
 const ForTherapists = () => (
   <div>
@@ -15,12 +15,23 @@ const ForTherapists = () => (
           Join a network of licensed professionals helping clients across East Africa and beyond.
           We handle the matching, scheduling, and payments — you focus on what matters.
         </p>
-        <Link to="/therapist-portal/onboarding">
-          <Button size="lg" className="font-ui text-base px-8 py-6 rounded-full bg-primary shadow-soft">
-            Apply to Join
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link to="/therapist-signup">
+            <Button size="lg" className="font-ui text-base px-8 py-6 rounded-full bg-primary shadow-soft">
+              Apply to Join
+              <UserPlus className="ml-2 h-5 w-5" />
+            </Button>
+          </Link>
+          <Link to="/login">
+            <Button size="lg" variant="outline" className="font-ui text-base px-8 py-6 rounded-full">
+              Log In
+              <LogIn className="ml-2 h-5 w-5" />
+            </Button>
+          </Link>
+        </div>
+        <p className="font-ui text-xs text-muted-foreground mt-4">
+          New therapist? Apply to join, then finish your profile after you confirm your email and sign in.
+        </p>
       </div>
     </section>
 
@@ -53,9 +64,14 @@ const ForTherapists = () => (
         <p className="font-body text-muted-foreground mb-8">
           You keep 80% of every session fee. No hidden costs, no surprises. Payouts on your schedule.
         </p>
-        <Link to="/therapist-portal/onboarding">
-          <Button className="font-ui rounded-full px-8">Start Your Application</Button>
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link to="/therapist-signup">
+            <Button className="font-ui rounded-full px-8">Start Your Application</Button>
+          </Link>
+          <Link to="/login">
+            <Button variant="outline" className="font-ui rounded-full px-8">Already have an account?</Button>
+          </Link>
+        </div>
       </div>
     </section>
   </div>

@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
+const THERAPIST_ONBOARDING_FLAG = 'nawe_pending_therapist_onboarding';
+
 const AuthRedirect = () => {
   const { user, roles, loading } = useAuth();
   const navigate = useNavigate();
@@ -15,6 +17,12 @@ const AuthRedirect = () => {
     }
 
     if (roles.length === 0) return; // still loading roles
+
+    const pendingTherapistApplication = localStorage.getItem(THERAPIST_ONBOARDING_FLAG) === '1';
+    if (pendingTherapistApplication && !roles.includes('therapist')) {
+      navigate('/therapist-portal/onboarding', { replace: true });
+      return;
+    }
 
     if (roles.includes('admin')) {
       navigate('/admin', { replace: true });

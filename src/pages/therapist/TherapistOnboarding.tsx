@@ -42,6 +42,7 @@ const SESSION_FORMATS = ['Video Call', 'Phone Call', 'In-Person', 'Chat / Messag
 const LANGUAGES = ['English', 'Swahili', 'Kikuyu', 'Luo', 'Kamba', 'French', 'Arabic', 'Somali'];
 const CLIENT_POPULATIONS = ['Adults', 'Adolescents', 'Children', 'Couples', 'Families', 'LGBTQ+', 'Elderly'];
 const CURRENCIES = ['KES', 'USD', 'GBP', 'EUR'];
+const THERAPIST_ONBOARDING_FLAG = 'nawe_pending_therapist_onboarding';
 
 interface OnboardingData {
   professional_title: string;
@@ -125,7 +126,7 @@ const ChipSelect = ({
 );
 
 const TherapistOnboarding = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [data, setData] = useState<OnboardingData>(defaultData);
@@ -135,6 +136,12 @@ const TherapistOnboarding = () => {
   const update = <K extends keyof OnboardingData>(key: K, value: OnboardingData[K]) =>
     setData((prev) => ({ ...prev, [key]: value }));
 
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/login', { replace: true });
+    }
+  }, [loading, navigate, user]);
+
   const addCompetency = () => {
     const trimmed = customCompetency.trim();
     if (trimmed && !data.cultural_competencies.includes(trimmed)) {
@@ -142,6 +149,14 @@ const TherapistOnboarding = () => {
       setCustomCompetency('');
     }
   };
+
+  if (loading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   const handleSubmit = async () => {
     if (!user) return;
@@ -170,6 +185,7 @@ const TherapistOnboarding = () => {
         await supabase.from('user_roles').insert({ user_id: user.id, role: 'therapist' as const });
       }
 
+      localStorage.removeItem(THERAPIST_ONBOARDING_FLAG);
       toast({ title: 'Profile submitted!', description: 'Your profile is under review. We will notify you once verified.' });
       navigate('/therapist-portal');
     } catch (err: unknown) {
