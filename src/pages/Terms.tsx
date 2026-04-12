@@ -13,67 +13,112 @@ const Terms = () => (
 
     <div className="container mx-auto px-6 py-16 max-w-3xl">
       <h1 className="font-display text-4xl text-foreground mb-2">Terms &amp; Conditions</h1>
-      <p className="font-body text-muted-foreground mb-10">Version 1.0 — Effective March 2026</p>
+      <p className="font-body text-muted-foreground mb-10">Version 2.0 — Effective April 12, 2026</p>
 
       <div className="prose prose-neutral dark:prose-invert font-body space-y-8 text-foreground/90">
         <section>
-          <h2 className="font-display text-xl text-foreground">1. Acceptance of Terms</h2>
-          <p>By creating an account or using {SITE_NAME} ("the Platform"), you agree to be bound by these Terms &amp; Conditions. If you do not agree, please do not use the Platform.</p>
+          <h2 className="font-display text-xl text-foreground">1. Acceptance</h2>
+          <p>
+            By creating an account, submitting the questionnaire, or using {SITE_NAME} (the "Platform"), you agree to these
+            Terms, our Privacy Policy, and any additional notices shown in the app. If you do not agree, do not use the Platform.
+          </p>
         </section>
 
         <section>
-          <h2 className="font-display text-xl text-foreground">2. Platform Overview</h2>
-          <p>{SITE_NAME} is a therapy marketplace that connects clients with licensed therapists. We facilitate discovery, booking, and session management but do not provide therapy services directly.</p>
+          <h2 className="font-display text-xl text-foreground">2. What the Platform does</h2>
+          <p>
+            {SITE_NAME} is a marketplace that helps people discover, compare, book, and manage sessions with independent,
+            licensed therapists. We provide the platform, not therapy, diagnosis, or emergency services.
+          </p>
         </section>
 
         <section>
-          <h2 className="font-display text-xl text-foreground">3. User Accounts</h2>
-          <p>You must provide accurate, current information when registering. You are responsible for maintaining the confidentiality of your account credentials. You must be at least 18 years old to use this Platform.</p>
+          <h2 className="font-display text-xl text-foreground">3. No emergency use</h2>
+          <p>
+            The Platform is not for emergencies, suicidal crisis, or immediate danger. If you or someone else is in danger,
+            call local emergency services or go to the nearest emergency facility immediately. Do not rely on the Platform for
+            crisis intervention.
+          </p>
         </section>
 
         <section>
-          <h2 className="font-display text-xl text-foreground">4. Client Terms</h2>
-          <p>Clients use the Platform to find and book sessions with therapists. Session fees are set by individual therapists and displayed before booking. Cancellation policies are set by each therapist and shown on their profile.</p>
+          <h2 className="font-display text-xl text-foreground">4. Accounts and eligibility</h2>
+          <p>
+            You must provide accurate, current information when registering and keep your account credentials secure. You must
+            be at least 18 years old to use the Platform unless we explicitly approve a different arrangement in writing.
+            You are responsible for all activity on your account.
+          </p>
         </section>
 
         <section>
-          <h2 className="font-display text-xl text-foreground">5. Therapist Terms</h2>
-          <p>Therapists must hold valid, verifiable professional credentials. The Platform charges a tiered commission on session fees. Therapists are independent contractors, not employees of {SITE_NAME}. Therapists are solely responsible for the quality and legality of their services.</p>
+          <h2 className="font-display text-xl text-foreground">5. Therapist verification</h2>
+          <p>
+            Therapists must have valid credentials and may only provide services within their lawful professional scope.
+            Verification does not mean we supervise, guarantee, or take responsibility for the therapist's clinical judgment.
+            Therapists are independent contractors, not employees of {SITE_NAME}.
+          </p>
         </section>
 
         <section>
-          <h2 className="font-display text-xl text-foreground">6. Payments &amp; Commissions</h2>
-          <p>Session payments are processed through the Platform. A tiered commission rate is deducted from therapist earnings based on monthly revenue thresholds. Payout schedules and methods are outlined in the therapist portal.</p>
+          <h2 className="font-display text-xl text-foreground">6. Bookings, cancellations, and payments</h2>
+          <p>
+            Session fees, cancellation windows, and availability are set by each therapist and shown before booking. Payments
+            are handled through the Platform, and our commission is deducted from therapist earnings according to the published
+            tier schedule. Refunds and disputes are handled under the booking and payment rules shown in the app and any payment
+            provider terms.
+          </p>
         </section>
 
         <section>
-          <h2 className="font-display text-xl text-foreground">7. Privacy &amp; Confidentiality</h2>
-          <p>We take your privacy seriously. Personal health information shared during sessions is between you and your therapist. The Platform collects only the data necessary to facilitate services. See our Privacy Policy for full details.</p>
+          <h2 className="font-display text-xl text-foreground">7. Privacy, confidentiality, and content</h2>
+          <p>
+            We collect only the data needed to operate the Platform. Personal health information you share through the
+            questionnaire, booking flow, reviews, messages, or support channels is processed under our Privacy Policy and the
+            privacy settings of the applicable feature. Do not post sensitive clinical details in public reviews or public
+            comments. Review and profile content may be moderated or removed if it violates these Terms.
+          </p>
         </section>
 
         <section>
-          <h2 className="font-display text-xl text-foreground">8. Prohibited Conduct</h2>
-          <p>Users may not: impersonate others, harass or abuse other users, use the Platform for illegal purposes, attempt to access accounts or data belonging to others, or circumvent Platform fees.</p>
+          <h2 className="font-display text-xl text-foreground">8. Acceptable use</h2>
+          <p>
+            You may not impersonate anyone, harass others, upload unlawful or harmful content, attempt to access another
+            user's account or data, misuse therapist verification, scrape the Platform, or use the Platform to avoid fees or
+            solicit off-platform work in a way that breaks our rules or any applicable law.
+          </p>
         </section>
 
         <section>
-          <h2 className="font-display text-xl text-foreground">9. Disclaimer of Warranties</h2>
-          <p>The Platform is provided "as is" without warranties of any kind. {SITE_NAME} does not guarantee the outcome of any therapy session. We are not liable for the actions or advice of therapists on the Platform.</p>
+          <h2 className="font-display text-xl text-foreground">9. No medical advice and no warranty</h2>
+          <p>
+            Content on the Platform is for information and matchmaking only. {SITE_NAME} does not guarantee any outcome from
+            therapy or provide medical advice, diagnosis, or treatment. The Platform is provided "as is" and "as available" to
+            the fullest extent permitted by law.
+          </p>
         </section>
 
         <section>
-          <h2 className="font-display text-xl text-foreground">10. Limitation of Liability</h2>
-          <p>To the maximum extent permitted by law, {SITE_NAME} shall not be liable for any indirect, incidental, or consequential damages arising from your use of the Platform.</p>
+          <h2 className="font-display text-xl text-foreground">10. Liability</h2>
+          <p>
+            To the maximum extent permitted by law, {SITE_NAME} is not liable for the acts, omissions, advice, or outcomes of
+            therapists, nor for indirect or consequential losses arising from your use of the Platform.
+          </p>
         </section>
 
         <section>
-          <h2 className="font-display text-xl text-foreground">11. Termination</h2>
-          <p>We reserve the right to suspend or terminate accounts that violate these Terms. Users may delete their accounts at any time through the settings page.</p>
+          <h2 className="font-display text-xl text-foreground">11. Changes and suspension</h2>
+          <p>
+            We may update these Terms, suspend access, or remove content if required for safety, compliance, fraud prevention,
+            or platform integrity. Material changes will be posted on the Platform and may be communicated by email or in-app.
+          </p>
         </section>
 
         <section>
-          <h2 className="font-display text-xl text-foreground">12. Changes to Terms</h2>
-          <p>We may update these Terms from time to time. Users will be notified of material changes. Continued use of the Platform after changes constitutes acceptance of the updated Terms.</p>
+          <h2 className="font-display text-xl text-foreground">12. Governing law</h2>
+          <p>
+            These Terms are governed by the laws of Kenya. Any dispute that cannot be resolved informally may be brought in a
+            competent Kenyan court, unless another dispute process is required by law or a separate written agreement.
+          </p>
         </section>
 
         <section>

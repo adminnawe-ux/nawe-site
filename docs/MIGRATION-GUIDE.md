@@ -59,13 +59,25 @@ If you add AI features, set:
 - Add your live domain and any preview domains to the redirect allow list
 - The frontend uses `VITE_APP_URL` for sign-up and password-reset emails, so keep it aligned with your production domain
 
-## 5. Storage
+## 5. Kenya Data Protection Checklist
+
+Because the live site collects account details and mental-health intake data, treat this as a personal-data and sensitive-data processing system.
+
+- Register the business with the Office of the Data Protection Commissioner if you have not already done so.
+- Keep a written privacy notice that names the controller, contact details, purposes, lawful bases, retention periods, and rights.
+- Use a separate, explicit consent flow for questionnaire or other health-related data.
+- Run a DPIA before adding new profiling, analytics, messaging, or AI features.
+- Document any transfer of data to processors outside Kenya, including hosting and email providers.
+- Keep a breach-response process for investigation and notification.
+- Review therapist/admin access regularly so staff only see the minimum data they need.
+
+## 6. Storage
 
 Two public buckets:
 - `avatars` — therapist/user profile photos
 - `article-covers` — blog article cover images
 
-## 6. NPM Dependencies
+## 7. NPM Dependencies
 
 Key packages beyond React/Vite/Tailwind:
 
@@ -81,7 +93,7 @@ sonner
 shadcn/ui components (radix-ui primitives)
 ```
 
-## 7. Post-Migration Checklist
+## 8. Post-Migration Checklist
 
 - [ ] Run `full-schema.sql` in SQL Editor
 - [ ] Deploy edge functions
@@ -92,3 +104,4 @@ shadcn/ui components (radix-ui primitives)
 - [ ] Test signup flow (email confirmation + terms acceptance)
 - [ ] Test therapist onboarding (role enforcement)
 - [ ] Verify storage uploads work
+- [ ] Confirm privacy policy, terms, and consent text match the live product

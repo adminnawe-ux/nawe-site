@@ -4,85 +4,132 @@ const PrivacyPolicy = () => (
   <div className="min-h-screen bg-background">
     <div className="container mx-auto px-6 py-16 max-w-3xl">
       <h1 className="font-display text-4xl text-foreground mb-2">Privacy Policy</h1>
-      <p className="font-body text-muted-foreground mb-10">Last updated — March 2026</p>
+      <p className="font-body text-muted-foreground mb-10">Last updated — April 12, 2026</p>
 
       <div className="prose prose-neutral dark:prose-invert font-body space-y-8 text-foreground/90">
         <section>
-          <h2 className="font-display text-xl text-foreground">1. Introduction</h2>
-          <p>At {SITE_NAME} ("we", "us", "the Platform"), your privacy matters deeply. This policy explains what data we collect, why we collect it, and how we protect it. We are committed to GDPR-aligned data practices.</p>
+          <h2 className="font-display text-xl text-foreground">1. Who we are</h2>
+          <p>
+            {SITE_NAME} operates the Platform and acts as the data controller for the personal data collected through it.
+            This policy explains what we collect, why we collect it, how we share it, and the rights you have under the Kenya
+            Data Protection Act, 2019 and related regulations.
+          </p>
         </section>
 
         <section>
           <h2 className="font-display text-xl text-foreground">2. What we collect</h2>
           <ul className="list-disc pl-6 space-y-2">
-            <li><strong>Account information:</strong> Name, email address, and phone number when you sign up.</li>
-            <li><strong>Intake responses:</strong> Answers to our matching questionnaire (concerns, preferences, demographics). These are used solely to find your best therapist match.</li>
-            <li><strong>Session data:</strong> Booking times, session format, and status — never session content.</li>
-            <li><strong>Usage data:</strong> Anonymous analytics to improve our platform (pages visited, features used).</li>
+            <li><strong>Account details:</strong> name, email address, phone number, password hash, and login metadata.</li>
+            <li><strong>Profile details:</strong> location, timezone, avatar, and other information you choose to add.</li>
+            <li><strong>Therapy intake data:</strong> questionnaire answers about concerns, preferences, demographics, and other health-related information.</li>
+            <li><strong>Booking data:</strong> therapist selections, session times, payment status, notes you choose to provide, and cancellation information.</li>
+            <li><strong>Therapist application data:</strong> professional credentials, bio, service offerings, and verification documents or details.</li>
+            <li><strong>Support and communications:</strong> messages you send to us by email, form, or in-app support.</li>
+            <li><strong>Technical data:</strong> device/browser information, log data, IP address, and basic usage analytics.</li>
           </ul>
         </section>
 
         <section>
           <h2 className="font-display text-xl text-foreground">3. How we use your data</h2>
           <ul className="list-disc pl-6 space-y-2">
-            <li>To match you with suitable therapists based on your preferences.</li>
-            <li>To facilitate session bookings and reminders.</li>
-            <li>To improve our services and user experience.</li>
-            <li>To communicate important updates about your account or sessions.</li>
-          </ul>
-          <p className="mt-3">We <strong>never</strong> sell your personal data to third parties.</p>
-        </section>
-
-        <section>
-          <h2 className="font-display text-xl text-foreground">4. Therapist access</h2>
-          <p>Therapists receive only an <strong>anonymised summary</strong> of your intake responses — your concerns and session preferences — before a booking is confirmed. Your full name and contact details are only shared once you book a session.</p>
-        </section>
-
-        <section>
-          <h2 className="font-display text-xl text-foreground">5. Data security</h2>
-          <p>All data is encrypted at rest and in transit. We use industry-standard security practices including row-level security, secure authentication, and regular security audits. Our infrastructure is hosted on trusted, enterprise-grade cloud providers.</p>
-        </section>
-
-        <section>
-          <h2 className="font-display text-xl text-foreground">6. Data retention</h2>
-          <p>We retain your data for as long as your account is active. If you delete your account, all associated personal data is permanently removed within 30 days. Anonymised, aggregated data may be retained for analytics purposes.</p>
-        </section>
-
-        <section>
-          <h2 className="font-display text-xl text-foreground">7. Your rights</h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li><strong>Access:</strong> Request a copy of the data we hold about you.</li>
-            <li><strong>Correction:</strong> Update or correct inaccurate information.</li>
-            <li><strong>Deletion:</strong> Delete your account and all associated data at any time.</li>
-            <li><strong>Portability:</strong> Request your data in a machine-readable format.</li>
-            <li><strong>Objection:</strong> Opt out of non-essential data processing.</li>
+            <li>To create and manage your account and keep it secure.</li>
+            <li>To match you with therapists, including automated ranking based on your questionnaire responses.</li>
+            <li>To book, confirm, and manage sessions and reminders.</li>
+            <li>To verify therapists and manage public therapist profiles.</li>
+            <li>To process payments, commissions, refunds, and disputes.</li>
+            <li>To comply with legal, accounting, tax, and regulatory obligations.</li>
+            <li>To improve the Platform, prevent fraud, and maintain safety.</li>
           </ul>
         </section>
 
         <section>
-          <h2 className="font-display text-xl text-foreground">8. Cookies</h2>
-          <p>We use essential cookies to keep you logged in and remember your preferences. We do not use advertising or tracking cookies. Analytics cookies are anonymised and do not identify individual users.</p>
-        </section>
-
-        <section>
-          <h2 className="font-display text-xl text-foreground">9. Third-party services</h2>
-          <p>We use trusted third-party services for authentication, payments, and infrastructure. These services are contractually bound to protect your data and only process it on our behalf.</p>
-        </section>
-
-        <section>
-          <h2 className="font-display text-xl text-foreground">10. Children's privacy</h2>
-          <p>{SITE_NAME} is intended for users aged 18 and above. We do not knowingly collect data from children under 18.</p>
-        </section>
-
-        <section>
-          <h2 className="font-display text-xl text-foreground">11. Changes to this policy</h2>
-          <p>We may update this policy from time to time. Material changes will be communicated via email or in-app notification. Continued use of the Platform after changes constitutes acceptance.</p>
-        </section>
-
-        <section>
-          <h2 className="font-display text-xl text-foreground">12. Contact us</h2>
+          <h2 className="font-display text-xl text-foreground">4. Lawful basis and sensitive data</h2>
           <p>
-            For privacy-related questions or to exercise your rights, contact us at{' '}
+            We rely on lawful bases permitted by law, including contract, consent, legitimate interests, and legal obligation,
+            depending on the activity. Because therapy matching can involve sensitive health-related information, we ask for
+            clear consent and limit processing to what is necessary to provide the service. If you withdraw consent for a
+            feature that depends on consent, we may no longer be able to provide that feature.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="font-display text-xl text-foreground">5. Sharing and recipients</h2>
+          <p>We do not sell your personal data. We may share it only with:</p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Therapists and staff who need it to provide or manage services.</li>
+            <li>Service providers such as hosting, authentication, storage, analytics, messaging, and payment processors.</li>
+            <li>Professional advisers, auditors, regulators, or law enforcement where required or permitted by law.</li>
+            <li>Emergency services or third parties where needed to protect life or respond to a serious safety risk.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="font-display text-xl text-foreground">6. International transfers</h2>
+          <p>
+            Some of our service providers may process data outside Kenya. Where that happens, we use reasonable contractual,
+            technical, and organisational safeguards and only transfer data where the law allows it.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="font-display text-xl text-foreground">7. Automated matching and profiling</h2>
+          <p>
+            We use questionnaire answers to rank and suggest therapists. This is a form of profiling. The result is only a
+            recommendation, not a binding medical decision. You remain free to choose a therapist yourself and to ignore the
+            recommendation list.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="font-display text-xl text-foreground">8. How long we keep data</h2>
+          <p>
+            We keep personal data only as long as needed for the purposes above, including legal, accounting, tax, dispute,
+            and backup requirements. If you delete your account, we aim to remove active personal data within 30 days, subject
+            to any legal retention duties and backup cycles.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="font-display text-xl text-foreground">9. Security and breaches</h2>
+          <p>
+            We use technical and organisational safeguards such as access controls, row-level security, encryption in transit,
+            and least-privilege access. No system is perfectly secure. If a data breach occurs, we will take the steps required
+            by law, which may include notifying the ODPC and affected data subjects.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="font-display text-xl text-foreground">10. Your rights</h2>
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>Access:</strong> ask for the personal data we hold about you.</li>
+            <li><strong>Correction:</strong> fix inaccurate or incomplete data.</li>
+            <li><strong>Deletion:</strong> request deletion where the law allows it.</li>
+            <li><strong>Restriction/objection:</strong> object to or restrict certain processing.</li>
+            <li><strong>Portability:</strong> request a copy in a usable format where applicable.</li>
+            <li><strong>Withdraw consent:</strong> withdraw consent for consent-based processing at any time.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="font-display text-xl text-foreground">11. Cookies and analytics</h2>
+          <p>
+            We use essential cookies for authentication and core features. We may use non-essential analytics only to understand
+            usage and improve the Platform. Where consent is required for analytics cookies or similar tools, we will ask for it.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="font-display text-xl text-foreground">12. Children</h2>
+          <p>
+            The Platform is intended for adults aged 18 and above. We do not knowingly collect personal data from children
+            under 18.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="font-display text-xl text-foreground">13. Complaints and contact</h2>
+          <p>
+            To exercise your rights or ask privacy questions, contact us at{' '}
             <a href={SUPPORT_PHONE_TEL} className="text-primary hover:underline">
               {SUPPORT_PHONE}
             </a>{' '}
@@ -90,7 +137,8 @@ const PrivacyPolicy = () => (
             <a href={`mailto:${PRIVACY_EMAIL}`} className="text-primary hover:underline">
               {PRIVACY_EMAIL}
             </a>
-            .
+            . You may also lodge a complaint with the Office of the Data Protection Commissioner if you are not satisfied with
+            our response.
           </p>
         </section>
       </div>

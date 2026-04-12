@@ -122,7 +122,12 @@ const Signup = () => {
                 I agree to the{' '}
                 <Link to="/terms" target="_blank" className="text-primary hover:underline font-medium">
                   Terms &amp; Conditions
+                </Link>{' '}
+                and{' '}
+                <Link to="/privacy" target="_blank" className="text-primary hover:underline font-medium">
+                  Privacy Policy
                 </Link>
+                , and I consent to Nawe processing my personal data to create my account and provide the service.
               </Label>
             </div>
             {error && (
@@ -141,7 +146,7 @@ const Signup = () => {
         </div>
         <div className="flex items-center justify-center gap-2 mt-6 text-muted-foreground">
           <Shield className="h-4 w-4" />
-          <p className="font-ui text-xs">Your information is private and protected. We never share your data.</p>
+          <p className="font-ui text-xs">We use your information to create your account and provide the Platform. See our Privacy Policy for details.</p>
         </div>
       </div>
     </div>

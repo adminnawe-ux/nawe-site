@@ -137,7 +137,12 @@ const TherapistSignup = () => {
                 I agree to the{' '}
                 <Link to="/terms" target="_blank" className="text-primary hover:underline font-medium">
                   Terms &amp; Conditions
+                </Link>{' '}
+                and{' '}
+                <Link to="/privacy" target="_blank" className="text-primary hover:underline font-medium">
+                  Privacy Policy
                 </Link>
+                , and I consent to Nawe processing my personal and professional data to review my application and operate the Platform.
               </Label>
             </div>
             {error && <p className="font-ui text-sm text-destructive">{error}</p>}
@@ -155,7 +160,7 @@ const TherapistSignup = () => {
 
         <div className="flex items-center justify-center gap-2 mt-6 text-muted-foreground">
           <Shield className="h-4 w-4" />
-          <p className="font-ui text-xs">Your application will be reviewed before your profile goes public.</p>
+          <p className="font-ui text-xs">Your application will be reviewed before your profile goes public. See our Privacy Policy for how we handle application data.</p>
         </div>
       </div>
     </div>

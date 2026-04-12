@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -70,6 +70,7 @@ const Questionnaire = () => {
   const [step, setStep] = useState(1);
   const [data, setData] = useState<FormData>(initialData);
   const [submitting, setSubmitting] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -91,6 +92,15 @@ const Questionnaire = () => {
   const back = () => setStep((s) => Math.max(s - 1, 1));
 
   const handleSubmit = async () => {
+    if (!consentAccepted) {
+      toast({
+        title: 'Consent required',
+        description: 'Please confirm that you consent to this data being processed for matching and service delivery.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setSubmitting(true);
     try {
       const { data: session } = await supabase.auth.getSession();
@@ -156,7 +166,12 @@ const Questionnaire = () => {
         {step === 3 && <StepSessionPrefs data={data} update={update} toggleArray={toggleArray} />}
         {step === 4 && <StepTherapistPrefs data={data} update={update} />}
         {step === 5 && <StepFinancial data={data} update={update} />}
-        {step === 6 && <StepFinal data={data} update={update} />}
+        {step === 6 && <StepFinal
+          data={data}
+          update={update}
+          consentAccepted={consentAccepted}
+          setConsentAccepted={setConsentAccepted}
+        />}
 
         {/* Navigation */}
         <div className="flex justify-between mt-10">
@@ -168,7 +183,7 @@ const Questionnaire = () => {
               Continue <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={submitting} className="font-ui rounded-full px-8 bg-accent hover:bg-accent/90 text-accent-foreground">
+            <Button onClick={handleSubmit} disabled={submitting || !consentAccepted} className="font-ui rounded-full px-8 bg-accent hover:bg-accent/90 text-accent-foreground">
               {submitting ? 'Saving…' : 'Find My Matches'}
               <Heart className="ml-2 h-4 w-4" />
             </Button>
@@ -450,7 +465,17 @@ const StepFinancial = ({ data, update }: { data: FormData; update: <K extends ke
 );
 
 // Step 6: Final Context
-const StepFinal = ({ data, update }: { data: FormData; update: <K extends keyof FormData>(k: K, v: FormData[K]) => void }) => (
+const StepFinal = ({
+  data,
+  update,
+  consentAccepted,
+  setConsentAccepted,
+}: {
+  data: FormData;
+  update: <K extends keyof FormData>(k: K, v: FormData[K]) => void;
+  consentAccepted: boolean;
+  setConsentAccepted: (value: boolean) => void;
+}) => (
   <div>
     <StepHeading title="Anything else?" subtitle="Is there anything you'd like your matched therapist to know? This is completely optional." />
 
@@ -469,12 +494,32 @@ const StepFinal = ({ data, update }: { data: FormData; update: <K extends keyof 
           <div>
             <p className="font-ui text-sm font-medium text-foreground">Your privacy matters</p>
             <p className="font-body text-xs text-muted-foreground mt-1">
-              Everything you share here is encrypted and only used to find your best therapist match.
-              Your therapist will not see your questionnaire answers unless you choose to share them.
+              We use your answers to match you with therapists and manage your account. Do not include emergency details here.
+              Read our{' '}
+              <Link to="/privacy" className="text-primary hover:underline">
+                Privacy Policy
+              </Link>{' '}
+              for the full details.
             </p>
           </div>
         </CardContent>
       </Card>
+
+      <label className="flex items-start gap-3 p-4 rounded-card border border-border bg-card font-ui text-sm cursor-pointer">
+        <Checkbox
+          checked={consentAccepted}
+          onCheckedChange={(v) => setConsentAccepted(v === true)}
+          className="mt-0.5"
+        />
+        <span className="leading-snug text-muted-foreground">
+          I consent to Nawe processing the personal and health-related information I provide here to match me with therapists
+          and manage therapy-related services, as described in the{' '}
+          <Link to="/privacy" className="text-primary hover:underline">
+            Privacy Policy
+          </Link>
+          .
+        </span>
+      </label>
     </div>
   </div>
 );
