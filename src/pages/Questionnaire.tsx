@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 
 const TOTAL_STEPS = 6;
 const QUESTIONNAIRE_CONSENT_VERSION = '2026-04-12';
+const QUESTIONNAIRE_DRAFT_KEY = 'nawe_questionnaire_draft';
+const QUESTIONNAIRE_PENDING_FLAG = 'nawe_pending_questionnaire';
 
 const CONCERNS = [
   'Anxiety', 'Depression', 'Stress', 'Grief & Loss', 'Relationship Issues',
@@ -75,6 +77,33 @@ const Questionnaire = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  useEffect(() => {
+    const saved = localStorage.getItem(QUESTIONNAIRE_DRAFT_KEY);
+    if (!saved) return;
+
+    try {
+      const parsed = JSON.parse(saved) as { data?: Partial<FormData>; consentAccepted?: boolean };
+      if (parsed.data) {
+        setData((prev) => ({ ...prev, ...parsed.data }));
+      }
+      if (typeof parsed.consentAccepted === 'boolean') {
+        setConsentAccepted(parsed.consentAccepted);
+      }
+    } catch {
+      localStorage.removeItem(QUESTIONNAIRE_DRAFT_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(
+      QUESTIONNAIRE_DRAFT_KEY,
+      JSON.stringify({
+        data,
+        consentAccepted,
+      })
+    );
+  }, [consentAccepted, data]);
+
   const progress = (step / TOTAL_STEPS) * 100;
 
   const update = <K extends keyof FormData>(key: K, value: FormData[K]) =>
@@ -106,8 +135,9 @@ const Questionnaire = () => {
     try {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) {
+        localStorage.setItem(QUESTIONNAIRE_PENDING_FLAG, '1');
         toast({ title: 'Please sign in first', description: 'You need to be logged in to save your questionnaire.', variant: 'destructive' });
-        navigate('/login');
+        navigate('/signup');
         return;
       }
 
@@ -121,6 +151,8 @@ const Questionnaire = () => {
 
       if (error) throw error;
 
+      localStorage.removeItem(QUESTIONNAIRE_PENDING_FLAG);
+      localStorage.removeItem(QUESTIONNAIRE_DRAFT_KEY);
       toast({ title: 'Questionnaire saved!', description: "We're finding your best matches." });
       navigate('/matches');
     } catch (err: unknown) {

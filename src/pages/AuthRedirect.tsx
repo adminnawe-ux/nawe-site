@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 const THERAPIST_ONBOARDING_FLAG = 'nawe_pending_therapist_onboarding';
+const QUESTIONNAIRE_PENDING_FLAG = 'nawe_pending_questionnaire';
 
 const AuthRedirect = () => {
   const { user, roles, loading } = useAuth();
@@ -21,6 +22,12 @@ const AuthRedirect = () => {
     const pendingTherapistApplication = localStorage.getItem(THERAPIST_ONBOARDING_FLAG) === '1';
     if (pendingTherapistApplication && !roles.includes('therapist')) {
       navigate('/therapist-portal/onboarding', { replace: true });
+      return;
+    }
+
+    const pendingQuestionnaire = localStorage.getItem(QUESTIONNAIRE_PENDING_FLAG) === '1';
+    if (pendingQuestionnaire) {
+      navigate('/questionnaire', { replace: true });
       return;
     }
 

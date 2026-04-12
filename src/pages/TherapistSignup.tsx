@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Shield, ArrowRight } from 'lucide-react';
-import { APP_URL, SITE_NAME } from '@/lib/site';
+import { AUTH_REDIRECT_URL, SITE_NAME } from '@/lib/site';
 
 const THERAPIST_ONBOARDING_FLAG = 'nawe_pending_therapist_onboarding';
 
@@ -38,7 +38,7 @@ const TherapistSignup = () => {
       password,
       options: {
         data: { first_name: firstName, last_name: lastName, account_type: 'therapist' },
-        emailRedirectTo: APP_URL,
+        emailRedirectTo: AUTH_REDIRECT_URL,
       },
     });
 
