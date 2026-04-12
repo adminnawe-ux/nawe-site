@@ -162,7 +162,21 @@ const TherapistOnboarding = () => {
     if (!user) return;
     setSaving(true);
     try {
-      // Upsert therapist record
+      // Add therapist role if not present
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'therapist');
+
+      if (!roles || roles.length === 0) {
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({ user_id: user.id, role: 'therapist' as const });
+        if (roleError) throw roleError;
+      }
+
+      // Upsert therapist record after the role exists so the DB trigger allows it.
       const { error: tError } = await supabase.from('therapists').upsert(
         {
           user_id: user.id,
@@ -173,17 +187,6 @@ const TherapistOnboarding = () => {
         { onConflict: 'user_id' }
       );
       if (tError) throw tError;
-
-      // Add therapist role if not present
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'therapist');
-
-      if (!roles || roles.length === 0) {
-        await supabase.from('user_roles').insert({ user_id: user.id, role: 'therapist' as const });
-      }
 
       localStorage.removeItem(THERAPIST_ONBOARDING_FLAG);
       toast({ title: 'Profile submitted!', description: 'Your profile is under review. We will notify you once verified.' });
