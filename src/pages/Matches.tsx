@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  ArrowLeft, Search, Star, MapPin, Globe, Video, Phone, MessageCircle,
+  ArrowLeft, Search, MapPin, Globe, Video, Phone, MessageCircle,
   SlidersHorizontal, Heart, Shield, X, Users
 } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
@@ -197,6 +197,8 @@ const Matches = () => {
     return result;
   }, [therapists, search, formatFilter, priceSort]);
 
+  const visibleTherapists = filtered.slice(0, 3);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -278,7 +280,11 @@ const Matches = () => {
         )}
 
         <p className="font-ui text-xs text-muted-foreground mt-4">
-          {loading ? 'Loading…' : `${filtered.length} therapist${filtered.length === 1 ? '' : 's'} found`}
+          {loading
+            ? 'Loading…'
+            : filtered.length > visibleTherapists.length
+              ? `Showing top ${visibleTherapists.length} of ${filtered.length} therapist${filtered.length === 1 ? '' : 's'}`
+              : `${visibleTherapists.length} therapist${visibleTherapists.length === 1 ? '' : 's'} found`}
         </p>
       </div>
 
@@ -312,7 +318,7 @@ const Matches = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map((t) => (
+            {visibleTherapists.map((t) => (
               <TherapistCard key={t.id} therapist={t} hasIntake={!!intake} />
             ))}
           </div>
@@ -340,12 +346,6 @@ const TherapistCard = ({ therapist: t, hasIntake }: { therapist: ScoredTherapist
               <span className="font-display text-4xl text-primary/40">
                 {displayName.charAt(0).toUpperCase()}
               </span>
-            </div>
-          )}
-          {hasIntake && t.matchScore > 0 && (
-            <div className="absolute top-3 right-3 bg-card/90 backdrop-blur-sm rounded-full px-3 py-1 flex items-center gap-1">
-              <Star className="h-3.5 w-3.5 fill-warning text-warning" />
-              <span className="font-ui text-xs font-semibold text-foreground">{t.matchScore}% match</span>
             </div>
           )}
           {t.verified && (
