@@ -52,7 +52,7 @@ These are auto-provided by Supabase:
 For email delivery, set:
 - `RESEND_API_KEY` — replace `re_xxxxxxxxx` with your real Resend API key
 - `RESEND_FROM_EMAIL` — a verified sender address, for example `onboarding@resend.dev` in testing
-- `ALERT_TO_EMAIL` — internal inbox that receives urgent callback and guest-intake alerts
+- `ALERT_TO_EMAIL` — internal inbox or comma-separated group alias that receives urgent callback and guest-intake alerts
 - `APP_URL` — the public site URL used in transactional emails
 
 ## 4. Auth Configuration

@@ -16,6 +16,13 @@ const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? 'onboarding@resend.dev';
 const alertToEmail = Deno.env.get('ALERT_TO_EMAIL') ?? 'support@nawe.co.ke';
 const appUrl = Deno.env.get('APP_URL') ?? 'https://nawe.co.ke';
 
+function getAlertRecipients() {
+  return alertToEmail
+    .split(',')
+    .map((recipient) => recipient.trim())
+    .filter(Boolean);
+}
+
 async function sendEmail(to: string | string[], subject: string, html: string) {
   if (!resendApiKey) {
     throw new Error('RESEND_API_KEY is not configured');
@@ -66,6 +73,7 @@ Deno.serve(async (req) => {
   const contactEmail = payload.contact_email?.trim() ?? '';
   const contactPhone = payload.contact_phone?.trim() ?? '';
   const intake = payload.intake_payload ?? {};
+  const alertRecipients = getAlertRecipients();
 
   try {
     if (payload.kind === 'intake') {
@@ -82,8 +90,12 @@ Deno.serve(async (req) => {
         );
       }
 
+      if (alertRecipients.length === 0) {
+        throw new Error('ALERT_TO_EMAIL is not configured');
+      }
+
       await sendEmail(
-        alertToEmail,
+        alertRecipients,
         'New guest therapy request received',
         `
           <p>A new guest therapy request was submitted.</p>
@@ -97,8 +109,12 @@ Deno.serve(async (req) => {
     }
 
     if (payload.kind === 'callback') {
+      if (alertRecipients.length === 0) {
+        throw new Error('ALERT_TO_EMAIL is not configured');
+      }
+
       await sendEmail(
-        alertToEmail,
+        alertRecipients,
         'Urgent callback requested on Nawe',
         `
           <p>A user requested a callback from the crisis / support flow.</p>
