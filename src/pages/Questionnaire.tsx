@@ -381,6 +381,36 @@ const Questionnaire = () => {
               </a>
             </div>
 
+            <div className="rounded-card border border-border bg-card p-4 space-y-3">
+              <div>
+                <p className="font-ui text-sm font-medium text-foreground">Add a contact method</p>
+                <p className="font-body text-sm text-muted-foreground mt-1">
+                  Share an email or phone number and we will use Resend on the backend to alert our team and follow up.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Input
+                  value={data.contact_email}
+                  onChange={(e) => update('contact_email', e.target.value)}
+                  placeholder="Email address"
+                  type="email"
+                  className="rounded-card"
+                  maxLength={120}
+                />
+                <Input
+                  value={data.contact_phone}
+                  onChange={(e) => update('contact_phone', e.target.value)}
+                  placeholder="Phone number"
+                  type="tel"
+                  className="rounded-card"
+                  maxLength={40}
+                />
+              </div>
+              <p className="font-ui text-xs text-muted-foreground">
+                Leave either field blank if you only want a callback by the other method.
+              </p>
+            </div>
+
             <p className="font-body text-sm text-muted-foreground">
               If you want, we can also notify our team to arrange a callback from the next available therapist or support
               staff member.
