@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const TOTAL_STEPS = 6;
+const QUESTIONNAIRE_CONSENT_VERSION = '2026-04-12';
 
 const CONCERNS = [
   'Anxiety', 'Depression', 'Stress', 'Grief & Loss', 'Relationship Issues',
@@ -113,6 +114,8 @@ const Questionnaire = () => {
       const { error } = await supabase.from('intake_responses').upsert({
         user_id: session.session.user.id,
         ...data,
+        consent_accepted_at: new Date().toISOString(),
+        consent_version: QUESTIONNAIRE_CONSENT_VERSION,
         completed: true,
       }, { onConflict: 'user_id' });
 

@@ -97,6 +97,8 @@ export type Database = {
           additional_notes: string | null
           age_range: string | null
           budget_range: string | null
+          consent_accepted_at: string | null
+          consent_version: string | null
           completed: boolean | null
           created_at: string
           crisis_flag: boolean | null
@@ -122,6 +124,8 @@ export type Database = {
           additional_notes?: string | null
           age_range?: string | null
           budget_range?: string | null
+          consent_accepted_at?: string | null
+          consent_version?: string | null
           completed?: boolean | null
           created_at?: string
           crisis_flag?: boolean | null
@@ -147,6 +151,8 @@ export type Database = {
           additional_notes?: string | null
           age_range?: string | null
           budget_range?: string | null
+          consent_accepted_at?: string | null
+          consent_version?: string | null
           completed?: boolean | null
           created_at?: string
           crisis_flag?: boolean | null

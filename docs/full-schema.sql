@@ -175,6 +175,8 @@ CREATE TABLE public.intake_responses (
   additional_notes text,
   previous_therapy boolean,
   crisis_flag boolean DEFAULT false,
+  consent_accepted_at timestamp with time zone,
+  consent_version text,
   completed boolean DEFAULT false,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now()
