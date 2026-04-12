@@ -350,6 +350,16 @@ CREATE POLICY "Users can view own profile" ON public.profiles FOR SELECT TO auth
 CREATE POLICY "Users can insert own profile" ON public.profiles FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = user_id);
 CREATE POLICY "Admins can view all profiles" ON public.profiles FOR SELECT TO authenticated USING (has_role(auth.uid(), 'admin'::app_role));
+CREATE POLICY "Public and clients can view verified therapist profiles" ON public.profiles FOR SELECT USING (
+  auth.uid() = user_id
+  OR (
+    EXISTS (SELECT 1 FROM therapists t WHERE t.user_id = profiles.user_id AND t.verified = true)
+    AND (
+      NOT has_role(auth.uid(), 'therapist'::app_role)
+      OR has_role(auth.uid(), 'admin'::app_role)
+    )
+  )
+);
 
 -- ---- user_roles ----
 CREATE POLICY "Users can view own roles" ON public.user_roles FOR SELECT TO authenticated USING (auth.uid() = user_id);
@@ -358,7 +368,16 @@ CREATE POLICY "Admins can view all roles" ON public.user_roles FOR SELECT TO aut
 CREATE POLICY "Admins can manage roles" ON public.user_roles FOR ALL TO authenticated USING (has_role(auth.uid(), 'admin'::app_role));
 
 -- ---- therapists ----
-CREATE POLICY "Anyone can view verified therapists" ON public.therapists FOR SELECT USING (verified = true);
+CREATE POLICY "Public and clients can view verified therapists" ON public.therapists FOR SELECT USING (
+  auth.uid() = user_id
+  OR (
+    verified = true
+    AND (
+      NOT has_role(auth.uid(), 'therapist'::app_role)
+      OR has_role(auth.uid(), 'admin'::app_role)
+    )
+  )
+);
 CREATE POLICY "Therapists can view own profile" ON public.therapists FOR SELECT TO authenticated USING (auth.uid() = user_id);
 CREATE POLICY "Therapists can insert own profile" ON public.therapists FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Therapists can update own profile" ON public.therapists FOR UPDATE TO authenticated USING (auth.uid() = user_id);
