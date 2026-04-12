@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,8 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = new URLSearchParams(location.search).get('redirect_to');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +25,11 @@ const Login = () => {
     if (error) {
       setError("Hmm, that didn't work. Please check your email and password and try again.");
       setLoading(false);
+      return;
+    }
+
+    if (redirectTo && redirectTo.startsWith('/')) {
+      navigate(redirectTo, { replace: true });
       return;
     }
 
@@ -76,7 +83,7 @@ const Login = () => {
             </Link>
             <p className="font-ui text-sm text-muted-foreground">
               New here?{' '}
-              <Link to="/signup" className="text-primary hover:underline font-medium">
+              <Link to={redirectTo ? `/signup?redirect_to=${encodeURIComponent(redirectTo)}` : '/signup'} className="text-primary hover:underline font-medium">
                 Create an account
               </Link>
             </p>

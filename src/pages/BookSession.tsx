@@ -54,7 +54,7 @@ const FORMAT_TO_DB: Record<string, string> = {
 const BookSession = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, roles } = useAuth();
+  const { user, roles, loading: authLoading } = useAuth();
 
   const [therapist, setTherapist] = useState<Therapist | null>(null);
   const [profileName, setProfileName] = useState('');
@@ -74,6 +74,13 @@ const BookSession = () => {
       navigate('/therapist-portal/profile-edit', { replace: true });
     }
   }, [navigate, roles]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      navigate(`/login?redirect_to=${encodeURIComponent(`/book/${id ?? ''}`)}`, { replace: true });
+    }
+  }, [authLoading, id, navigate, user]);
 
   useEffect(() => {
     if (roles.includes('therapist')) return;
@@ -138,6 +145,17 @@ const BookSession = () => {
         <div className="text-center space-y-4">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
           <p className="font-ui text-muted-foreground">Redirecting…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
+          <p className="font-ui text-muted-foreground">Redirecting to sign in…</p>
         </div>
       </div>
     );

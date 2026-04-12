@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 const THERAPIST_ONBOARDING_FLAG = 'nawe_pending_therapist_onboarding';
@@ -8,6 +8,8 @@ const QUESTIONNAIRE_PENDING_FLAG = 'nawe_pending_questionnaire';
 const AuthRedirect = () => {
   const { user, roles, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = new URLSearchParams(location.search).get('redirect_to');
 
   useEffect(() => {
     if (loading) return;
@@ -18,6 +20,11 @@ const AuthRedirect = () => {
     }
 
     if (roles.length === 0) return; // still loading roles
+
+    if (redirectTo && redirectTo.startsWith('/')) {
+      navigate(redirectTo, { replace: true });
+      return;
+    }
 
     const pendingTherapistApplication = localStorage.getItem(THERAPIST_ONBOARDING_FLAG) === '1';
     if (pendingTherapistApplication && !roles.includes('therapist')) {
@@ -38,7 +45,7 @@ const AuthRedirect = () => {
     } else {
       navigate('/dashboard', { replace: true });
     }
-  }, [user, roles, loading, navigate]);
+  }, [user, roles, loading, navigate, redirectTo]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">

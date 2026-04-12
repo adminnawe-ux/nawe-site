@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,8 @@ const Signup = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = new URLSearchParams(location.search).get('redirect_to');
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +36,10 @@ const Signup = () => {
       password,
       options: {
         data: { first_name: firstName },
-        emailRedirectTo: AUTH_REDIRECT_URL,
+        emailRedirectTo:
+          redirectTo && redirectTo.startsWith('/')
+            ? `${AUTH_REDIRECT_URL}?redirect_to=${encodeURIComponent(redirectTo)}`
+            : AUTH_REDIRECT_URL,
       },
     });
 
@@ -139,7 +144,10 @@ const Signup = () => {
           </form>
           <p className="mt-6 text-center font-ui text-sm text-muted-foreground">
             Already have an account?{' '}
-            <Link to="/login" className="text-primary hover:underline font-medium">
+            <Link
+              to={redirectTo ? `/login?redirect_to=${encodeURIComponent(redirectTo)}` : '/login'}
+              className="text-primary hover:underline font-medium"
+            >
               Sign in
             </Link>
           </p>

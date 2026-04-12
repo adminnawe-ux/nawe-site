@@ -258,14 +258,15 @@ const Questionnaire = () => {
             <h2 className="font-display text-3xl text-foreground">We received your request</h2>
             <p className="font-body text-muted-foreground">
               You can continue as a guest. If you shared an email address, we will send instructions so you can complete
-              registration later. Our team will also review your request and follow up.
+              registration later. Our team will also review your request and follow up. You can browse therapists now,
+              but you will need to sign in before booking.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
               <Button className="font-ui rounded-full" onClick={() => navigate('/matches')}>
                 Browse Therapists
               </Button>
               <Button variant="outline" className="font-ui rounded-full" onClick={() => navigate('/signup')}>
-                Create Account Later
+                Create Account to Book
               </Button>
             </div>
           </CardContent>

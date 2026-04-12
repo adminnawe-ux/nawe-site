@@ -131,6 +131,7 @@ const TherapistProfile = () => {
   const t = therapist;
   const displayName = profileName || t.professional_title || 'Therapist';
   const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : null;
+  const bookHref = user ? `/book/${t.id}` : `/login?redirect_to=${encodeURIComponent(`/book/${t.id}`)}`;
 
   return (
     <div className="min-h-screen bg-background">
@@ -195,8 +196,8 @@ const TherapistProfile = () => {
                 )}
                 <Separator />
                 <Button className="w-full font-ui rounded-full bg-accent hover:bg-accent/90 text-accent-foreground" asChild>
-                  <Link to={user ? `/book/${t.id}` : '/login'}>
-                    <Calendar className="mr-2 h-4 w-4" /> Book a Session
+                  <Link to={bookHref}>
+                    <Calendar className="mr-2 h-4 w-4" /> {user ? 'Book a Session' : 'Sign in to book'}
                   </Link>
                 </Button>
               </CardContent>
