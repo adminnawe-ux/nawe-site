@@ -31,6 +31,46 @@ const FORMAT_ICONS: Record<string, React.ElementType> = {
   'In-Person': MapPin,
 };
 
+const QUESTIONNAIRE_DRAFT_KEY = 'nawe_questionnaire_draft';
+
+function buildGuestIntakeFromDraft(): IntakeResponse | null {
+  const saved = localStorage.getItem(QUESTIONNAIRE_DRAFT_KEY);
+  if (!saved) return null;
+
+  try {
+    const parsed = JSON.parse(saved) as { data?: Record<string, unknown> };
+    const data = parsed.data ?? {};
+
+    return {
+      id: '',
+      user_id: '',
+      age_range: (data.age_range as string) ?? '',
+      gender_identity: (data.gender_identity as string) ?? '',
+      presenting_concerns: (data.presenting_concerns as string[]) ?? [],
+      session_format_preference: (data.session_format_preference as string[]) ?? [],
+      language_preference: (data.language_preference as string) ?? 'English',
+      session_time_preference: (data.session_time_preference as string) ?? '',
+      frequency_preference: (data.frequency_preference as string) ?? '',
+      therapist_gender_preference: (data.therapist_gender_preference as string) ?? '',
+      cultural_background_important: Boolean(data.cultural_background_important),
+      cultural_background: (data.cultural_background as string) ?? '',
+      experience_level_preference: (data.experience_level_preference as string) ?? '',
+      specialisation_importance: Number(data.specialisation_importance ?? 3),
+      budget_range: (data.budget_range as string) ?? '',
+      insurance_coverage: (data.insurance_coverage as string) ?? '',
+      sliding_scale_needed: Boolean(data.sliding_scale_needed),
+      additional_notes: (data.additional_notes as string) ?? '',
+      previous_therapy: data.previous_therapy as boolean | null,
+      crisis_flag: Boolean(data.crisis_flag),
+      completed: false,
+      created_at: '',
+      updated_at: '',
+    } as IntakeResponse;
+  } catch {
+    return null;
+  }
+}
+
 function computeMatchScore(therapist: Therapist, intake: IntakeResponse | null): { score: number; reasons: string[] } {
   if (!intake) return { score: 0, reasons: [] };
   let score = 0;
@@ -138,6 +178,9 @@ const Matches = () => {
           .maybeSingle();
         intakeData = data;
         setIntake(data);
+      } else {
+        intakeData = buildGuestIntakeFromDraft();
+        setIntake(intakeData);
       }
 
       // Fetch verified therapists with profile names
