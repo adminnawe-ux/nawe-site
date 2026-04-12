@@ -54,7 +54,7 @@ const FORMAT_TO_DB: Record<string, string> = {
 const BookSession = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
 
   const [therapist, setTherapist] = useState<Therapist | null>(null);
   const [profileName, setProfileName] = useState('');
@@ -70,6 +70,14 @@ const BookSession = () => {
   const [availability, setAvailability] = useState<{ day_of_week: number; start_time: string; end_time: string }[]>([]);
 
   useEffect(() => {
+    if (roles.includes('therapist')) {
+      navigate('/therapist-portal/profile-edit', { replace: true });
+    }
+  }, [navigate, roles]);
+
+  useEffect(() => {
+    if (roles.includes('therapist')) return;
+
     if (!id) return;
     const load = async () => {
       setLoading(true);
@@ -92,7 +100,7 @@ const BookSession = () => {
       setLoading(false);
     };
     load();
-  }, [id]);
+  }, [id, roles]);
 
   const handleBook = async () => {
     if (!user || !therapist || !selectedDate || !selectedTime || !selectedFormat) return;
@@ -123,6 +131,17 @@ const BookSession = () => {
   };
 
   const isComplete = selectedDate && selectedTime && selectedFormat;
+
+  if (roles.includes('therapist')) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
+          <p className="font-ui text-muted-foreground">Redirecting…</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

@@ -112,7 +112,7 @@ function computeMatchScore(therapist: Therapist, intake: IntakeResponse | null):
 }
 
 const Matches = () => {
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
   const navigate = useNavigate();
   const [therapists, setTherapists] = useState<ScoredTherapist[]>([]);
   const [intake, setIntake] = useState<IntakeResponse | null>(null);
@@ -123,6 +123,8 @@ const Matches = () => {
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
+    if (roles.includes('therapist')) return;
+
     const load = async () => {
       setLoading(true);
 
@@ -170,7 +172,7 @@ const Matches = () => {
     };
 
     load();
-  }, [user]);
+  }, [roles, user]);
 
   const filtered = useMemo(() => {
     let result = [...therapists];
@@ -198,6 +200,23 @@ const Matches = () => {
   }, [therapists, search, formatFilter, priceSort]);
 
   const visibleTherapists = filtered.slice(0, 3);
+
+  useEffect(() => {
+    if (roles.includes('therapist')) {
+      navigate('/therapist-portal/profile-edit', { replace: true });
+    }
+  }, [navigate, roles]);
+
+  if (roles.includes('therapist')) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
+          <p className="font-ui text-muted-foreground">Redirecting…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

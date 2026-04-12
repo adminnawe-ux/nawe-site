@@ -25,14 +25,44 @@ const FORMAT_ICONS: Record<string, React.ElementType> = {
 const TherapistProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, roles, loading: authLoading } = useAuth();
   const [therapist, setTherapist] = useState<Therapist | null>(null);
   const [profileName, setProfileName] = useState('');
   const [reviews, setReviews] = useState<Tables<'reviews_public'>[]>([]);
   const [loading, setLoading] = useState(true);
+  const [accessChecked, setAccessChecked] = useState(false);
+  const [canViewProfile, setCanViewProfile] = useState(true);
 
   useEffect(() => {
-    if (!id) return;
+    if (authLoading || !id) return;
+
+    const checkAccess = async () => {
+      if (!user || !roles.includes('therapist')) {
+        setCanViewProfile(true);
+        setAccessChecked(true);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('therapists')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const ownsProfile = data?.id === id;
+      setCanViewProfile(ownsProfile);
+      setAccessChecked(true);
+
+      if (!ownsProfile) {
+        navigate('/therapist-portal/profile-edit', { replace: true });
+      }
+    };
+
+    checkAccess();
+  }, [authLoading, id, navigate, roles, user]);
+
+  useEffect(() => {
+    if (!id || !accessChecked || !canViewProfile) return;
     const load = async () => {
       setLoading(true);
       const { data: t } = await supabase.from('therapists').select('*').eq('id', id).maybeSingle();
@@ -49,7 +79,29 @@ const TherapistProfile = () => {
       setLoading(false);
     };
     load();
-  }, [id]);
+  }, [accessChecked, canViewProfile, id]);
+
+  if (authLoading || (user && roles.includes('therapist') && !accessChecked)) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
+          <p className="font-ui text-muted-foreground">Checking access…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!canViewProfile) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
+          <p className="font-ui text-muted-foreground">Redirecting…</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

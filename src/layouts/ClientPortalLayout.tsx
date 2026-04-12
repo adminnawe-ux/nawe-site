@@ -5,7 +5,7 @@ import { LogOut, Home, Search, Settings } from 'lucide-react';
 import { SITE_NAME } from '@/lib/site';
 
 const ClientPortalLayout = () => {
-  const { user, signOut } = useAuth();
+  const { user, roles, signOut } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -26,11 +26,13 @@ const ClientPortalLayout = () => {
                 <Home className="h-4 w-4" /> Dashboard
               </Button>
             </Link>
-            <Link to="/matches">
-              <Button variant="ghost" size="sm" className="font-ui text-sm gap-2">
-                <Search className="h-4 w-4" /> Find Therapist
-              </Button>
-            </Link>
+            {!roles.includes('therapist') && (
+              <Link to="/matches">
+                <Button variant="ghost" size="sm" className="font-ui text-sm gap-2">
+                  <Search className="h-4 w-4" /> Find Therapist
+                </Button>
+              </Link>
+            )}
             <Link to="/settings">
               <Button variant="ghost" size="sm" className="font-ui text-sm gap-2">
                 <Settings className="h-4 w-4" /> Settings
