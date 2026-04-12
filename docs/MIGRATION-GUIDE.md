@@ -51,7 +51,7 @@ These are auto-provided by Supabase:
 
 For email delivery, set:
 - `RESEND_API_KEY` — replace `re_xxxxxxxxx` with your real Resend API key
-- `RESEND_FROM_EMAIL` — a verified sender address, for example `onboarding@resend.dev` in testing
+- `RESEND_FROM_EMAIL` — a verified sender address on your domain, for example `support@nawe.co.ke`
 - `ALERT_TO_EMAIL` — internal inbox or comma-separated group alias that receives urgent callback and guest-intake alerts
 - `APP_URL` — the public site URL used in transactional emails
 

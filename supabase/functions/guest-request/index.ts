@@ -12,7 +12,7 @@ type GuestRequestPayload = {
 };
 
 const resendApiKey = Deno.env.get('RESEND_API_KEY') ?? '';
-const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? 'onboarding@resend.dev';
+const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? 'support@nawe.co.ke';
 const alertToEmail = Deno.env.get('ALERT_TO_EMAIL') ?? 'support@nawe.co.ke';
 const appUrl = Deno.env.get('APP_URL') ?? 'https://nawe.co.ke';
 
@@ -26,6 +26,12 @@ function getAlertRecipients() {
 async function sendEmail(to: string | string[], subject: string, html: string) {
   if (!resendApiKey) {
     throw new Error('RESEND_API_KEY is not configured');
+  }
+
+  if (fromEmail.endsWith('@resend.dev')) {
+    throw new Error(
+      'RESEND_FROM_EMAIL must use your verified nawe.co.ke domain. Resend test senders on resend.dev only work for your own inbox.'
+    );
   }
 
   const response = await fetch('https://api.resend.com/emails', {

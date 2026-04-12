@@ -17,7 +17,7 @@ import { Resend } from 'resend';
 const resend = new Resend('re_xxxxxxxxx'); // replace with the real API key
 
 await resend.emails.send({
-  from: 'onboarding@resend.dev',
+  from: 'support@nawe.co.ke',
   to: 'admin.nawe@gmail.com',
   subject: 'Hello World',
   html: '<p>Congrats on sending your <strong>first email</strong>!</p>',
@@ -28,7 +28,7 @@ await resend.emails.send({
 - Replace `re_xxxxxxxxx` with the real Resend API key.
 - Do not commit the API key to git.
 - Do not call Resend directly from the React frontend.
-- Use a verified sender domain before moving to production.
+- Use a verified sender domain on `nawe.co.ke` before moving to production.
 
 ## Acceptance criteria
 - A server-side function can send at least one branded transactional email.
