@@ -317,7 +317,17 @@ const Questionnaire = () => {
             }}
           />
         )}
-        {step === 2 && <StepConcerns data={data} update={update} toggleArray={toggleArray} />}
+        {step === 2 && (
+          <StepConcerns
+            data={data}
+            update={update}
+            toggleArray={toggleArray}
+            onCrisisChange={(checked) => {
+              update('crisis_flag', checked);
+              if (checked) setShowCrisisModal(true);
+            }}
+          />
+        )}
         {step === 3 && <StepSessionPrefs data={data} update={update} toggleArray={toggleArray} />}
         {step === 4 && <StepTherapistPrefs data={data} update={update} />}
         {step === 5 && <StepFinancial data={data} update={update} />}
@@ -498,10 +508,11 @@ const StepAboutYou = ({
 );
 
 // Step 2: What Brings You Here
-const StepConcerns = ({ data, update, toggleArray }: {
+const StepConcerns = ({ data, update, toggleArray, onCrisisChange }: {
   data: FormData;
   update: <K extends keyof FormData>(k: K, v: FormData[K]) => void;
   toggleArray: (key: 'presenting_concerns' | 'session_format_preference', v: string) => void;
+  onCrisisChange: (checked: boolean) => void;
 }) => (
   <div>
     <StepHeading title="What brings you here?" subtitle="Select as many as apply. There's no wrong answer — this helps us find the right fit." />
