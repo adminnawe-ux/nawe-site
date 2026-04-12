@@ -336,6 +336,7 @@ CREATE TRIGGER update_therapists_updated_at BEFORE UPDATE ON public.therapists F
 CREATE TRIGGER update_sessions_updated_at BEFORE UPDATE ON public.sessions FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER update_therapist_availability_updated_at BEFORE UPDATE ON public.therapist_availability FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER update_intake_responses_updated_at BEFORE UPDATE ON public.intake_responses FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+DROP TRIGGER IF EXISTS update_guest_intake_requests_updated_at ON public.guest_intake_requests;
 CREATE TRIGGER update_guest_intake_requests_updated_at BEFORE UPDATE ON public.guest_intake_requests FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER update_articles_updated_at BEFORE UPDATE ON public.articles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER update_commission_tiers_updated_at BEFORE UPDATE ON public.commission_tiers FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
@@ -433,10 +434,12 @@ CREATE POLICY "Users can manage own intake" ON public.intake_responses FOR ALL T
 CREATE POLICY "Admins can view intakes" ON public.intake_responses FOR SELECT TO authenticated USING (has_role(auth.uid(), 'admin'::app_role));
 
 -- ---- guest_intake_requests ----
+DROP POLICY IF EXISTS "Guests can submit intake requests" ON public.guest_intake_requests;
 CREATE POLICY "Guests can submit intake requests" ON public.guest_intake_requests FOR INSERT TO anon, authenticated
   WITH CHECK (
     contact_email IS NOT NULL OR contact_phone IS NOT NULL
   );
+DROP POLICY IF EXISTS "Admins can view guest intake requests" ON public.guest_intake_requests;
 CREATE POLICY "Admins can view guest intake requests" ON public.guest_intake_requests FOR SELECT TO authenticated USING (has_role(auth.uid(), 'admin'::app_role));
 
 -- ---- articles ----
