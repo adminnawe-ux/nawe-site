@@ -9,6 +9,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { ArrowLeft, ArrowRight, Shield, Phone, Heart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +37,8 @@ const SESSION_FORMATS = ['Video Call', 'Phone Call', 'In-Person', 'Chat / Messag
 interface FormData {
   age_range: string;
   gender_identity: string;
+  contact_email: string;
+  contact_phone: string;
   cultural_background: string;
   cultural_background_important: boolean;
   presenting_concerns: string[];
@@ -51,6 +60,8 @@ interface FormData {
 const initialData: FormData = {
   age_range: '',
   gender_identity: '',
+  contact_email: '',
+  contact_phone: '',
   cultural_background: '',
   cultural_background_important: false,
   presenting_concerns: [],
@@ -74,6 +85,8 @@ const Questionnaire = () => {
   const [data, setData] = useState<FormData>(initialData);
   const [submitting, setSubmitting] = useState(false);
   const [consentAccepted, setConsentAccepted] = useState(false);
+  const [guestSubmitted, setGuestSubmitted] = useState(false);
+  const [showCrisisModal, setShowCrisisModal] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -121,6 +134,45 @@ const Questionnaire = () => {
   const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS));
   const back = () => setStep((s) => Math.max(s - 1, 1));
 
+  const handleCallbackRequest = async () => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const contactEmail = data.contact_email || session.session?.user.email || null;
+      const contactPhone = data.contact_phone || null;
+
+      if (!contactEmail && !contactPhone) {
+        toast({
+          title: 'Add a contact method',
+          description: 'Please add an email address or phone number so our team can reach you back.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      await supabase.functions.invoke('guest-request', {
+        body: {
+          kind: 'callback',
+          contact_email: contactEmail,
+          contact_phone: contactPhone,
+          intake_payload: data,
+          crisis_flag: true,
+        },
+      });
+
+      setShowCrisisModal(false);
+      toast({
+        title: 'Callback requested',
+        description: 'Our team has received your urgent request and will respond as soon as possible.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Could not request callback',
+        description: error instanceof Error ? error.message : 'Please call the helpline now.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleSubmit = async () => {
     if (!consentAccepted) {
       toast({
@@ -135,9 +187,41 @@ const Questionnaire = () => {
     try {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) {
-        localStorage.setItem(QUESTIONNAIRE_PENDING_FLAG, '1');
-        toast({ title: 'Please sign in first', description: 'You need to be logged in to save your questionnaire.', variant: 'destructive' });
-        navigate('/signup');
+        if (!data.contact_email && !data.contact_phone) {
+          toast({
+            title: 'Add a contact method',
+            description: 'Please share an email address or phone number so we can follow up on your request as a guest.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        const { error: guestError } = await supabase.from('guest_intake_requests').insert({
+          contact_email: data.contact_email || null,
+          contact_phone: data.contact_phone || null,
+          intake_payload: {
+            ...data,
+          },
+          crisis_flag: data.crisis_flag,
+          callback_requested: data.crisis_flag,
+          consent_accepted_at: new Date().toISOString(),
+          consent_version: QUESTIONNAIRE_CONSENT_VERSION,
+        });
+
+        if (guestError) throw guestError;
+
+        await supabase.functions.invoke('guest-request', {
+          body: {
+            kind: 'intake',
+            contact_email: data.contact_email || null,
+            contact_phone: data.contact_phone || null,
+            intake_payload: data,
+            crisis_flag: data.crisis_flag,
+          },
+        });
+
+        localStorage.removeItem(QUESTIONNAIRE_PENDING_FLAG);
+        setGuestSubmitted(true);
         return;
       }
 
@@ -162,6 +246,33 @@ const Questionnaire = () => {
       setSubmitting(false);
     }
   };
+
+  if (guestSubmitted) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-6">
+        <Card className="max-w-xl w-full rounded-card shadow-soft border border-border">
+          <CardContent className="p-8 space-y-4 text-center">
+            <div className="mx-auto h-14 w-14 rounded-full bg-success/10 flex items-center justify-center">
+              <Heart className="h-7 w-7 text-success" />
+            </div>
+            <h2 className="font-display text-3xl text-foreground">We received your request</h2>
+            <p className="font-body text-muted-foreground">
+              You can continue as a guest. If you shared an email address, we will send instructions so you can complete
+              registration later. Our team will also review your request and follow up.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+              <Button className="font-ui rounded-full" onClick={() => navigate('/matches')}>
+                Browse Therapists
+              </Button>
+              <Button variant="outline" className="font-ui rounded-full" onClick={() => navigate('/signup')}>
+                Create Account Later
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -196,17 +307,28 @@ const Questionnaire = () => {
           </div>
         )}
 
-        {step === 1 && <StepAboutYou data={data} update={update} />}
+        {step === 1 && (
+          <StepAboutYou
+            data={data}
+            update={update}
+            onCrisisChange={(checked) => {
+              update('crisis_flag', checked);
+              if (checked) setShowCrisisModal(true);
+            }}
+          />
+        )}
         {step === 2 && <StepConcerns data={data} update={update} toggleArray={toggleArray} />}
         {step === 3 && <StepSessionPrefs data={data} update={update} toggleArray={toggleArray} />}
         {step === 4 && <StepTherapistPrefs data={data} update={update} />}
         {step === 5 && <StepFinancial data={data} update={update} />}
-        {step === 6 && <StepFinal
-          data={data}
-          update={update}
-          consentAccepted={consentAccepted}
-          setConsentAccepted={setConsentAccepted}
-        />}
+        {step === 6 && (
+          <StepFinal
+            data={data}
+            update={update}
+            consentAccepted={consentAccepted}
+            setConsentAccepted={setConsentAccepted}
+          />
+        )}
 
         {/* Navigation */}
         <div className="flex justify-between mt-10">
@@ -225,6 +347,46 @@ const Questionnaire = () => {
           )}
         </div>
       </div>
+
+      <Dialog open={showCrisisModal} onOpenChange={setShowCrisisModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">Immediate support</DialogTitle>
+            <DialogDescription className="font-body text-sm text-muted-foreground">
+              If you may harm yourself or someone else, get urgent help now. This is not a substitute for emergency care.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-card border border-border bg-muted/20 p-4 space-y-2">
+              <p className="font-ui text-sm font-medium text-foreground">Call right now</p>
+              <p className="font-body text-sm text-muted-foreground">
+                Go to the nearest emergency facility or call local emergency services immediately.
+              </p>
+              <a
+                href="tel:+254202717077"
+                className="inline-flex font-ui text-sm text-primary hover:underline"
+              >
+                Ministry of Health: +254 20 2717077
+              </a>
+            </div>
+
+            <p className="font-body text-sm text-muted-foreground">
+              If you want, we can also notify our team to arrange a callback from the next available therapist or support
+              staff member.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button className="font-ui rounded-full flex-1" onClick={handleCallbackRequest}>
+                Request Callback
+              </Button>
+              <Button variant="outline" className="font-ui rounded-full flex-1" onClick={() => setShowCrisisModal(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -253,11 +415,45 @@ const OptionCard = ({ selected, onClick, children }: { selected: boolean; onClic
 );
 
 // Step 1: About You
-const StepAboutYou = ({ data, update }: { data: FormData; update: <K extends keyof FormData>(k: K, v: FormData[K]) => void }) => (
+const StepAboutYou = ({
+  data,
+  update,
+  onCrisisChange,
+}: {
+  data: FormData;
+  update: <K extends keyof FormData>(k: K, v: FormData[K]) => void;
+  onCrisisChange: (checked: boolean) => void;
+}) => (
   <div>
     <StepHeading title="About You" subtitle="Just a few basics so we can personalise your experience. Everything is confidential." />
 
     <div className="space-y-6">
+      <div>
+        <Label className="font-ui text-sm mb-3 block">How can we reach you? (optional if signed in)</Label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Input
+            value={data.contact_email}
+            onChange={(e) => update('contact_email', e.target.value)}
+            placeholder="Email address"
+            type="email"
+            className="rounded-card"
+            maxLength={120}
+          />
+          <Input
+            value={data.contact_phone}
+            onChange={(e) => update('contact_phone', e.target.value)}
+            placeholder="Phone number"
+            type="tel"
+            className="rounded-card"
+            maxLength={40}
+          />
+        </div>
+        <p className="font-ui text-xs text-muted-foreground mt-2">
+          If you continue as a guest, we’ll use your contact details only to follow up on your request and, if you share an
+          email address, send registration instructions later.
+        </p>
+      </div>
+
       <div>
         <Label className="font-ui text-sm mb-3 block">What's your age range?</Label>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -342,7 +538,7 @@ const StepConcerns = ({ data, update, toggleArray }: {
         <label className="flex items-center gap-3 p-4 rounded-card border border-border bg-card font-ui text-sm cursor-pointer">
           <Checkbox
             checked={data.crisis_flag}
-            onCheckedChange={(v) => update('crisis_flag', v === true)}
+            onCheckedChange={(v) => onCrisisChange(v === true)}
           />
           <span>I'm currently experiencing a crisis or thoughts of self-harm</span>
         </label>

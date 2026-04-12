@@ -36,9 +36,11 @@ Deploy the edge functions from `supabase/functions/`:
 | Function | Purpose |
 |---|---|
 | `terms` | Returns Terms & Conditions as JSON |
+| `guest-request` | Sends guest follow-up and callback emails via Resend |
 
 ```bash
 supabase functions deploy terms
+supabase functions deploy guest-request
 ```
 
 ### Edge Function Secrets
@@ -47,8 +49,11 @@ These are auto-provided by Supabase:
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 
-If you add AI features, set:
-- `LOVABLE_API_KEY` — only works on Lovable Cloud; replace with your own AI provider keys
+For email delivery, set:
+- `RESEND_API_KEY` — replace `re_xxxxxxxxx` with your real Resend API key
+- `RESEND_FROM_EMAIL` — a verified sender address, for example `onboarding@resend.dev` in testing
+- `ALERT_TO_EMAIL` — internal inbox that receives urgent callback and guest-intake alerts
+- `APP_URL` — the public site URL used in transactional emails
 
 ## 4. Auth Configuration
 
@@ -58,6 +63,7 @@ If you add AI features, set:
 - In Supabase Dashboard, set Authentication > URL Configuration > Site URL to your live site, for example `https://nawe.co.ke`
 - Add your live domain and any preview domains to the redirect allow list
 - The frontend uses `VITE_APP_URL` for sign-up and password-reset emails, so keep it aligned with your production domain
+- Questionnaire submissions can now be completed as a guest, but the guest flow requires at least one contact method so the team can follow up.
 
 ## 5. Kenya Data Protection Checklist
 

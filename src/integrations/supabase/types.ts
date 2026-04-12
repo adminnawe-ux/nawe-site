@@ -251,6 +251,45 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_intake_requests: {
+        Row: {
+          callback_requested: boolean | null
+          consent_accepted_at: string | null
+          consent_version: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          crisis_flag: boolean | null
+          id: string
+          intake_payload: Json
+          updated_at: string
+        }
+        Insert: {
+          callback_requested?: boolean | null
+          consent_accepted_at?: string | null
+          consent_version?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          crisis_flag?: boolean | null
+          id?: string
+          intake_payload?: Json
+          updated_at?: string
+        }
+        Update: {
+          callback_requested?: boolean | null
+          consent_accepted_at?: string | null
+          consent_version?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          crisis_flag?: boolean | null
+          id?: string
+          intake_payload?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       reviews: {
         Row: {
           client_id: string

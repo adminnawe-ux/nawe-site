@@ -182,6 +182,20 @@ CREATE TABLE public.intake_responses (
   updated_at timestamp with time zone NOT NULL DEFAULT now()
 );
 
+-- Guest intake requests (for users who are not ready to create an account)
+CREATE TABLE public.guest_intake_requests (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  contact_email text,
+  contact_phone text,
+  intake_payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+  crisis_flag boolean DEFAULT false,
+  callback_requested boolean DEFAULT false,
+  consent_accepted_at timestamp with time zone,
+  consent_version text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
 -- Blog / articles
 CREATE TABLE public.articles (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -322,6 +336,7 @@ CREATE TRIGGER update_therapists_updated_at BEFORE UPDATE ON public.therapists F
 CREATE TRIGGER update_sessions_updated_at BEFORE UPDATE ON public.sessions FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER update_therapist_availability_updated_at BEFORE UPDATE ON public.therapist_availability FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER update_intake_responses_updated_at BEFORE UPDATE ON public.intake_responses FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+CREATE TRIGGER update_guest_intake_requests_updated_at BEFORE UPDATE ON public.guest_intake_requests FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER update_articles_updated_at BEFORE UPDATE ON public.articles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER update_commission_tiers_updated_at BEFORE UPDATE ON public.commission_tiers FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER update_platform_settings_updated_at BEFORE UPDATE ON public.platform_settings FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
@@ -338,6 +353,7 @@ ALTER TABLE public.therapist_availability ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.intake_responses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.guest_intake_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.articles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.commission_tiers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.platform_settings ENABLE ROW LEVEL SECURITY;
@@ -415,6 +431,13 @@ CREATE POLICY "Admins can manage reviews" ON public.reviews FOR ALL TO authentic
 -- ---- intake_responses ----
 CREATE POLICY "Users can manage own intake" ON public.intake_responses FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Admins can view intakes" ON public.intake_responses FOR SELECT TO authenticated USING (has_role(auth.uid(), 'admin'::app_role));
+
+-- ---- guest_intake_requests ----
+CREATE POLICY "Guests can submit intake requests" ON public.guest_intake_requests FOR INSERT TO anon, authenticated
+  WITH CHECK (
+    contact_email IS NOT NULL OR contact_phone IS NOT NULL
+  );
+CREATE POLICY "Admins can view guest intake requests" ON public.guest_intake_requests FOR SELECT TO authenticated USING (has_role(auth.uid(), 'admin'::app_role));
 
 -- ---- articles ----
 CREATE POLICY "Anyone can view published articles" ON public.articles FOR SELECT USING (status = 'published'::text);
