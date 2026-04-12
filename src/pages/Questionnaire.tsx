@@ -454,7 +454,7 @@ const StepQuickIntake = ({
   onCrisisChange: (checked: boolean) => void;
 }) => (
   <div>
-    <StepHeading title="Tell us what you need" subtitle="We’ll use the minimum needed to route you quickly." />
+    <StepHeading title="Tell us what you need" subtitle="Tell us a little about what you’re looking for." />
 
     <div className="space-y-6">
       <div>
