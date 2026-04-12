@@ -20,7 +20,7 @@ import { ArrowLeft, ArrowRight, Shield, Phone, Heart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 2;
 const QUESTIONNAIRE_CONSENT_VERSION = '2026-04-12';
 const QUESTIONNAIRE_DRAFT_KEY = 'nawe_questionnaire_draft';
 const QUESTIONNAIRE_PENDING_FLAG = 'nawe_pending_questionnaire';
@@ -294,7 +294,7 @@ const Questionnaire = () => {
 
       {/* Body */}
       <div className="container mx-auto px-6 py-10 max-w-2xl">
-        {/* Crisis banner (shown on step 2 if flagged) */}
+        {/* Crisis banner */}
         {data.crisis_flag && (
           <div className="mb-6 p-4 rounded-card bg-destructive/10 border border-destructive/30 flex items-start gap-3">
             <Phone className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
@@ -308,17 +308,7 @@ const Questionnaire = () => {
         )}
 
         {step === 1 && (
-          <StepAboutYou
-            data={data}
-            update={update}
-            onCrisisChange={(checked) => {
-              update('crisis_flag', checked);
-              if (checked) setShowCrisisModal(true);
-            }}
-          />
-        )}
-        {step === 2 && (
-          <StepConcerns
+          <StepQuickIntake
             data={data}
             update={update}
             toggleArray={toggleArray}
@@ -328,11 +318,8 @@ const Questionnaire = () => {
             }}
           />
         )}
-        {step === 3 && <StepSessionPrefs data={data} update={update} toggleArray={toggleArray} />}
-        {step === 4 && <StepTherapistPrefs data={data} update={update} />}
-        {step === 5 && <StepFinancial data={data} update={update} />}
-        {step === 6 && (
-          <StepFinal
+        {step === 2 && (
+          <StepQuickPreferences
             data={data}
             update={update}
             consentAccepted={consentAccepted}
@@ -454,18 +441,20 @@ const OptionCard = ({ selected, onClick, children }: { selected: boolean; onClic
   </button>
 );
 
-// Step 1: About You
-const StepAboutYou = ({
+// Step 1: Quick Intake
+const StepQuickIntake = ({
   data,
   update,
+  toggleArray,
   onCrisisChange,
 }: {
   data: FormData;
   update: <K extends keyof FormData>(k: K, v: FormData[K]) => void;
+  toggleArray: (key: 'presenting_concerns' | 'session_format_preference', v: string) => void;
   onCrisisChange: (checked: boolean) => void;
 }) => (
   <div>
-    <StepHeading title="About You" subtitle="Just a few basics so we can personalise your experience. Everything is confidential." />
+    <StepHeading title="Tell us what you need" subtitle="We’ll use the minimum needed to route you quickly." />
 
     <div className="space-y-6">
       <div>
@@ -495,60 +484,6 @@ const StepAboutYou = ({
       </div>
 
       <div>
-        <Label className="font-ui text-sm mb-3 block">What's your age range?</Label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {['18–24', '25–34', '35–44', '45–54', '55–64', '65+'].map((range) => (
-            <OptionCard key={range} selected={data.age_range === range} onClick={() => update('age_range', range)}>
-              {range}
-            </OptionCard>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <Label className="font-ui text-sm mb-3 block">How do you identify? (optional)</Label>
-        <div className="grid grid-cols-2 gap-3">
-          {['Woman', 'Man', 'Non-binary', 'Prefer not to say'].map((g) => (
-            <OptionCard key={g} selected={data.gender_identity === g} onClick={() => update('gender_identity', g)}>
-              {g}
-            </OptionCard>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <Label className="font-ui text-sm mb-3 block">Cultural background (optional)</Label>
-        <Input
-          value={data.cultural_background}
-          onChange={(e) => update('cultural_background', e.target.value)}
-          placeholder="e.g. Kenyan, Ugandan, East African, etc."
-          className="rounded-card"
-          maxLength={100}
-        />
-        <label className="flex items-center gap-2 mt-3 font-ui text-sm text-muted-foreground cursor-pointer">
-          <Checkbox
-            checked={data.cultural_background_important}
-            onCheckedChange={(v) => update('cultural_background_important', v === true)}
-          />
-          Cultural understanding is important to me in a therapist
-        </label>
-      </div>
-    </div>
-  </div>
-);
-
-// Step 2: What Brings You Here
-const StepConcerns = ({ data, update, toggleArray, onCrisisChange }: {
-  data: FormData;
-  update: <K extends keyof FormData>(k: K, v: FormData[K]) => void;
-  toggleArray: (key: 'presenting_concerns' | 'session_format_preference', v: string) => void;
-  onCrisisChange: (checked: boolean) => void;
-}) => (
-  <div>
-    <StepHeading title="What brings you here?" subtitle="Select as many as apply. There's no wrong answer — this helps us find the right fit." />
-
-    <div className="space-y-6">
-      <div>
         <Label className="font-ui text-sm mb-3 block">What would you like support with?</Label>
         <div className="grid grid-cols-2 gap-3">
           {CONCERNS.map((c) => (
@@ -560,27 +495,8 @@ const StepConcerns = ({ data, update, toggleArray, onCrisisChange }: {
       </div>
 
       <div>
-        <Label className="font-ui text-sm mb-3 block">Have you been to therapy before?</Label>
-        <RadioGroup
-          value={data.previous_therapy === null ? '' : data.previous_therapy ? 'yes' : 'no'}
-          onValueChange={(v) => update('previous_therapy', v === 'yes')}
-          className="flex gap-4"
-        >
-          <label className="flex items-center gap-2 font-ui text-sm cursor-pointer">
-            <RadioGroupItem value="yes" /> Yes
-          </label>
-          <label className="flex items-center gap-2 font-ui text-sm cursor-pointer">
-            <RadioGroupItem value="no" /> No
-          </label>
-        </RadioGroup>
-      </div>
-
-      <div>
         <label className="flex items-center gap-3 p-4 rounded-card border border-border bg-card font-ui text-sm cursor-pointer">
-          <Checkbox
-            checked={data.crisis_flag}
-            onCheckedChange={(v) => onCrisisChange(v === true)}
-          />
+          <Checkbox checked={data.crisis_flag} onCheckedChange={(v) => onCrisisChange(v === true)} />
           <span>I'm currently experiencing a crisis or thoughts of self-harm</span>
         </label>
       </div>
@@ -588,156 +504,8 @@ const StepConcerns = ({ data, update, toggleArray, onCrisisChange }: {
   </div>
 );
 
-// Step 3: Session Preferences
-const StepSessionPrefs = ({ data, update, toggleArray }: {
-  data: FormData;
-  update: <K extends keyof FormData>(k: K, v: FormData[K]) => void;
-  toggleArray: (key: 'presenting_concerns' | 'session_format_preference', v: string) => void;
-}) => (
-  <div>
-    <StepHeading title="Session Preferences" subtitle="Help us understand how you'd like to connect with your therapist." />
-
-    <div className="space-y-6">
-      <div>
-        <Label className="font-ui text-sm mb-3 block">Preferred session format (select all that work)</Label>
-        <div className="grid grid-cols-2 gap-3">
-          {SESSION_FORMATS.map((f) => (
-            <OptionCard key={f} selected={data.session_format_preference.includes(f)} onClick={() => toggleArray('session_format_preference', f)}>
-              {f}
-            </OptionCard>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <Label className="font-ui text-sm mb-3 block">How often would you like sessions?</Label>
-        <div className="grid grid-cols-2 gap-3">
-          {['Weekly', 'Fortnightly', 'Monthly', 'Not sure yet'].map((f) => (
-            <OptionCard key={f} selected={data.frequency_preference === f} onClick={() => update('frequency_preference', f)}>
-              {f}
-            </OptionCard>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <Label className="font-ui text-sm mb-3 block">What time works best for you?</Label>
-        <div className="grid grid-cols-2 gap-3">
-          {['Morning (8am–12pm)', 'Afternoon (12pm–5pm)', 'Evening (5pm–9pm)', 'Flexible'].map((t) => (
-            <OptionCard key={t} selected={data.session_time_preference === t} onClick={() => update('session_time_preference', t)}>
-              {t}
-            </OptionCard>
-          ))}
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-// Step 4: Therapist Preferences
-const StepTherapistPrefs = ({ data, update }: { data: FormData; update: <K extends keyof FormData>(k: K, v: FormData[K]) => void }) => (
-  <div>
-    <StepHeading title="Therapist Preferences" subtitle="Tell us what matters to you in a therapist. We'll do our best to match accordingly." />
-
-    <div className="space-y-6">
-      <div>
-        <Label className="font-ui text-sm mb-3 block">Therapist gender preference</Label>
-        <div className="grid grid-cols-2 gap-3">
-          {['Female', 'Male', 'Non-binary', 'No preference'].map((g) => (
-            <OptionCard key={g} selected={data.therapist_gender_preference === g} onClick={() => update('therapist_gender_preference', g)}>
-              {g}
-            </OptionCard>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <Label className="font-ui text-sm mb-3 block">Experience level preference</Label>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {['Early-career (1–3 yrs)', 'Experienced (4–10 yrs)', 'No preference'].map((e) => (
-            <OptionCard key={e} selected={data.experience_level_preference === e} onClick={() => update('experience_level_preference', e)}>
-              {e}
-            </OptionCard>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <Label className="font-ui text-sm mb-3 block">Preferred language</Label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {['English', 'Swahili', 'French', 'Luganda', 'Other'].map((l) => (
-            <OptionCard key={l} selected={data.language_preference === l} onClick={() => update('language_preference', l)}>
-              {l}
-            </OptionCard>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <Label className="font-ui text-sm mb-3 block">
-          How important is it that your therapist specialises in your specific concern?
-        </Label>
-        <div className="px-2">
-          <Slider
-            value={[data.specialisation_importance]}
-            onValueChange={([v]) => update('specialisation_importance', v)}
-            min={1}
-            max={5}
-            step={1}
-          />
-          <div className="flex justify-between mt-2 font-ui text-xs text-muted-foreground">
-            <span>Not important</span>
-            <span>Very important</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-// Step 5: Financial & Access
-const StepFinancial = ({ data, update }: { data: FormData; update: <K extends keyof FormData>(k: K, v: FormData[K]) => void }) => (
-  <div>
-    <StepHeading title="Financial & Access" subtitle="We want to make sure therapy is accessible for you. This helps us find therapists within your budget." />
-
-    <div className="space-y-6">
-      <div>
-        <Label className="font-ui text-sm mb-3 block">What's your budget per session? (KES)</Label>
-        <div className="grid grid-cols-2 gap-3">
-          {['Under 2,000', '2,000–5,000', '5,000–10,000', '10,000+', 'Not sure'].map((b) => (
-            <OptionCard key={b} selected={data.budget_range === b} onClick={() => update('budget_range', b)}>
-              {b}
-            </OptionCard>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <Label className="font-ui text-sm mb-3 block">Do you have insurance coverage for therapy?</Label>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {['Yes', 'No', 'Not sure'].map((i) => (
-            <OptionCard key={i} selected={data.insurance_coverage === i} onClick={() => update('insurance_coverage', i)}>
-              {i}
-            </OptionCard>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <label className="flex items-center gap-3 p-4 rounded-card border border-border bg-card font-ui text-sm cursor-pointer">
-          <Checkbox
-            checked={data.sliding_scale_needed}
-            onCheckedChange={(v) => update('sliding_scale_needed', v === true)}
-          />
-          <span>I'd benefit from a sliding-scale (reduced) fee</span>
-        </label>
-      </div>
-    </div>
-  </div>
-);
-
-// Step 6: Final Context
-const StepFinal = ({
+// Step 2: Minimal Preferences
+const StepQuickPreferences = ({
   data,
   update,
   consentAccepted,
@@ -749,16 +517,45 @@ const StepFinal = ({
   setConsentAccepted: (value: boolean) => void;
 }) => (
   <div>
-    <StepHeading title="Anything else?" subtitle="Is there anything you'd like your matched therapist to know? This is completely optional." />
+    <StepHeading title="A few preferences" subtitle="Just enough to help us find a therapist who fits." />
 
     <div className="space-y-6">
-      <Textarea
-        value={data.additional_notes}
-        onChange={(e) => update('additional_notes', e.target.value)}
-        placeholder="For example: 'I'd prefer someone who is LGBTQ+ affirming', 'I have mobility challenges', 'I'm looking for faith-based counselling', etc."
-        className="rounded-card min-h-[140px]"
-        maxLength={1000}
-      />
+      <div>
+        <Label className="font-ui text-sm mb-3 block">Preferred session format</Label>
+        <div className="grid grid-cols-2 gap-3">
+          {SESSION_FORMATS.map((f) => (
+            <OptionCard
+              key={f}
+              selected={data.session_format_preference.includes(f)}
+              onClick={() => update('session_format_preference', data.session_format_preference.includes(f) ? [] : [f])}
+            >
+              {f}
+            </OptionCard>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <Label className="font-ui text-sm mb-3 block">Budget per session</Label>
+        <div className="grid grid-cols-2 gap-3">
+          {['Under 2,000', '2,000–5,000', '5,000–10,000', '10,000+', 'Not sure'].map((b) => (
+            <OptionCard key={b} selected={data.budget_range === b} onClick={() => update('budget_range', b)}>
+              {b}
+            </OptionCard>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <Label className="font-ui text-sm mb-3 block">Therapist gender preference</Label>
+        <div className="grid grid-cols-2 gap-3">
+          {['Female', 'Male', 'No preference'].map((g) => (
+            <OptionCard key={g} selected={data.therapist_gender_preference === g} onClick={() => update('therapist_gender_preference', g)}>
+              {g}
+            </OptionCard>
+          ))}
+        </div>
+      </div>
 
       <Card className="bg-primary/5 border-primary/20">
         <CardContent className="p-5 flex items-start gap-3">
@@ -766,7 +563,7 @@ const StepFinal = ({
           <div>
             <p className="font-ui text-sm font-medium text-foreground">Your privacy matters</p>
             <p className="font-body text-xs text-muted-foreground mt-1">
-              We use your answers to match you with therapists and manage your account. Do not include emergency details here.
+              We use your answers to match you with therapists and manage your request. Do not include emergency details here.
               Read our{' '}
               <Link to="/privacy" className="text-primary hover:underline">
                 Privacy Policy
