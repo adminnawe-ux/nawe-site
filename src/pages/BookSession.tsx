@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { format, addDays, setHours, setMinutes, isBefore, startOfDay, getDay } from 'date-fns';
 import type { Tables } from '@/integrations/supabase/types';
+import { formatTherapistDisplayName } from '@/lib/therapist';
 
 /** Generate half-hour time slots between start and end times */
 const generateTimeSlots = (start: string, end: string): string[] => {
@@ -92,7 +93,7 @@ const BookSession = () => {
       setTherapist(t);
       if (t) {
         const { data: p } = await supabase.from('therapist_public_profiles').select('first_name, last_name').eq('user_id', t.user_id).maybeSingle();
-        setProfileName(`${p?.first_name ?? ''} ${p?.last_name ?? ''}`.trim());
+        setProfileName(formatTherapistDisplayName(p?.first_name, p?.last_name));
         if ((t.session_formats ?? []).length > 0) {
           setSelectedFormat(t.session_formats![0]);
         }

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
+import { formatTherapistDisplayName } from '@/lib/therapist';
 import {
   ArrowLeft, Shield, Star, Globe, Video, Phone, MessageCircle,
   MapPin, Calendar, GraduationCap, Clock, Heart, Users
@@ -73,7 +74,7 @@ const TherapistProfile = () => {
           supabase.from('therapist_public_profiles').select('first_name, last_name').eq('user_id', t.user_id).maybeSingle(),
           supabase.from('reviews_public').select('*').eq('therapist_id', t.id).order('created_at', { ascending: false }).limit(10),
         ]);
-        setProfileName(`${profileRes.data?.first_name ?? ''} ${profileRes.data?.last_name ?? ''}`.trim());
+        setProfileName(formatTherapistDisplayName(profileRes.data?.first_name, profileRes.data?.last_name));
         setReviews(reviewRes.data ?? []);
       }
       setLoading(false);

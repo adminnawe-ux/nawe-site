@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { formatTherapistDisplayName } from '@/lib/therapist';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -198,13 +199,19 @@ const Matches = () => {
           .in('user_id', userIds);
 
         const profileMap = new Map(
-          (profiles ?? []).map((p) => [p.user_id, { name: `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim(), avatar: p.avatar_url }])
+          (profiles ?? []).map((p) => [p.user_id, { firstName: p.first_name, lastName: p.last_name, avatar: p.avatar_url }])
         );
 
         const scored: ScoredTherapist[] = therapistRows.map((t) => {
           const { score, reasons } = computeMatchScore(t, intakeData);
           const profile = profileMap.get(t.user_id);
-          return { ...t, matchScore: score, matchReasons: reasons, profileName: profile?.name || undefined, profileAvatar: profile?.avatar || undefined };
+          return {
+            ...t,
+            matchScore: score,
+            matchReasons: reasons,
+            profileName: profile ? formatTherapistDisplayName(profile.firstName, profile.lastName) : undefined,
+            profileAvatar: profile?.avatar || undefined,
+          };
         });
 
         scored.sort((a, b) => b.matchScore - a.matchScore);
