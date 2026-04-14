@@ -117,7 +117,9 @@ const BookSession = () => {
     const scheduledAt = setMinutes(setHours(selectedDate, hours), mins);
 
     setSubmitting(true);
-    const { error } = await supabase.from('sessions').insert({
+    const { data: booking, error } = await supabase
+      .from('sessions')
+      .insert({
       therapist_id: therapist.id,
       client_id: user.id,
       scheduled_at: scheduledAt.toISOString(),
@@ -127,11 +129,22 @@ const BookSession = () => {
       currency: therapist.currency ?? 'KES',
       status: 'pending',
       notes_client: notes || null,
-    });
+      })
+      .select('id')
+      .single();
 
     if (error) {
       toast({ title: 'Booking failed', description: error.message, variant: 'destructive' });
     } else {
+      if (booking?.id) {
+        const { error: notifyError } = await supabase.functions.invoke('booking-notify', {
+          body: { session_id: booking.id },
+        });
+
+        if (notifyError) {
+          console.error('Booking notification failed:', notifyError);
+        }
+      }
       setSuccess(true);
       toast({ title: 'Session booked!', description: 'Your therapist will confirm shortly.' });
     }
