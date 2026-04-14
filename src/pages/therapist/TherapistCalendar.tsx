@@ -86,6 +86,8 @@ const TherapistCalendar = () => {
   const selectedSessions = selectedDate ? sessionsOnDate(selectedDate) : [];
 
   const updateSessionStatus = async (sessionId: string, status: string) => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
     setUpdatingId(sessionId);
     const { error } = await supabase
       .from('sessions')
@@ -100,6 +102,7 @@ const TherapistCalendar = () => {
       );
       const { error: notifyError } = await supabase.functions.invoke('session-status-notify', {
         body: { session_id: sessionId, status },
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
       });
       if (notifyError) {
         console.error('Session status notification failed:', notifyError);

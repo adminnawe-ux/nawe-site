@@ -115,6 +115,8 @@ const BookSession = () => {
 
     const [hours, mins] = selectedTime.split(':').map(Number);
     const scheduledAt = setMinutes(setHours(selectedDate, hours), mins);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
 
     setSubmitting(true);
     const { data: booking, error } = await supabase
@@ -139,6 +141,7 @@ const BookSession = () => {
       if (booking?.id) {
         const { error: notifyError } = await supabase.functions.invoke('booking-notify', {
           body: { session_id: booking.id },
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
         });
 
         if (notifyError) {
