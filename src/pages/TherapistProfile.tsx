@@ -130,7 +130,8 @@ const TherapistProfile = () => {
   }
 
   const t = therapist;
-  const displayName = profileName || t.professional_title || 'Therapist';
+  const displayName = profileName.trim();
+  const displayTitle = t.professional_title?.trim() ?? '';
   const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : null;
   const bookHref = user ? `/book/${t.id}` : `/login?redirect_to=${encodeURIComponent(`/book/${t.id}`)}`;
 
@@ -155,7 +156,9 @@ const TherapistProfile = () => {
                 <img src={t.photo_url} alt={displayName} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-primary/10">
-                  <span className="font-display text-6xl text-primary/40">{displayName.charAt(0)}</span>
+                  <span className="font-display text-6xl text-primary/40">
+                    {(displayName || displayTitle || 'T').charAt(0).toUpperCase()}
+                  </span>
                 </div>
               )}
               {t.verified && (
@@ -208,9 +211,9 @@ const TherapistProfile = () => {
           {/* Right column */}
           <div className="md:col-span-2 space-y-8">
             <div>
-              <h1 className="font-display text-3xl text-foreground mb-1">{displayName}</h1>
-              {t.professional_title && profileName && (
-                <p className="font-ui text-sm text-muted-foreground mb-2">{t.professional_title}</p>
+              <h1 className="font-display text-3xl text-foreground mb-1">{displayName || displayTitle || 'Therapist'}</h1>
+              {displayName && displayTitle && (
+                <p className="font-ui text-sm text-muted-foreground mb-2">{displayTitle}</p>
               )}
               {t.tagline && (
                 <p className="font-body text-base text-muted-foreground italic">"{t.tagline}"</p>

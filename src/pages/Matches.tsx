@@ -398,7 +398,8 @@ const Matches = () => {
 };
 
 const TherapistCard = ({ therapist: t, hasIntake }: { therapist: ScoredTherapist; hasIntake: boolean }) => {
-  const displayName = t.profileName || t.professional_title || 'Therapist';
+  const displayName = t.profileName?.trim() ?? '';
+  const displayTitle = t.professional_title?.trim() ?? '';
   const photoUrl = t.photo_url || t.profileAvatar;
   const formats = t.session_formats ?? [];
   const specs = (t.specialisations ?? []).slice(0, 4);
@@ -413,7 +414,7 @@ const TherapistCard = ({ therapist: t, hasIntake }: { therapist: ScoredTherapist
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-primary/10">
               <span className="font-display text-4xl text-primary/40">
-                {displayName.charAt(0).toUpperCase()}
+                {(displayName || displayTitle || 'T').charAt(0).toUpperCase()}
               </span>
             </div>
           )}
@@ -426,9 +427,9 @@ const TherapistCard = ({ therapist: t, hasIntake }: { therapist: ScoredTherapist
         </div>
 
         <CardContent className="p-5 flex flex-col flex-1">
-          <h3 className="font-display text-lg text-foreground mb-0.5">{displayName}</h3>
-          {t.professional_title && t.profileName && (
-            <p className="font-ui text-xs text-muted-foreground mb-2">{t.professional_title}</p>
+          <h3 className="font-display text-lg text-foreground mb-0.5">{displayName || displayTitle || 'Therapist'}</h3>
+          {displayName && displayTitle && (
+            <p className="font-ui text-xs text-muted-foreground mb-2">{displayTitle}</p>
           )}
           {t.tagline && (
             <p className="font-body text-sm text-muted-foreground mb-3 line-clamp-2 italic">"{t.tagline}"</p>

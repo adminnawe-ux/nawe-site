@@ -214,7 +214,8 @@ const BookSession = () => {
     );
   }
 
-  const displayName = profileName || therapist.professional_title || 'Therapist';
+  const displayName = profileName.trim();
+  const displayTitle = therapist.professional_title?.trim() ?? '';
   const formats = therapist.session_formats ?? [];
 
   return (
@@ -227,7 +228,7 @@ const BookSession = () => {
           </button>
           <h1 className="font-display text-2xl text-foreground">Book a Session</h1>
           <p className="font-body text-sm text-muted-foreground mt-1">
-            Schedule a session with {displayName}
+            Schedule a session with {displayName || displayTitle || 'Therapist'}
           </p>
         </div>
       </div>
@@ -355,10 +356,13 @@ const BookSession = () => {
                   {/* Therapist info */}
                   <div className="flex items-center gap-3">
                     <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="font-display text-lg text-primary">{displayName.charAt(0)}</span>
+                    <span className="font-display text-lg text-primary">{(displayName || displayTitle || 'Therapist').charAt(0)}</span>
                     </div>
                     <div>
-                      <p className="font-ui text-sm font-medium text-foreground">{displayName}</p>
+                      <p className="font-ui text-sm font-medium text-foreground">{displayName || displayTitle || 'Therapist'}</p>
+                      {displayName && displayTitle && (
+                        <p className="font-ui text-xs text-muted-foreground">{displayTitle}</p>
+                      )}
                       {therapist.verified && (
                         <span className="flex items-center gap-1 font-ui text-[10px] text-success">
                           <Shield className="h-3 w-3" /> Verified
