@@ -98,6 +98,12 @@ const TherapistCalendar = () => {
       setSessions((prev) =>
         prev.map((s) => (s.id === sessionId ? { ...s, status } : s))
       );
+      const { error: notifyError } = await supabase.functions.invoke('session-status-notify', {
+        body: { session_id: sessionId, status },
+      });
+      if (notifyError) {
+        console.error('Session status notification failed:', notifyError);
+      }
       toast({ title: 'Session updated', description: `Session marked as ${status}.` });
     }
     setUpdatingId(null);

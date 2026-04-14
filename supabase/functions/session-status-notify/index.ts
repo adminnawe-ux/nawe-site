@@ -5,8 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-type BookingNotifyPayload = {
+type SessionStatusNotifyPayload = {
   session_id: string;
+  status: 'confirmed' | 'cancelled';
 };
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
@@ -14,7 +15,6 @@ const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const resendApiKey = Deno.env.get('RESEND_API_KEY') ?? '';
 const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? 'support@nawe.co.ke';
-const alertToEmail = Deno.env.get('ALERT_TO_EMAIL') ?? 'support@nawe.co.ke';
 const appUrl = Deno.env.get('APP_URL') ?? 'https://nawe.co.ke';
 
 function escapeHtml(value: string) {
@@ -44,19 +44,6 @@ function formatScheduledAt(value: string) {
     timeStyle: 'short',
     timeZone: 'Africa/Nairobi',
   }).format(date);
-}
-
-function buildSessionSummary(scheduledAt: string, sessionFormat: string | null, therapistName: string, therapistTitle: string) {
-  return `
-    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937">
-      <p>Your session has been received on <strong>Nawe</strong>.</p>
-      <p><strong>Therapist:</strong> ${escapeHtml(therapistName)}${therapistTitle ? `, ${escapeHtml(therapistTitle)}` : ''}</p>
-      <p><strong>Date & time:</strong> ${escapeHtml(scheduledAt)}</p>
-      <p><strong>Format:</strong> ${escapeHtml(sessionFormat || 'pending')}</p>
-      <p><strong>Status:</strong> Pending confirmation by your psychologist</p>
-      <p>We will let you know once your therapist confirms the session.</p>
-    </div>
-  `;
 }
 
 async function sendEmail(to: string, subject: string, html: string) {
@@ -137,7 +124,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  let payload: BookingNotifyPayload;
+  let payload: SessionStatusNotifyPayload;
   try {
     payload = await req.json();
   } catch {
@@ -147,8 +134,15 @@ Deno.serve(async (req) => {
     });
   }
 
-  if (!payload.session_id) {
-    return new Response(JSON.stringify({ error: 'session_id is required' }), {
+  if (!payload.session_id || !payload.status) {
+    return new Response(JSON.stringify({ error: 'session_id and status are required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (!['confirmed', 'cancelled'].includes(payload.status)) {
+    return new Response(JSON.stringify({ error: 'Unsupported status' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -164,7 +158,7 @@ Deno.serve(async (req) => {
   try {
     const { data: session, error: sessionError } = await adminClient
       .from('sessions')
-      .select('id, client_id, scheduled_at, session_format, therapist_id')
+      .select('id, client_id, therapist_id, scheduled_at, session_format, status')
       .eq('id', payload.session_id)
       .maybeSingle();
 
@@ -179,25 +173,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (session.client_id !== userData.user.id) {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const [{ data: therapist, error: therapistError }, { data: clientProfile }] = await Promise.all([
-      adminClient
-        .from('therapists')
-        .select('user_id, professional_title')
-        .eq('id', session.therapist_id)
-        .maybeSingle(),
-      adminClient
-        .from('profiles')
-        .select('first_name, last_name')
-        .eq('user_id', userData.user.id)
-        .maybeSingle(),
-    ]);
+    const { data: therapist, error: therapistError } = await adminClient
+      .from('therapists')
+      .select('id, user_id, professional_title')
+      .eq('id', session.therapist_id)
+      .maybeSingle();
 
     if (therapistError) {
       throw therapistError;
@@ -210,51 +190,65 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: therapistAuth, error: therapistAuthError } = await adminClient.auth.admin.getUserById(therapist.user_id);
-    if (therapistAuthError) {
-      throw therapistAuthError;
+    const therapistAuth = await adminClient.auth.admin.getUserById(therapist.user_id);
+    const clientAuth = await adminClient.auth.admin.getUserById(session.client_id);
+
+    if (therapistAuth.error) {
+      throw therapistAuth.error;
+    }
+    if (clientAuth.error) {
+      throw clientAuth.error;
     }
 
-    const therapistEmail = therapistAuth.user?.email?.trim() ?? alertToEmail.split(',')[0]?.trim() ?? '';
-    if (!therapistEmail) {
-      throw new Error('No therapist email or fallback recipient configured');
+    if (therapistAuth.data.user?.id !== userData.user.id) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const { data: therapistProfile } = await adminClient
-      .from('profiles')
-      .select('first_name, last_name')
-      .eq('user_id', therapist.user_id)
-      .maybeSingle();
+    const [{ data: therapistProfile }, { data: clientProfile }] = await Promise.all([
+      adminClient.from('profiles').select('first_name, last_name').eq('user_id', therapist.user_id).maybeSingle(),
+      adminClient.from('profiles').select('first_name, last_name').eq('user_id', session.client_id).maybeSingle(),
+    ]);
 
     const therapistName = formatDisplayName(therapistProfile?.first_name, therapistProfile?.last_name) || therapist.professional_title || 'Therapist';
-
-    const clientName = formatDisplayName(clientProfile?.first_name, clientProfile?.last_name) || 'A client';
+    const clientName = formatDisplayName(clientProfile?.first_name, clientProfile?.last_name) || 'Client';
     const scheduledAt = formatScheduledAt(session.scheduled_at);
-    const detailsUrl = `${appUrl}/therapist-portal/calendar`;
+    const sessionUrl = `${appUrl}/dashboard`;
 
-    await sendEmail(
-      therapistEmail,
-      'New Nawe session booked',
-      `
-        <p>Hello ${escapeHtml(therapistName)},</p>
-        <p><strong>${escapeHtml(clientName)}</strong> booked a new session with you on Nawe.</p>
-        <p><strong>Date & time:</strong> ${escapeHtml(scheduledAt)}</p>
-        <p><strong>Format:</strong> ${escapeHtml(session.session_format || 'pending')}</p>
-        <p>Please sign in to confirm or manage the session:</p>
-        <p><a href="${detailsUrl}">${detailsUrl}</a></p>
-      `
-    );
-
-    if (userData.user.email?.trim()) {
+    if (payload.status === 'confirmed' && clientAuth.data.user?.email?.trim()) {
       await sendEmail(
-        userData.user.email.trim(),
-        'Your Nawe session is pending confirmation',
-        buildSessionSummary(
-          scheduledAt,
-          session.session_format,
-          therapistName,
-          therapist.professional_title || ''
-        )
+        clientAuth.data.user.email.trim(),
+        'Your Nawe session is confirmed',
+        `
+          <div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937">
+            <p>Hello ${escapeHtml(clientName)},</p>
+            <p>Your session with <strong>${escapeHtml(therapistName)}</strong> has been confirmed.</p>
+            <p><strong>Date & time:</strong> ${escapeHtml(scheduledAt)}</p>
+            <p><strong>Format:</strong> ${escapeHtml(session.session_format || 'pending')}</p>
+            <p><strong>Status:</strong> Confirmed</p>
+            <p>You can view your upcoming sessions in Nawe:</p>
+            <p><a href="${sessionUrl}">${sessionUrl}</a></p>
+          </div>
+        `
+      );
+    }
+
+    if (payload.status === 'cancelled' && clientAuth.data.user?.email?.trim()) {
+      await sendEmail(
+        clientAuth.data.user.email.trim(),
+        'Your Nawe session request was declined',
+        `
+          <div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937">
+            <p>Hello ${escapeHtml(clientName)},</p>
+            <p>Your session request with <strong>${escapeHtml(therapistName)}</strong> was declined or cancelled.</p>
+            <p><strong>Date & time:</strong> ${escapeHtml(scheduledAt)}</p>
+            <p><strong>Status:</strong> Cancelled</p>
+            <p>Please return to Nawe to book another therapist if needed:</p>
+            <p><a href="${appUrl}/matches">${appUrl}/matches</a></p>
+          </div>
+        `
       );
     }
 

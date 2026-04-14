@@ -38,11 +38,13 @@ Deploy the edge functions from `supabase/functions/`:
 | `terms` | Returns Terms & Conditions as JSON |
 | `guest-request` | Sends guest follow-up and callback emails via Resend |
 | `booking-notify` | Sends a booking confirmation email to the therapist after a session is created |
+| `session-status-notify` | Sends a confirmation/cancellation email to the client when the therapist updates session status |
 
 ```bash
 supabase functions deploy terms
 supabase functions deploy guest-request
 supabase functions deploy booking-notify
+supabase functions deploy session-status-notify
 ```
 
 ### Edge Function Secrets
