@@ -117,12 +117,12 @@ const TherapistCalendar = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
-          <h1 className="font-display text-3xl text-foreground mb-1">Calendar</h1>
+          <h1 className="font-display text-2xl sm:text-3xl text-foreground mb-1">Calendar</h1>
           <p className="font-body text-muted-foreground text-sm">Manage your sessions and availability.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Badge variant="outline" className="font-ui text-xs">
             {sessionCount} session{sessionCount !== 1 && 's'} this month
           </Badge>
