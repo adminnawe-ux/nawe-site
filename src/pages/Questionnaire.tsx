@@ -242,34 +242,6 @@ const Questionnaire = () => {
     }
   };
 
-  if (guestSubmitted) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-6">
-        <Card className="max-w-xl w-full rounded-card shadow-soft border border-border">
-          <CardContent className="p-8 space-y-4 text-center">
-            <div className="mx-auto h-14 w-14 rounded-full bg-success/10 flex items-center justify-center">
-              <Heart className="h-7 w-7 text-success" />
-            </div>
-            <h2 className="font-display text-3xl text-foreground">We received your request</h2>
-            <p className="font-body text-muted-foreground">
-              You can continue as a guest. If you shared an email address, we will send instructions so you can complete
-              registration later. Our team will also review your request and follow up. You can browse therapists now,
-              but you will need to sign in before booking.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-              <Button className="font-ui rounded-full" onClick={() => navigate('/matches')}>
-                Browse Therapists
-              </Button>
-              <Button variant="outline" className="font-ui rounded-full" onClick={() => navigate('/signup')}>
-                Create Account to Book
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
