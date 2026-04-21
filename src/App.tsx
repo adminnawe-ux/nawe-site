@@ -74,17 +74,18 @@ const App = () => (
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/about" element={<AboutUs />} />
               <Route path="/resources" element={<Resources />} />
+              {/* Browsing therapists is open to guests */}
+              <Route path="/matches" element={<Matches />} />
+              <Route path="/therapist/:id" element={<TherapistProfile />} />
+              <Route path="/book/:id" element={<BookSession />} />
             </Route>
 
-            {/* Client portal — clean header, no footer, no "For Therapists" */}
+            {/* Client portal — requires login */}
             <Route element={
               <ProtectedRoute requiredRole="client"><ClientPortalLayout /></ProtectedRoute>
             }>
               <Route path="/dashboard" element={<ClientDashboard />} />
               <Route path="/settings" element={<ClientSettings />} />
-              <Route path="/matches" element={<Matches />} />
-              <Route path="/therapist/:id" element={<TherapistProfile />} />
-              <Route path="/book/:id" element={<BookSession />} />
             </Route>
 
             {/* Questionnaire (focused flow, no navbar) */}
