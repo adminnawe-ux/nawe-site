@@ -33,12 +33,6 @@ const generateTimeSlots = (start: string, end: string): string[] => {
   return slots;
 };
 
-function generatePaymentRef(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  const rand = Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  return `NW${rand}`;
-}
-
 type Therapist = Tables<'therapists'>;
 
 const FORMAT_ICONS: Record<string, React.ElementType> = {
@@ -49,8 +43,9 @@ const FORMAT_TO_DB: Record<string, string> = {
   'Video Call': 'video', 'Phone Call': 'phone', 'In-Person': 'in_person', 'Chat / Messaging': 'messaging',
 };
 
-// These should match your NCBA M-Pesa Paybill setup
 const MPESA_PAYBILL = import.meta.env.VITE_MPESA_PAYBILL ?? '880100';
+const MPESA_ACCOUNT = import.meta.env.VITE_MPESA_ACCOUNT ?? '231112';
+const MPESA_ACCOUNT_NAME = import.meta.env.VITE_MPESA_ACCOUNT_NAME ?? 'NAWE WELLNESS LIMITED';
 
 const BookSession = () => {
   const { id } = useParams<{ id: string }>();
@@ -72,7 +67,7 @@ const BookSession = () => {
 
   // Payment dialog state
   const [paymentOpen, setPaymentOpen] = useState(false);
-  const [paymentRef, setPaymentRef] = useState('');
+  const [mpesaCode, setMpesaCode] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -112,7 +107,7 @@ const BookSession = () => {
   }, [id, roles]);
 
   const openPaymentDialog = () => {
-    setPaymentRef(generatePaymentRef());
+    setMpesaCode('');
     setPaymentOpen(true);
   };
 
@@ -129,6 +124,12 @@ const BookSession = () => {
   const handleVerifyPayment = async () => {
     if (!user || !therapist || !selectedDate || !selectedTime || !selectedFormat) return;
 
+    const code = mpesaCode.trim().toUpperCase();
+    if (!code) {
+      toast({ title: 'Enter your M-Pesa code', description: 'Check your confirmation SMS and enter the code (e.g. QAB1234XYZ).', variant: 'destructive' });
+      return;
+    }
+
     const [hours, mins] = selectedTime.split(':').map(Number);
     const scheduledAt = setMinutes(setHours(selectedDate, hours), mins);
     const { data: sessionData } = await supabase.auth.getSession();
@@ -138,7 +139,7 @@ const BookSession = () => {
     try {
       const { data, error } = await supabase.functions.invoke('verify-payment', {
         body: {
-          payment_reference: paymentRef,
+          payment_reference: code,
           expected_amount: therapist.price_per_session ?? 0,
           currency: therapist.currency ?? 'KES',
           therapist_id: therapist.id,
@@ -478,7 +479,7 @@ const BookSession = () => {
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Payment instructions */}
+            {/* Payment details */}
             <div className="bg-muted/40 rounded-xl p-4 space-y-3 font-ui text-sm">
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Paybill Number</span>
@@ -493,11 +494,16 @@ const BookSession = () => {
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Account Number</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold text-foreground text-base tracking-widest">{paymentRef}</span>
-                  <button onClick={() => copyToClipboard(paymentRef)} className="text-muted-foreground hover:text-foreground transition-colors">
+                  <span className="font-mono font-bold text-foreground text-base tracking-widest">{MPESA_ACCOUNT}</span>
+                  <button onClick={() => copyToClipboard(MPESA_ACCOUNT)} className="text-muted-foreground hover:text-foreground transition-colors">
                     {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
                   </button>
                 </div>
+              </div>
+              <Separator />
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Account Name</span>
+                <span className="font-semibold text-foreground text-sm">{MPESA_ACCOUNT_NAME}</span>
               </div>
               <Separator />
               <div className="flex justify-between items-center">
@@ -512,20 +518,37 @@ const BookSession = () => {
             <ol className="space-y-1.5 font-body text-xs text-muted-foreground list-decimal list-inside">
               <li>Open M-Pesa on your phone and go to <strong>Lipa na M-Pesa → Pay Bill</strong></li>
               <li>Enter Business No: <strong>{MPESA_PAYBILL}</strong></li>
-              <li>Enter Account No: <strong>{paymentRef}</strong> (use this exactly)</li>
+              <li>Enter Account No: <strong>{MPESA_ACCOUNT}</strong></li>
               <li>Enter Amount: <strong>{therapist.currency ?? 'KES'} {(therapist.price_per_session ?? 0).toLocaleString()}</strong></li>
               <li>Enter your M-Pesa PIN and confirm</li>
+              <li>You'll receive an SMS with a confirmation code — enter it below</li>
             </ol>
+
+            {/* Confirmation code input */}
+            <div className="space-y-1.5">
+              <label className="font-ui text-sm font-medium text-foreground">M-Pesa Confirmation Code</label>
+              <input
+                type="text"
+                placeholder="e.g. QAB1234XYZ"
+                value={mpesaCode}
+                onChange={(e) => setMpesaCode(e.target.value.toUpperCase())}
+                disabled={verifying}
+                className="w-full font-mono text-base tracking-widest border border-input rounded-lg px-3 py-2 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring uppercase"
+              />
+              <p className="font-body text-[11px] text-muted-foreground">
+                Found in the M-Pesa SMS you received after payment (e.g. "Confirmed. QAB1234XYZ…")
+              </p>
+            </div>
 
             <div className="flex gap-3 pt-1">
               <Button
                 className="flex-1 font-ui rounded-full"
                 onClick={handleVerifyPayment}
-                disabled={verifying}
+                disabled={verifying || !mpesaCode.trim()}
               >
                 {verifying
                   ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying…</>
-                  : <><Check className="mr-2 h-4 w-4" /> I've Paid</>
+                  : <><Check className="mr-2 h-4 w-4" /> Confirm Payment</>
                 }
               </Button>
               <Button
@@ -533,7 +556,7 @@ const BookSession = () => {
                 size="icon"
                 className="rounded-full shrink-0"
                 onClick={handleVerifyPayment}
-                disabled={verifying}
+                disabled={verifying || !mpesaCode.trim()}
                 title="Retry verification"
               >
                 <RefreshCw className={`h-4 w-4 ${verifying ? 'animate-spin' : ''}`} />
@@ -541,7 +564,7 @@ const BookSession = () => {
             </div>
 
             <p className="font-body text-[11px] text-muted-foreground text-center">
-              Payment may take up to 30 seconds to reflect. If not found, wait and tap retry.
+              Verification may take a few seconds. If not found, wait a moment and try again.
             </p>
           </div>
         </DialogContent>
