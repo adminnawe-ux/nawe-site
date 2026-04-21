@@ -225,9 +225,11 @@ const Questionnaire = () => {
         return;
       }
 
+      // contact_email and contact_phone are guest-only fields; strip before upserting
+      const { contact_email: _ce, contact_phone: _cp, ...intakeData } = data;
       const { error } = await supabase.from('intake_responses').upsert({
         user_id: session.session.user.id,
-        ...data,
+        ...intakeData,
         consent_accepted_at: new Date().toISOString(),
         consent_version: QUESTIONNAIRE_CONSENT_VERSION,
         completed: true,
