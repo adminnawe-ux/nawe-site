@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { toast } from '@/hooks/use-toast';
 import {
   ArrowLeft, Video, Phone, MapPin, MessageCircle,
-  CalendarIcon, Shield, Loader2, CheckCircle2, Copy, Check, RefreshCw, Smartphone,
+  Shield, Loader2, CheckCircle2, Copy, Check, RefreshCw, Smartphone,
 } from 'lucide-react';
 import { format, addDays, setHours, setMinutes, isBefore, startOfDay, getDay } from 'date-fns';
 import type { Tables } from '@/integrations/supabase/types';
@@ -56,7 +56,6 @@ const BookSession = () => {
   const [profileName, setProfileName] = useState('');
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState(false);
-  const [successSessionId, setSuccessSessionId] = useState<string | null>(null);
 
   // Form state
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
@@ -154,27 +153,17 @@ const BookSession = () => {
 
       if (error) throw error;
 
-      if (!data.verified) {
+      if (!data.submitted) {
         toast({
-          title: 'Payment not found yet',
-          description: data.message ?? 'Please wait a moment after sending and try again.',
+          title: 'Submission failed',
+          description: data.message ?? 'Please try again.',
           variant: 'destructive',
         });
         return;
       }
 
-      // Payment verified — send booking notification then show success
-      if (data.session_id) {
-        await supabase.functions.invoke('booking-notify', {
-          body: { session_id: data.session_id },
-          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
-        });
-        setSuccessSessionId(data.session_id);
-      }
-
       setPaymentOpen(false);
       setSuccess(true);
-      toast({ title: 'Payment verified!', description: 'Your session has been booked successfully.' });
     } catch (err) {
       toast({
         title: 'Verification failed',
@@ -242,12 +231,15 @@ const BookSession = () => {
             <div className="h-16 w-16 rounded-full bg-success/10 flex items-center justify-center mx-auto">
               <CheckCircle2 className="h-8 w-8 text-success" />
             </div>
-            <h2 className="font-display text-2xl text-foreground">Session Booked!</h2>
+            <h2 className="font-display text-2xl text-foreground">Payment Submitted!</h2>
             <p className="font-body text-sm text-muted-foreground">
-              Your payment was confirmed and your session with{' '}
-              <strong>{profileName || 'the therapist'}</strong> on{' '}
+              Your payment details have been received. Our team will verify receipt in our account and
+              you'll get a <strong>confirmation email</strong> once approved — usually within a few hours.
+            </p>
+            <p className="font-body text-sm text-muted-foreground">
+              Session with <strong>{profileName || 'the therapist'}</strong> on{' '}
               <strong>{selectedDate && format(selectedDate, 'EEEE, d MMMM')}</strong> at{' '}
-              <strong>{selectedTime}</strong> has been submitted. Your therapist will confirm shortly.
+              <strong>{selectedTime}</strong>.
             </p>
             <div className="flex gap-3 pt-2">
               <Button variant="outline" className="flex-1 font-ui rounded-full" onClick={() => navigate('/dashboard')}>
