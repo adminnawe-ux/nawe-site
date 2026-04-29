@@ -165,8 +165,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Expire orphaned pending_stk sessions older than 15 minutes for this user
-    const expiryCutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    // Expire orphaned pending_stk sessions older than 2 minutes (STK prompt expires ~30s)
+    const expiryCutoff = new Date(Date.now() - 2 * 60 * 1000).toISOString();
     await adminClient
       .from('sessions')
       .update({ payment_status: 'failed' })

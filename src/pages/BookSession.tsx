@@ -203,10 +203,10 @@ const BookSession = () => {
   // Poll NCBA for payment status every 4 seconds while STK push is pending
   useEffect(() => {
     if (!stkPending) return;
-    if (pollCount >= 30) {
-      // ~2 minutes — give up, let user retry
+    if (pollCount >= 15) {
+      // ~60s — STK prompt expires in ~30s so this is more than enough
       setStkPending(false);
-      setPaymentError('Payment not received within 2 minutes. If you completed the payment, please contact support.');
+      setPaymentError('Payment not received. The M-Pesa prompt has expired — tap "Send M-Pesa Prompt" to try again.');
       return;
     }
     const timer = setTimeout(handlePollStatus, 4000);
