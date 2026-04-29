@@ -1,7 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const appOrigin = Deno.env.get('APP_URL') ?? 'https://nawe.co.ke';
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': appOrigin,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
@@ -19,6 +20,8 @@ const ncbaStkPassword = Deno.env.get('NCBA_STK_PASSWORD') ?? '';
 const DEFAULT_COMMISSION_RATE = 0.20;
 const NCBA_TIMEOUT_MS = 10_000;
 
+let _cachedToken: { value: string; expiresAt: number } | null = null;
+
 async function ncbaFetch(url: string, init: RequestInit): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), NCBA_TIMEOUT_MS);
@@ -30,6 +33,7 @@ async function ncbaFetch(url: string, init: RequestInit): Promise<Response> {
 }
 
 async function getNcbaToken(): Promise<string> {
+  if (_cachedToken && Date.now() < _cachedToken.expiresAt) return _cachedToken.value;
   const credentials = btoa(`${ncbaStkUsername}:${ncbaStkPassword}`);
   const resp = await ncbaFetch(`${ncbaBaseUrl}/payments/api/v1/auth/token`, {
     method: 'GET',
@@ -38,6 +42,7 @@ async function getNcbaToken(): Promise<string> {
   if (!resp.ok) throw new Error(`NCBA token error: ${resp.status}`);
   const json = await resp.json();
   if (!json.access_token) throw new Error('No access_token from NCBA');
+  _cachedToken = { value: json.access_token, expiresAt: Date.now() + 16 * 60 * 60 * 1000 };
   return json.access_token as string;
 }
 

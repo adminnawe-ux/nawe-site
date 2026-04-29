@@ -1,7 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const appOrigin = Deno.env.get('APP_URL') ?? 'https://nawe.co.ke';
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': appOrigin,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
@@ -25,6 +26,10 @@ interface RequestPayload {
 }
 
 const NCBA_TIMEOUT_MS = 10_000;
+const STK_RATE_LIMIT_PER_HOUR = 3;
+
+// In-memory token cache — valid across requests in the same function instance
+let _cachedToken: { value: string; expiresAt: number } | null = null;
 
 async function ncbaFetch(url: string, init: RequestInit): Promise<Response> {
   const controller = new AbortController();
@@ -37,6 +42,7 @@ async function ncbaFetch(url: string, init: RequestInit): Promise<Response> {
 }
 
 async function getNcbaToken(): Promise<string> {
+  if (_cachedToken && Date.now() < _cachedToken.expiresAt) return _cachedToken.value;
   const credentials = btoa(`${ncbaStkUsername}:${ncbaStkPassword}`);
   const resp = await ncbaFetch(`${ncbaBaseUrl}/payments/api/v1/auth/token`, {
     method: 'GET',
@@ -48,6 +54,8 @@ async function getNcbaToken(): Promise<string> {
   }
   const json = await resp.json();
   if (!json.access_token) throw new Error('NCBA did not return an access_token');
+  // Cache for 16 hours (token valid 18h — leave 2h buffer)
+  _cachedToken = { value: json.access_token, expiresAt: Date.now() + 16 * 60 * 60 * 1000 };
   return json.access_token as string;
 }
 
@@ -142,7 +150,31 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 2. Duplicate guard — reject if an active pending session already exists for this slot
+    // 2. Rate limit — max 3 STK initiations per user per hour
+    const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count: recentCount } = await adminClient
+      .from('sessions')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', client_id)
+      .eq('payment_status', 'pending_stk')
+      .gte('created_at', since);
+
+    if ((recentCount ?? 0) >= STK_RATE_LIMIT_PER_HOUR) {
+      return new Response(JSON.stringify({ error: 'Too many payment attempts. Please wait before trying again.' }), {
+        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '3600' },
+      });
+    }
+
+    // Expire orphaned pending_stk sessions older than 15 minutes for this user
+    const expiryCutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    await adminClient
+      .from('sessions')
+      .update({ payment_status: 'failed' })
+      .eq('client_id', client_id)
+      .eq('payment_status', 'pending_stk')
+      .lt('created_at', expiryCutoff);
+
+    // 4. Duplicate guard — reject if an active pending session already exists for this slot
     const { data: existing } = await adminClient
       .from('sessions')
       .select('id')
@@ -158,10 +190,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3. Get NCBA auth token
+    // 5. Get NCBA auth token
     const token = await getNcbaToken();
 
-    // 4. Initiate STK push
+    // 6. Initiate STK push
     const stkResp = await ncbaFetch(`${ncbaBaseUrl}/payments/api/v1/stk-push/initiate`, {
       method: 'POST',
       headers: {
@@ -190,7 +222,7 @@ Deno.serve(async (req) => {
 
     const transactionId: string = stkData.TransactionID;
 
-    // 5. Create session with pending_stk status
+    // 7. Create session with pending_stk status
     const { data: session, error: insertError } = await adminClient
       .from('sessions')
       .insert({
