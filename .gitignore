@@ -29,3 +29,4 @@ temp/
 *.sw?
 
 docs-api/*
+memory/*
