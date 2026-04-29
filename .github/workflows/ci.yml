@@ -44,5 +44,8 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Test NCBA webhook
-        run: deno test --allow-env supabase/functions/ncba-payment-webhook/index.test.ts
+      - name: Test edge functions
+        run: |
+          deno test --allow-env supabase/functions/ncba-payment-webhook/index.test.ts
+          deno test --allow-env supabase/functions/initiate-stk-push/index.test.ts
+          deno test --allow-env supabase/functions/query-stk-push/index.test.ts

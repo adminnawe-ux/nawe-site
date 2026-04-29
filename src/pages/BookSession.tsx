@@ -9,10 +9,9 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { toast } from '@/hooks/use-toast';
 import {
   ArrowLeft, Video, Phone, MapPin, MessageCircle,
-  Shield, Loader2, CheckCircle2, Copy, Check, RefreshCw, Smartphone,
+  Shield, Loader2, CheckCircle2, Smartphone, AlertCircle,
 } from 'lucide-react';
 import { format, addDays, setHours, setMinutes, isBefore, startOfDay, getDay } from 'date-fns';
 import type { Tables } from '@/integrations/supabase/types';
@@ -43,9 +42,6 @@ const FORMAT_TO_DB: Record<string, string> = {
   'Video Call': 'video', 'Phone Call': 'phone', 'In-Person': 'in_person', 'Chat / Messaging': 'messaging',
 };
 
-const MPESA_PAYBILL = import.meta.env.VITE_MPESA_PAYBILL ?? '880100';
-const MPESA_ACCOUNT = import.meta.env.VITE_MPESA_ACCOUNT ?? '231112';
-const MPESA_ACCOUNT_NAME = import.meta.env.VITE_MPESA_ACCOUNT_NAME ?? 'NAWE WELLNESS LIMITED';
 
 const BookSession = () => {
   const { id } = useParams<{ id: string }>();
@@ -66,9 +62,14 @@ const BookSession = () => {
 
   // Payment dialog state
   const [paymentOpen, setPaymentOpen] = useState(false);
-  const [mpesaCode, setMpesaCode] = useState('');
-  const [verifying, setVerifying] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [initiating, setInitiating] = useState(false);
+  // STK push waiting state
+  const [stkPending, setStkPending] = useState(false);
+  const [transactionId, setTransactionId] = useState('');
+  const [sessionId, setSessionId] = useState('');
+  const [pollCount, setPollCount] = useState(0);
+  const [paymentError, setPaymentError] = useState('');
 
   useEffect(() => {
     if (roles.includes('therapist')) {
@@ -106,26 +107,28 @@ const BookSession = () => {
   }, [id, roles]);
 
   const openPaymentDialog = () => {
-    setMpesaCode('');
+    setPhone('');
+    setPaymentError('');
+    setStkPending(false);
     setPaymentOpen(true);
   };
 
-  const copyToClipboard = useCallback(async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast({ title: 'Could not copy', description: 'Please copy the reference manually.', variant: 'destructive' });
-    }
-  }, []);
-
-  const handleVerifyPayment = async () => {
+  const handleInitiatePayment = async () => {
     if (!user || !therapist || !selectedDate || !selectedTime || !selectedFormat) return;
 
-    const code = mpesaCode.trim().toUpperCase();
-    if (!code) {
-      toast({ title: 'Enter your M-Pesa code', description: 'Check your confirmation SMS and enter the code (e.g. QAB1234XYZ).', variant: 'destructive' });
+    const trimmedPhone = phone.trim();
+    if (!trimmedPhone) {
+      setPaymentError('Enter your M-Pesa phone number.');
+      return;
+    }
+    if (/[^0-9+\s\-]/.test(trimmedPhone)) {
+      setPaymentError('Phone number must contain only digits.');
+      return;
+    }
+    const digits = trimmedPhone.replace(/\D/g, '');
+    const normalised = digits.startsWith('0') ? '254' + digits.slice(1) : digits;
+    if (!/^2547\d{8}$/.test(normalised)) {
+      setPaymentError('Enter a valid Safaricom number — 07XXXXXXXX or +2547XXXXXXXX (10 digits).');
       return;
     }
 
@@ -134,13 +137,12 @@ const BookSession = () => {
     const { data: sessionData } = await supabase.auth.getSession();
     const accessToken = sessionData.session?.access_token;
 
-    setVerifying(true);
+    setInitiating(true);
+    setPaymentError('');
     try {
-      const { data, error } = await supabase.functions.invoke('verify-payment', {
+      const { data, error } = await supabase.functions.invoke('initiate-stk-push', {
         body: {
-          payment_reference: code,
-          expected_amount: therapist.price_per_session ?? 0,
-          currency: therapist.currency ?? 'KES',
+          phone: trimmedPhone,
           therapist_id: therapist.id,
           client_id: user.id,
           scheduled_at: scheduledAt.toISOString(),
@@ -152,28 +154,64 @@ const BookSession = () => {
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-      if (!data.submitted) {
-        toast({
-          title: 'Submission failed',
-          description: data.message ?? 'Please try again.',
-          variant: 'destructive',
-        });
+      setTransactionId(data.transaction_id);
+      setSessionId(data.session_id);
+      setPollCount(0);
+      setStkPending(true);
+    } catch (err) {
+      setPaymentError(err instanceof Error ? err.message : 'Could not initiate payment. Please try again.');
+    } finally {
+      setInitiating(false);
+    }
+  };
+
+  const handlePollStatus = useCallback(async () => {
+    if (!transactionId || !sessionId) return;
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('query-stk-push', {
+        body: { transaction_id: transactionId, session_id: sessionId },
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      });
+
+      if (error) throw error;
+
+      if (data?.status === 'confirmed') {
+        setPaymentOpen(false);
+        setStkPending(false);
+        setSuccess(true);
         return;
       }
 
-      setPaymentOpen(false);
-      setSuccess(true);
-    } catch (err) {
-      toast({
-        title: 'Verification failed',
-        description: err instanceof Error ? err.message : 'Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setVerifying(false);
+      if (data?.status === 'failed') {
+        setStkPending(false);
+        setPaymentError(data.reason ?? 'Payment was not completed. You can try again.');
+        return;
+      }
+
+      // still pending — increment counter; caller decides when to stop
+      setPollCount((c) => c + 1);
+    } catch {
+      setPollCount((c) => c + 1);
     }
-  };
+  }, [transactionId, sessionId]);
+
+  // Poll NCBA for payment status every 4 seconds while STK push is pending
+  useEffect(() => {
+    if (!stkPending) return;
+    if (pollCount >= 30) {
+      // ~2 minutes — give up, let user retry
+      setStkPending(false);
+      setPaymentError('Payment not received within 2 minutes. If you completed the payment, please contact support.');
+      return;
+    }
+    const timer = setTimeout(handlePollStatus, 4000);
+    return () => clearTimeout(timer);
+  }, [stkPending, pollCount, handlePollStatus]);
 
   const isComplete = selectedDate && selectedTime && selectedFormat;
 
@@ -461,104 +499,117 @@ const BookSession = () => {
       </div>
 
       {/* Payment Dialog */}
-      <Dialog open={paymentOpen} onOpenChange={(open) => { if (!verifying) setPaymentOpen(open); }}>
+      <Dialog open={paymentOpen} onOpenChange={(open) => { if (!initiating && !stkPending) setPaymentOpen(open); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">Pay via M-Pesa</DialogTitle>
             <DialogDescription className="font-body text-sm text-muted-foreground">
-              Send the exact amount below to our NCBA Paybill, then tap "I've Paid" to confirm.
+              {stkPending
+                ? 'Waiting for payment confirmation…'
+                : 'Enter your M-Pesa number and we\'ll send a payment prompt to your phone.'}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            {/* Payment details */}
-            <div className="bg-muted/40 rounded-xl p-4 space-y-3 font-ui text-sm">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Paybill Number</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground text-base tracking-wider">{MPESA_PAYBILL}</span>
-                  <button onClick={() => copyToClipboard(MPESA_PAYBILL)} className="text-muted-foreground hover:text-foreground transition-colors">
-                    <Copy className="h-3.5 w-3.5" />
-                  </button>
+          {stkPending ? (
+            /* Waiting for PIN screen */
+            <div className="space-y-6 py-2">
+              <div className="flex flex-col items-center gap-4 py-4">
+                <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Smartphone className="h-10 w-10 text-primary animate-pulse" />
+                </div>
+                <div className="text-center space-y-1">
+                  <p className="font-ui text-base font-medium text-foreground">Check your phone</p>
+                  <p className="font-body text-sm text-muted-foreground">
+                    Enter your M-Pesa PIN to pay{' '}
+                    <strong>{therapist.currency ?? 'KES'} {(therapist.price_per_session ?? 0).toLocaleString()}</strong>.
+                  </p>
                 </div>
               </div>
-              <Separator />
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Account Number</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold text-foreground text-base tracking-widest">{MPESA_ACCOUNT}</span>
-                  <button onClick={() => copyToClipboard(MPESA_ACCOUNT)} className="text-muted-foreground hover:text-foreground transition-colors">
-                    {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
-                  </button>
-                </div>
+
+              <div className="flex items-center gap-2 bg-muted/40 rounded-xl p-3">
+                <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+                <p className="font-body text-xs text-muted-foreground">
+                  Waiting for confirmation… ({pollCount > 0 ? `${pollCount * 4}s elapsed` : 'just sent'})
+                </p>
               </div>
-              <Separator />
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Account Name</span>
-                <span className="font-semibold text-foreground text-sm">{MPESA_ACCOUNT_NAME}</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between items-center">
+
+              <Button
+                variant="outline"
+                className="w-full font-ui rounded-full"
+                onClick={() => { setStkPending(false); setPaymentError(''); }}
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            /* Phone number entry screen */
+            <div className="space-y-5 py-2">
+              {/* Amount summary */}
+              <div className="bg-muted/40 rounded-xl p-4 flex justify-between items-center font-ui text-sm">
                 <span className="text-muted-foreground">Amount</span>
-                <span className="font-semibold text-foreground text-base">
+                <span className="font-display text-xl text-foreground font-semibold">
                   {therapist.currency ?? 'KES'} {(therapist.price_per_session ?? 0).toLocaleString()}
                 </span>
               </div>
-            </div>
 
-            {/* Step-by-step instructions */}
-            <ol className="space-y-1.5 font-body text-xs text-muted-foreground list-decimal list-inside">
-              <li>Open M-Pesa on your phone and go to <strong>Lipa na M-Pesa → Pay Bill</strong></li>
-              <li>Enter Business No: <strong>{MPESA_PAYBILL}</strong></li>
-              <li>Enter Account No: <strong>{MPESA_ACCOUNT}</strong></li>
-              <li>Enter Amount: <strong>{therapist.currency ?? 'KES'} {(therapist.price_per_session ?? 0).toLocaleString()}</strong></li>
-              <li>Enter your M-Pesa PIN and confirm</li>
-              <li>You'll receive an SMS with a confirmation code — enter it below</li>
-            </ol>
+              {/* Phone input */}
+              {(() => {
+                const digits = phone.replace(/\D/g, '');
+                const normalised = digits.startsWith('0') ? '254' + digits.slice(1) : digits;
+                const hasInvalidChars = phone.length > 0 && /[^0-9+\s\-]/.test(phone);
+                const isValid = /^2547\d{8}$/.test(normalised);
+                const isTooLong = digits.length > 12;
+                const hint = hasInvalidChars ? 'Digits only'
+                  : isTooLong ? 'Too many digits'
+                  : null;
+                return (
+                  <div className="space-y-1.5">
+                    <label className="font-ui text-sm font-medium text-foreground">M-Pesa Phone Number</label>
+                    <input
+                      type="tel"
+                      placeholder="e.g. 0712 345 678"
+                      value={phone}
+                      onChange={(e) => { setPhone(e.target.value); setPaymentError(''); }}
+                      disabled={initiating}
+                      className={`w-full font-ui text-base border rounded-lg px-3 py-2.5 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors ${
+                        hint ? 'border-destructive focus:ring-destructive/40'
+                        : isValid ? 'border-success focus:ring-success/40'
+                        : 'border-input'
+                      }`}
+                    />
+                    {hint
+                      ? <p className="font-body text-[11px] text-destructive">{hint}</p>
+                      : isValid
+                        ? <p className="font-body text-[11px] text-success">Looks good</p>
+                        : <p className="font-body text-[11px] text-muted-foreground">07XXXXXXXX or +2547XXXXXXXX</p>
+                    }
+                  </div>
+                );
+              })()}
 
-            {/* Confirmation code input */}
-            <div className="space-y-1.5">
-              <label className="font-ui text-sm font-medium text-foreground">M-Pesa Confirmation Code</label>
-              <input
-                type="text"
-                placeholder="e.g. QAB1234XYZ"
-                value={mpesaCode}
-                onChange={(e) => setMpesaCode(e.target.value.toUpperCase())}
-                disabled={verifying}
-                className="w-full font-mono text-base tracking-widest border border-input rounded-lg px-3 py-2 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring uppercase"
-              />
-              <p className="font-body text-[11px] text-muted-foreground">
-                Found in the M-Pesa SMS you received after payment (e.g. "Confirmed. QAB1234XYZ…")
-              </p>
-            </div>
+              {paymentError && (
+                <div className="flex items-start gap-2 bg-destructive/10 text-destructive rounded-lg p-3">
+                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <p className="font-body text-xs">{paymentError}</p>
+                </div>
+              )}
 
-            <div className="flex gap-3 pt-1">
               <Button
-                className="flex-1 font-ui rounded-full"
-                onClick={handleVerifyPayment}
-                disabled={verifying || !mpesaCode.trim()}
+                className="w-full font-ui rounded-full"
+                onClick={handleInitiatePayment}
+                disabled={initiating || !phone.trim()}
               >
-                {verifying
-                  ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying…</>
-                  : <><Check className="mr-2 h-4 w-4" /> Confirm Payment</>
+                {initiating
+                  ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending prompt…</>
+                  : <><Smartphone className="mr-2 h-4 w-4" /> Send M-Pesa Prompt</>
                 }
               </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-full shrink-0"
-                onClick={handleVerifyPayment}
-                disabled={verifying || !mpesaCode.trim()}
-                title="Retry verification"
-              >
-                <RefreshCw className={`h-4 w-4 ${verifying ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
 
-            <p className="font-body text-[11px] text-muted-foreground text-center">
-              Verification may take a few seconds. If not found, wait a moment and try again.
-            </p>
-          </div>
+              <p className="font-body text-[11px] text-muted-foreground text-center">
+                You'll receive a pop-up on your phone to enter your M-Pesa PIN. Your session is confirmed instantly once payment is received.
+              </p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
