@@ -12,7 +12,8 @@ describe('cn', () => {
   });
 
   it('drops falsy values', () => {
-    expect(cn('base', false && 'skip', undefined, null, 'keep')).toBe('base keep');
+    const condition = false;
+    expect(cn('base', condition && 'skip', undefined, null, 'keep')).toBe('base keep');
   });
 
   it('handles conditional objects', () => {
