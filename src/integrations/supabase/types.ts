@@ -357,6 +357,8 @@ export type Database = {
           updated_at: string
           payment_reference: string | null
           payment_status: string
+          therapist_payout: number | null
+          platform_commission: number | null
         }
         Insert: {
           cancellation_reason?: string | null
@@ -376,6 +378,8 @@ export type Database = {
           updated_at?: string
           payment_reference?: string | null
           payment_status?: string
+          therapist_payout?: number | null
+          platform_commission?: number | null
         }
         Update: {
           cancellation_reason?: string | null
@@ -395,6 +399,8 @@ export type Database = {
           updated_at?: string
           payment_reference?: string | null
           payment_status?: string
+          therapist_payout?: number | null
+          platform_commission?: number | null
         }
         Relationships: [
           {
