@@ -75,7 +75,6 @@ async function confirmSession(adminClient: ReturnType<typeof createClient>, sess
     .maybeSingle();
 
   if (error || !session) throw new Error('Session not found');
-  if (session.payment_status === 'paid') return; // already confirmed (webhook beat us to it)
 
   const price = session.price ?? 0;
   const currency = session.currency ?? 'KES';
@@ -91,12 +90,16 @@ async function confirmSession(adminClient: ReturnType<typeof createClient>, sess
   const therapistPayout = price - platformCommission;
   const commissionPct = Math.round(commissionRate * 100);
 
-  const { error: updateError } = await adminClient
+  // Atomic claim: only succeeds if another path hasn't confirmed yet
+  const { data: claimed, error: updateError } = await adminClient
     .from('sessions')
     .update({ payment_status: 'paid', status: 'confirmed', therapist_payout: therapistPayout, platform_commission: platformCommission })
-    .eq('id', session.id);
+    .eq('id', session.id)
+    .eq('payment_status', 'pending_stk')
+    .select('id');
 
   if (updateError) throw new Error('Failed to update session');
+  if (!claimed || claimed.length === 0) return; // webhook already confirmed — skip emails
 
   // Fetch names and emails for confirmation emails
   const [{ data: clientProfile }, { data: therapist }] = await Promise.all([

@@ -197,8 +197,8 @@ Deno.serve(async (req) => {
   const therapistPayout = price - platformCommission;
   const commissionPct = Math.round(commissionRate * 100);
 
-  // 6. Confirm session
-  const { error: updateError } = await adminClient
+  // 6. Confirm session — atomic claim to prevent double-email with query poller
+  const { data: claimed, error: updateError } = await adminClient
     .from('sessions')
     .update({
       payment_status: 'paid',
@@ -206,11 +206,18 @@ Deno.serve(async (req) => {
       therapist_payout: therapistPayout,
       platform_commission: platformCommission,
     })
-    .eq('id', session.id);
+    .eq('id', session.id)
+    .eq('payment_status', 'pending_stk')
+    .select('id');
 
   if (updateError) {
     console.error('Session update error:', updateError);
     return fail('Failed to confirm session');
+  }
+
+  if (!claimed || claimed.length === 0) {
+    // query poller already confirmed — still return OK so NCBA doesn't retry
+    return ok('Already confirmed');
   }
 
   // Mark any stored notification as matched
