@@ -35,9 +35,24 @@ interface NCBAPayload {
   created_at?: string;
 }
 
+function normaliseMobile(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, '');
+  let normalised = digits;
+  if (digits.startsWith('0') && digits.length === 10) normalised = '254' + digits.slice(1);
+  else if (digits.startsWith('254') && digits.length === 12) normalised = digits;
+  // Reject obviously invalid lengths after normalisation
+  if (normalised.length !== 12) {
+    console.warn('Unexpected mobile length from NCBA:', raw);
+    return digits || null; // store as-is rather than dropping
+  }
+  return normalised;
+}
+
 // Hash verification per NCBA spec:
 // SHA256(secretKey + TransType + TransID + TransTime + TransAmount + BusinessShortCode + BillRefNumber + Mobile + name + "1")
 // → hex string → Base64 encode the hex bytes
+// IMPORTANT: hash uses the raw mobile value exactly as sent by NCBA — do not normalise before hashing
 async function verifyHash(p: NCBAPayload): Promise<boolean> {
   if (!ncbaSecretKey) return true; // skip if not configured (dev mode)
 
