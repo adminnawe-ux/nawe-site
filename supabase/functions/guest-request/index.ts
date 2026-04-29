@@ -1,7 +1,44 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+// Max submissions per email per hour. Crisis callbacks are limited more strictly.
+const RATE_LIMIT_PER_HOUR = 5;
+const RATE_LIMIT_CRISIS_PER_HOUR = 2;
+
+async function checkRateLimit(email: string, kind: string): Promise<boolean> {
+  if (!email) return true; // phone-only submissions pass through
+  const serviceClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count } = await serviceClient
+    .from('guest_intake_requests')
+    .select('id', { count: 'exact', head: true })
+    .eq('contact_email', email)
+    .gte('created_at', since);
+
+  const limit = kind === 'callback' ? RATE_LIMIT_CRISIS_PER_HOUR : RATE_LIMIT_PER_HOUR;
+  return (count ?? 0) < limit;
+}
+
+async function recordRequest(email: string | null, phone: string | null, kind: string, payload: Record<string, unknown>) {
+  if (!supabaseServiceRoleKey) return;
+  const serviceClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  await serviceClient.from('guest_intake_requests').insert({
+    contact_email: email || null,
+    contact_phone: phone || null,
+    intake_payload: { kind, ...payload },
+  });
+}
 
 type GuestRequestPayload = {
   kind: 'intake' | 'callback';
@@ -81,7 +118,18 @@ Deno.serve(async (req) => {
   const intake = payload.intake_payload ?? {};
   const alertRecipients = getAlertRecipients();
 
+  // Rate limit by email
+  const allowed = await checkRateLimit(contactEmail, payload.kind);
+  if (!allowed) {
+    return new Response(JSON.stringify({ error: 'Too many requests. Please try again later.' }), {
+      status: 429,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '3600' },
+    });
+  }
+
   try {
+    // Persist request before sending emails so rate limit counts even if email fails
+    await recordRequest(contactEmail || null, contactPhone || null, payload.kind, intake);
     if (payload.kind === 'intake') {
       if (contactEmail) {
         await sendEmail(
