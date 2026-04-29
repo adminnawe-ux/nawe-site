@@ -189,7 +189,15 @@ const TherapistOnboarding = () => {
       if (tError) throw tError;
 
       localStorage.removeItem(THERAPIST_ONBOARDING_FLAG);
-      toast({ title: 'Profile submitted!', description: 'Your profile is under review. We will notify you once verified.' });
+
+      // Notify admin of new application (best-effort)
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      supabase.functions.invoke('therapist-application-notify', {
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      }).catch((err) => console.error('Admin notification failed:', err));
+
+      toast({ title: 'Application submitted!', description: 'Your profile is under review. We will notify you once approved.' });
       navigate('/therapist-portal');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Please try again.';
