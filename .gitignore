@@ -27,3 +27,5 @@ temp/
 *.njsproj
 *.sln
 *.sw?
+
+docs-api/*
