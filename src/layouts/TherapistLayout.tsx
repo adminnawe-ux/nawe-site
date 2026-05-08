@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Calendar, Users, DollarSign, UserCircle, LogOut, Menu } from 'lucide-react';
-import { SITE_NAME } from '@/lib/site';
+import { supabase } from '@/integrations/supabase/client';
+import { LayoutDashboard, Calendar, Users, DollarSign, UserCircle, LogOut, Menu, Clock, XCircle } from 'lucide-react';
+import { SITE_NAME, SUPPORT_EMAIL } from '@/lib/site';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 
@@ -52,6 +53,79 @@ const NavItems = ({ onNavigate }: { onNavigate?: () => void }) => {
 
 const TherapistLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
+  const { user, signOut } = useAuth();
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('therapists')
+      .select('verification_status, verified')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setVerificationStatus(data?.verification_status ?? null);
+        setChecking(false);
+      });
+  }, [user]);
+
+  if (checking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (verificationStatus === 'pending') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-6">
+        <div className="max-w-md text-center space-y-4">
+          <div className="flex justify-center">
+            <div className="h-16 w-16 rounded-full bg-warning/15 flex items-center justify-center">
+              <Clock className="h-8 w-8 text-warning" />
+            </div>
+          </div>
+          <h1 className="font-display text-2xl text-foreground">Application under review</h1>
+          <p className="font-body text-muted-foreground">
+            Thank you for completing your profile. Our team is reviewing your application and will notify you by email once approved — usually within 1–2 business days.
+          </p>
+          <p className="font-ui text-sm text-muted-foreground">
+            Questions? Email us at{' '}
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="text-primary hover:underline">{SUPPORT_EMAIL}</a>
+          </p>
+          <button onClick={signOut} className="font-ui text-sm text-muted-foreground hover:text-foreground underline">
+            Sign out
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (verificationStatus === 'rejected') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-6">
+        <div className="max-w-md text-center space-y-4">
+          <div className="flex justify-center">
+            <div className="h-16 w-16 rounded-full bg-destructive/15 flex items-center justify-center">
+              <XCircle className="h-8 w-8 text-destructive" />
+            </div>
+          </div>
+          <h1 className="font-display text-2xl text-foreground">Application not approved</h1>
+          <p className="font-body text-muted-foreground">
+            Unfortunately your application was not approved at this time. Please contact us if you believe this is an error or would like to discuss next steps.
+          </p>
+          <p className="font-ui text-sm text-muted-foreground">
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="text-primary hover:underline">{SUPPORT_EMAIL}</a>
+          </p>
+          <button onClick={signOut} className="font-ui text-sm text-muted-foreground hover:text-foreground underline">
+            Sign out
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen">

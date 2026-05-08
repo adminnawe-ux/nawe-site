@@ -11,8 +11,13 @@ const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const resendApiKey = Deno.env.get('RESEND_API_KEY') ?? '';
 const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? 'support@nawe.co.ke';
 const appUrl = Deno.env.get('APP_URL') ?? 'https://nawe.co.ke';
+const googleServiceAccountEmail = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_EMAIL') ?? '';
+const googlePrivateKey = Deno.env.get('GOOGLE_PRIVATE_KEY') ?? '';
+const googleCalendarId = Deno.env.get('GOOGLE_CALENDAR_ID') ?? 'primary';
 
-const DEFAULT_COMMISSION_RATE = 0.20; // 20% fallback if no commission_tiers configured
+const DEFAULT_COMMISSION_RATE = 0.20;
+
+const VIDEO_FORMATS = ['Video Call', 'video'];
 
 function escapeHtml(v: string) {
   return v.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -34,6 +39,107 @@ async function sendEmail(to: string, subject: string, html: string) {
   if (!resp.ok) throw new Error(`Resend error: ${await resp.text()}`);
 }
 
+// ── Google Calendar ────────────────────────────────────────────────────────────
+
+async function getGoogleAccessToken(): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    iss: googleServiceAccountEmail,
+    scope: 'https://www.googleapis.com/auth/calendar',
+    aud: 'https://oauth2.googleapis.com/token',
+    exp: now + 3600,
+    iat: now,
+  };
+
+  const encode = (obj: unknown) =>
+    btoa(JSON.stringify(obj)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+
+  const signingInput = `${encode({ alg: 'RS256', typ: 'JWT' })}.${encode(payload)}`;
+
+  // Parse PEM private key
+  const pem = googlePrivateKey.replace(/\\n/g, '\n');
+  const b64 = pem.replace(/-----BEGIN PRIVATE KEY-----/, '').replace(/-----END PRIVATE KEY-----/, '').replace(/\s/g, '');
+  const keyBytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8',
+    keyBytes.buffer,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+
+  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey, new TextEncoder().encode(signingInput));
+  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const jwt = `${signingInput}.${sigB64}`;
+
+  const resp = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: jwt }),
+  });
+  if (!resp.ok) throw new Error(`Google token error: ${await resp.text()}`);
+  const data = await resp.json();
+  return data.access_token as string;
+}
+
+interface CalendarResult {
+  meetLink: string | null;
+  calendarLink: string;
+  eventId: string;
+}
+
+async function createCalendarEvent(params: {
+  sessionId: string;
+  title: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  clientEmail: string;
+  therapistEmail: string;
+  isVideo: boolean;
+}): Promise<CalendarResult> {
+  const accessToken = await getGoogleAccessToken();
+  const start = new Date(params.scheduledAt);
+  const end = new Date(start.getTime() + params.durationMinutes * 60_000);
+
+  const body: Record<string, unknown> = {
+    summary: params.title,
+    start: { dateTime: start.toISOString(), timeZone: 'Africa/Nairobi' },
+    end: { dateTime: end.toISOString(), timeZone: 'Africa/Nairobi' },
+    attendees: [{ email: params.clientEmail }, { email: params.therapistEmail }],
+    reminders: { useDefault: false, overrides: [{ method: 'email', minutes: 60 }, { method: 'popup', minutes: 15 }] },
+  };
+
+  if (params.isVideo) {
+    body.conferenceData = {
+      createRequest: {
+        requestId: params.sessionId,
+        conferenceSolutionKey: { type: 'hangoutsMeet' },
+      },
+    };
+  }
+
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(googleCalendarId)}/events` +
+    `?conferenceDataVersion=1&sendUpdates=all`;
+
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!resp.ok) throw new Error(`Google Calendar API error: ${await resp.text()}`);
+  const event = await resp.json();
+
+  const meetLink = event.conferenceData?.entryPoints?.find(
+    (ep: { entryPointType: string; uri: string }) => ep.entryPointType === 'video',
+  )?.uri ?? null;
+
+  return { meetLink, calendarLink: event.htmlLink as string, eventId: event.id as string };
+}
+
+// ── Main handler ───────────────────────────────────────────────────────────────
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   if (req.method !== 'POST') {
@@ -49,7 +155,6 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Verify caller is an admin
   const authClient = createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { headers: { Authorization: authHeader } },
@@ -90,10 +195,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Fetch session
     const { data: session, error: sessionError } = await adminClient
       .from('sessions')
-      .select('id, client_id, therapist_id, price, currency, scheduled_at, session_format, payment_reference, payment_status')
+      .select('id, client_id, therapist_id, price, currency, scheduled_at, session_format, duration_minutes, payment_reference, payment_status')
       .eq('id', session_id)
       .maybeSingle();
 
@@ -111,37 +215,29 @@ Deno.serve(async (req) => {
 
     const price = session.price ?? 0;
     const currency = session.currency ?? 'KES';
+    const durationMinutes = session.duration_minutes ?? 50;
+    const isVideo = VIDEO_FORMATS.includes(session.session_format ?? '');
 
-    // Determine commission rate from commission_tiers (use first tier for the currency, sorted by min_revenue)
+    // Commission
     const { data: tiers } = await adminClient
       .from('commission_tiers')
       .select('commission_rate, min_revenue, max_revenue')
       .eq('currency', currency)
       .order('min_revenue', { ascending: true });
 
-    let commissionRate = DEFAULT_COMMISSION_RATE;
-    if (tiers && tiers.length > 0) {
-      // Use lowest tier as default
-      commissionRate = tiers[0].commission_rate;
-    }
-
+    const commissionRate = (tiers && tiers.length > 0) ? tiers[0].commission_rate : DEFAULT_COMMISSION_RATE;
     const platformCommission = Math.round(price * commissionRate);
     const therapistPayout = price - platformCommission;
 
-    // Confirm payment — mark session paid and confirmed
+    // Confirm payment
     const { error: updateError } = await adminClient
       .from('sessions')
-      .update({
-        payment_status: 'paid',
-        status: 'confirmed',
-        therapist_payout: therapistPayout,
-        platform_commission: platformCommission,
-      })
+      .update({ payment_status: 'paid', status: 'confirmed', therapist_payout: therapistPayout, platform_commission: platformCommission })
       .eq('id', session_id);
 
     if (updateError) throw updateError;
 
-    // Fetch names for confirmation emails
+    // Fetch names and emails
     const [{ data: clientProfile }, { data: therapist }] = await Promise.all([
       adminClient.from('profiles').select('first_name, last_name').eq('user_id', session.client_id).maybeSingle(),
       adminClient.from('therapists').select('user_id, professional_title').eq('id', session.therapist_id).maybeSingle(),
@@ -162,10 +258,52 @@ Deno.serve(async (req) => {
     const { data: clientAuth } = await adminClient.auth.admin.getUserById(session.client_id);
     const clientEmail = clientAuth.user?.email ?? '';
 
+    // Google Calendar event (best-effort — don't fail the payment if this errors)
+    let meetLink: string | null = null;
+    let calendarLink: string | null = null;
+
+    if (googleServiceAccountEmail && googlePrivateKey && clientEmail && therapistEmail) {
+      try {
+        const cal = await createCalendarEvent({
+          sessionId: session_id,
+          title: `Nawe Session: ${clientName} & ${therapistName}`,
+          scheduledAt: session.scheduled_at,
+          durationMinutes,
+          clientEmail,
+          therapistEmail,
+          isVideo,
+        });
+        meetLink = cal.meetLink;
+        calendarLink = cal.calendarLink;
+
+        // Persist Meet link on the session so the calendar UI can show it
+        if (meetLink) {
+          await adminClient.from('sessions').update({ session_link: meetLink }).eq('id', session_id);
+        }
+      } catch (calErr) {
+        console.error('Google Calendar event creation failed (non-fatal):', calErr);
+      }
+    }
+
     const formattedDate = formatScheduledAt(session.scheduled_at);
     const commissionPct = Math.round(commissionRate * 100);
 
-    // Email client: payment confirmed, session is on
+    // Build shared table rows for emails
+    const calendarRow = calendarLink
+      ? `<tr style="border-bottom:1px solid #e5e7eb">
+           <td style="padding:10px 14px;font-weight:bold;color:#6b7280;width:40%;background:#f9fafb">Calendar invite</td>
+           <td style="padding:10px 14px"><a href="${calendarLink}" style="color:#10b981">View in Google Calendar →</a></td>
+         </tr>`
+      : '';
+
+    const meetRow = meetLink
+      ? `<tr style="border-bottom:1px solid #e5e7eb">
+           <td style="padding:10px 14px;font-weight:bold;color:#6b7280;width:40%;background:#f9fafb">Join session</td>
+           <td style="padding:10px 14px"><a href="${meetLink}" style="color:#10b981;font-weight:bold">Join Google Meet →</a></td>
+         </tr>`
+      : '';
+
+    // Email client
     if (clientEmail) {
       await sendEmail(
         clientEmail,
@@ -181,26 +319,28 @@ Deno.serve(async (req) => {
                 <td style="padding:10px 14px">${escapeHtml(therapistName)}</td>
               </tr>
               <tr style="border-bottom:1px solid #e5e7eb">
-                <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Date & Time</td>
+                <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Date &amp; Time</td>
                 <td style="padding:10px 14px">${escapeHtml(formattedDate)}</td>
               </tr>
               <tr style="border-bottom:1px solid #e5e7eb">
                 <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Format</td>
                 <td style="padding:10px 14px">${escapeHtml(session.session_format ?? '')}</td>
               </tr>
-              <tr>
+              <tr style="border-bottom:1px solid #e5e7eb">
                 <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Amount paid</td>
                 <td style="padding:10px 14px;font-weight:bold">${escapeHtml(currency)} ${price.toLocaleString()}</td>
               </tr>
+              ${meetRow}
+              ${calendarRow}
             </table>
-            <p>Your therapist will be in touch to share session details. See you soon!</p>
+            ${meetLink ? '<p><strong>A Google Calendar invite has been sent to your email.</strong> You can join the session directly from the invite.</p>' : ''}
             <p><a href="${appUrl}/dashboard" style="color:#10b981">View your dashboard →</a></p>
           </div>
-        `
+        `,
       );
     }
 
-    // Email therapist: new confirmed session + payout info
+    // Email therapist
     if (therapistEmail) {
       await sendEmail(
         therapistEmail,
@@ -216,7 +356,7 @@ Deno.serve(async (req) => {
                 <td style="padding:10px 14px">${escapeHtml(clientName)}</td>
               </tr>
               <tr style="border-bottom:1px solid #e5e7eb">
-                <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Date & Time</td>
+                <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Date &amp; Time</td>
                 <td style="padding:10px 14px">${escapeHtml(formattedDate)}</td>
               </tr>
               <tr style="border-bottom:1px solid #e5e7eb">
@@ -231,19 +371,22 @@ Deno.serve(async (req) => {
                 <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Platform fee (${commissionPct}%)</td>
                 <td style="padding:10px 14px;color:#ef4444">− ${escapeHtml(currency)} ${platformCommission.toLocaleString()}</td>
               </tr>
-              <tr>
+              <tr style="border-bottom:1px solid #e5e7eb">
                 <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Your payout</td>
                 <td style="padding:10px 14px;font-size:18px;font-weight:bold;color:#10b981">${escapeHtml(currency)} ${therapistPayout.toLocaleString()}</td>
               </tr>
+              ${meetRow}
+              ${calendarRow}
             </table>
+            ${meetLink ? '<p><strong>A Google Calendar invite has been sent to your email.</strong> You can join the session directly from the invite.</p>' : ''}
             <p><a href="${appUrl}/therapist-portal/calendar" style="color:#10b981">View your calendar →</a></p>
           </div>
-        `
+        `,
       );
     }
 
     return new Response(
-      JSON.stringify({ confirmed: true, therapist_payout: therapistPayout, platform_commission: platformCommission }),
+      JSON.stringify({ confirmed: true, therapist_payout: therapistPayout, platform_commission: platformCommission, meet_link: meetLink }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (err) {
