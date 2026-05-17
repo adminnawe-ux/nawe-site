@@ -225,9 +225,9 @@ const TherapistProfileEdit = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
-          <h1 className="font-display text-3xl text-foreground mb-1">Edit Profile</h1>
+          <h1 className="font-display text-2xl sm:text-3xl text-foreground mb-1">Edit Profile</h1>
           <p className="font-body text-muted-foreground text-sm">Update your professional profile and settings.</p>
         </div>
         <div className="flex items-center gap-3">
@@ -243,7 +243,8 @@ const TherapistProfileEdit = () => {
       </div>
 
       <Tabs defaultValue="personal" className="space-y-6">
-        <TabsList className="bg-card border border-border rounded-full p-1">
+        <div className="overflow-x-auto -mx-1 px-1 pb-1">
+        <TabsList className="bg-card border border-border rounded-full p-1 w-max">
           <TabsTrigger value="personal" className="font-ui text-xs rounded-full data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <User className="h-3.5 w-3.5 mr-1.5" /> Personal
           </TabsTrigger>
@@ -260,6 +261,7 @@ const TherapistProfileEdit = () => {
             <Settings className="h-3.5 w-3.5 mr-1.5" /> Scheduling
           </TabsTrigger>
         </TabsList>
+        </div>
 
         <div className="bg-card rounded-[var(--radius-card)] border border-border p-6 sm:p-8 shadow-[var(--shadow-card)]">
           {/* Personal */}

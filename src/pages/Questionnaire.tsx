@@ -85,7 +85,6 @@ const Questionnaire = () => {
   const [data, setData] = useState<FormData>(initialData);
   const [submitting, setSubmitting] = useState(false);
   const [consentAccepted, setConsentAccepted] = useState(false);
-  const [guestSubmitted, setGuestSubmitted] = useState(false);
   const [showCrisisModal, setShowCrisisModal] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -187,47 +186,43 @@ const Questionnaire = () => {
     try {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) {
-        if (!data.contact_email && !data.contact_phone) {
-          toast({
-            title: 'Add a contact method',
-            description: 'Please share an email address or phone number so we can follow up on your request as a guest.',
-            variant: 'destructive',
-          });
-          return;
-        }
-
-        const { error: guestError } = await supabase.from('guest_intake_requests').insert({
-          contact_email: data.contact_email || null,
-          contact_phone: data.contact_phone || null,
-          intake_payload: {
-            ...data,
-          },
-          crisis_flag: data.crisis_flag,
-          callback_requested: data.crisis_flag,
-          consent_accepted_at: new Date().toISOString(),
-          consent_version: QUESTIONNAIRE_CONSENT_VERSION,
-        });
-
-        if (guestError) throw guestError;
-
-        await supabase.functions.invoke('guest-request', {
-          body: {
-            kind: 'intake',
+        // Save to DB for admin follow-up only when contact info is provided
+        if (data.contact_email || data.contact_phone) {
+          const { error: guestError } = await supabase.from('guest_intake_requests').insert({
             contact_email: data.contact_email || null,
             contact_phone: data.contact_phone || null,
-            intake_payload: data,
+            intake_payload: { ...data },
             crisis_flag: data.crisis_flag,
-          },
-        });
+            callback_requested: data.crisis_flag,
+            consent_accepted_at: new Date().toISOString(),
+            consent_version: QUESTIONNAIRE_CONSENT_VERSION,
+          });
 
+          if (guestError) throw guestError;
+
+          // Fire-and-forget notification — don't block navigation on it
+          supabase.functions.invoke('guest-request', {
+            body: {
+              kind: 'intake',
+              contact_email: data.contact_email || null,
+              contact_phone: data.contact_phone || null,
+              intake_payload: data,
+              crisis_flag: data.crisis_flag,
+            },
+          });
+        }
+
+        // Draft is already in localStorage — Matches page reads it for the algorithm
         localStorage.removeItem(QUESTIONNAIRE_PENDING_FLAG);
-        setGuestSubmitted(true);
+        navigate('/matches');
         return;
       }
 
+      // contact_email and contact_phone are guest-only fields; strip before upserting
+      const { contact_email: _ce, contact_phone: _cp, ...intakeData } = data;
       const { error } = await supabase.from('intake_responses').upsert({
         user_id: session.session.user.id,
-        ...data,
+        ...intakeData,
         consent_accepted_at: new Date().toISOString(),
         consent_version: QUESTIONNAIRE_CONSENT_VERSION,
         completed: true,
@@ -246,34 +241,6 @@ const Questionnaire = () => {
       setSubmitting(false);
     }
   };
-
-  if (guestSubmitted) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-6">
-        <Card className="max-w-xl w-full rounded-card shadow-soft border border-border">
-          <CardContent className="p-8 space-y-4 text-center">
-            <div className="mx-auto h-14 w-14 rounded-full bg-success/10 flex items-center justify-center">
-              <Heart className="h-7 w-7 text-success" />
-            </div>
-            <h2 className="font-display text-3xl text-foreground">We received your request</h2>
-            <p className="font-body text-muted-foreground">
-              You can continue as a guest. If you shared an email address, we will send instructions so you can complete
-              registration later. Our team will also review your request and follow up. You can browse therapists now,
-              but you will need to sign in before booking.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-              <Button className="font-ui rounded-full" onClick={() => navigate('/matches')}>
-                Browse Therapists
-              </Button>
-              <Button variant="outline" className="font-ui rounded-full" onClick={() => navigate('/signup')}>
-                Create Account to Book
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">

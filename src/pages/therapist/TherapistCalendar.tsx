@@ -9,7 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import SessionLinkEditor from '@/components/therapist/SessionLinkEditor';
 import {
   ChevronLeft, ChevronRight, Clock, Video, Phone, MapPin, MessageCircle,
-  Calendar as CalendarIcon, Check, X, Loader2, Link2
+  Calendar as CalendarIcon, Check, X, Loader2, Link2, Brain, FileText,
 } from 'lucide-react';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth,
@@ -40,6 +40,8 @@ const TherapistCalendar = () => {
   const [loading, setLoading] = useState(true);
   const [therapistId, setTherapistId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [generatingNoteId, setGeneratingNoteId] = useState<string | null>(null);
+  const [sessionNotes, setSessionNotes] = useState<Record<string, string>>({});
 
   // Fetch therapist ID and sessions
   useEffect(() => {
@@ -86,6 +88,8 @@ const TherapistCalendar = () => {
   const selectedSessions = selectedDate ? sessionsOnDate(selectedDate) : [];
 
   const updateSessionStatus = async (sessionId: string, status: string) => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
     setUpdatingId(sessionId);
     const { error } = await supabase
       .from('sessions')
@@ -98,9 +102,39 @@ const TherapistCalendar = () => {
       setSessions((prev) =>
         prev.map((s) => (s.id === sessionId ? { ...s, status } : s))
       );
+      const { error: notifyError } = await supabase.functions.invoke('session-status-notify', {
+        body: { session_id: sessionId, status },
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      });
+      if (notifyError) {
+        console.error('Session status notification failed:', notifyError);
+      }
       toast({ title: 'Session updated', description: `Session marked as ${status}.` });
     }
     setUpdatingId(null);
+  };
+
+  const generateNote = async (sessionId: string) => {
+    setGeneratingNoteId(sessionId);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      const { data, error } = await supabase.functions.invoke('gemma-session-notes', {
+        body: { session_id: sessionId },
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      });
+      if (error) throw error;
+      setSessionNotes(prev => ({ ...prev, [sessionId]: data.content }));
+      toast({ title: 'Session note generated', description: 'Powered by Gemma 4.' });
+    } catch (err) {
+      toast({
+        title: 'Note generation failed',
+        description: err instanceof Error ? err.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setGeneratingNoteId(null);
+    }
   };
 
   const sessionCount = sessions.filter((s) => s.status !== 'cancelled').length;
@@ -108,12 +142,12 @@ const TherapistCalendar = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
-          <h1 className="font-display text-3xl text-foreground mb-1">Calendar</h1>
+          <h1 className="font-display text-2xl sm:text-3xl text-foreground mb-1">Calendar</h1>
           <p className="font-body text-muted-foreground text-sm">Manage your sessions and availability.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Badge variant="outline" className="font-ui text-xs">
             {sessionCount} session{sessionCount !== 1 && 's'} this month
           </Badge>
@@ -290,6 +324,42 @@ const TherapistCalendar = () => {
                           >
                             <X className="mr-1 h-3 w-3" /> Decline
                           </Button>
+                        </div>
+                      )}
+                      {s.status === 'confirmed' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="font-ui text-xs rounded-full w-full mt-1"
+                          onClick={() => updateSessionStatus(s.id, 'completed')}
+                          disabled={updatingId === s.id}
+                        >
+                          {updatingId === s.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Check className="mr-1 h-3 w-3" /> Mark Completed</>}
+                        </Button>
+                      )}
+                      {s.status === 'completed' && (
+                        <div className="pt-1 space-y-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="font-ui text-xs rounded-full w-full border-primary/30 text-primary hover:bg-primary/5"
+                            onClick={() => generateNote(s.id)}
+                            disabled={generatingNoteId === s.id}
+                          >
+                            {generatingNoteId === s.id
+                              ? <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> Generating…</>
+                              : <><Brain className="mr-1.5 h-3 w-3" /> Generate AI Notes</>
+                            }
+                          </Button>
+                          {sessionNotes[s.id] && (
+                            <div className="bg-muted/50 rounded-lg p-2.5 border border-border">
+                              <div className="flex items-center gap-1.5 mb-1.5">
+                                <FileText className="h-3 w-3 text-primary" />
+                                <span className="font-ui text-[10px] font-semibold text-primary uppercase tracking-wide">AI Session Note</span>
+                              </div>
+                              <pre className="font-body text-[11px] text-muted-foreground whitespace-pre-wrap leading-relaxed">{sessionNotes[s.id]}</pre>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

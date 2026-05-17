@@ -355,6 +355,10 @@ export type Database = {
           status: string | null
           therapist_id: string
           updated_at: string
+          payment_reference: string | null
+          payment_status: string
+          therapist_payout: number | null
+          platform_commission: number | null
         }
         Insert: {
           cancellation_reason?: string | null
@@ -372,6 +376,10 @@ export type Database = {
           status?: string | null
           therapist_id: string
           updated_at?: string
+          payment_reference?: string | null
+          payment_status?: string
+          therapist_payout?: number | null
+          platform_commission?: number | null
         }
         Update: {
           cancellation_reason?: string | null
@@ -389,6 +397,10 @@ export type Database = {
           status?: string | null
           therapist_id?: string
           updated_at?: string
+          payment_reference?: string | null
+          payment_status?: string
+          therapist_payout?: number | null
+          platform_commission?: number | null
         }
         Relationships: [
           {
@@ -399,6 +411,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      triage_results: {
+        Row: {
+          id: string
+          user_id: string | null
+          presenting_issue: string | null
+          urgency: string | null
+          language_preference: string | null
+          therapist_type: string | null
+          gender_preference: string | null
+          prior_therapy: boolean | null
+          summary: string | null
+          raw_output: Record<string, unknown> | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          presenting_issue?: string | null
+          urgency?: string | null
+          language_preference?: string | null
+          therapist_type?: string | null
+          gender_preference?: string | null
+          prior_therapy?: boolean | null
+          summary?: string | null
+          raw_output?: Record<string, unknown> | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          presenting_issue?: string | null
+          urgency?: string | null
+          language_preference?: string | null
+          therapist_type?: string | null
+          gender_preference?: string | null
+          prior_therapy?: boolean | null
+          summary?: string | null
+          raw_output?: Record<string, unknown> | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       session_notes: {
         Row: {

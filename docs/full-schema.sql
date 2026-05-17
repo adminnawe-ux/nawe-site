@@ -466,14 +466,19 @@ CREATE POLICY "Anyone can read settings" ON public.platform_settings FOR SELECT 
 -- 7. STORAGE BUCKETS
 -- ============================================================
 
-INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true);
-INSERT INTO storage.buckets (id, name, public) VALUES ('article-covers', 'article-covers', true);
+INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true)
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('article-covers', 'article-covers', true)
+ON CONFLICT (id) DO NOTHING;
 
--- Storage RLS policies (adjust as needed)
+-- Storage RLS policies (avatar objects must live under <user_id>/...)
 CREATE POLICY "Anyone can view avatars" ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
-CREATE POLICY "Authenticated users can upload avatars" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'avatars');
-CREATE POLICY "Users can update own avatars" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'avatars');
-CREATE POLICY "Users can delete own avatars" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'avatars');
+CREATE POLICY "Users can upload own avatar" ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+CREATE POLICY "Users can update own avatar" ON storage.objects FOR UPDATE TO authenticated
+  USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+CREATE POLICY "Users can delete own avatar" ON storage.objects FOR DELETE TO authenticated
+  USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
 
 CREATE POLICY "Anyone can view article covers" ON storage.objects FOR SELECT USING (bucket_id = 'article-covers');
 CREATE POLICY "Admins can upload article covers" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'article-covers' AND public.has_role(auth.uid(), 'admin'::public.app_role));

@@ -37,10 +37,14 @@ Deploy the edge functions from `supabase/functions/`:
 |---|---|
 | `terms` | Returns Terms & Conditions as JSON |
 | `guest-request` | Sends guest follow-up and callback emails via Resend |
+| `booking-notify` | Sends a booking confirmation email to the therapist after a session is created |
+| `session-status-notify` | Sends a confirmation/cancellation email to the client when the therapist updates session status |
 
 ```bash
 supabase functions deploy terms
 supabase functions deploy guest-request
+supabase functions deploy booking-notify
+supabase functions deploy session-status-notify
 ```
 
 ### Edge Function Secrets
@@ -54,6 +58,10 @@ For email delivery, set:
 - `RESEND_FROM_EMAIL` — a verified sender address on your domain, for example `support@nawe.co.ke`
 - `ALERT_TO_EMAIL` — internal inbox or comma-separated group alias that receives urgent callback and guest-intake alerts
 - `APP_URL` — the public site URL used in transactional emails
+- `SUPABASE_SERVICE_ROLE_KEY` — required by `booking-notify` so it can look up the booked therapist’s email server-side
+
+`guest-request` must be callable by anonymous users, so deploy it without JWT verification if you use it from the guest intake form.
+`booking-notify` is called after a logged-in booking, so it should keep JWT verification enabled.
 
 ## 4. Auth Configuration
 
