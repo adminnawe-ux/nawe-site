@@ -5,8 +5,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const OLLAMA_BASE_URL = Deno.env.get('OLLAMA_BASE_URL') ?? 'http://localhost:11434';
-const OLLAMA_MODEL = Deno.env.get('OLLAMA_MODEL') ?? 'gemma4:4b';
+const googleApiKey = Deno.env.get('GOOGLE_AI_API_KEY') ?? '';
+const googleModel = Deno.env.get('GEMMA_MODEL') ?? 'gemma-4-9b-it';
+const ollamaBaseUrl = Deno.env.get('OLLAMA_BASE_URL') ?? 'http://localhost:11434';
+const ollamaModel = Deno.env.get('OLLAMA_MODEL') ?? 'gemma4:4b';
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -165,24 +167,38 @@ Deno.serve(async (req) => {
 Session context:
 ${contextLines}`;
 
-    // Call Ollama
-    const ollamaResp = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: OLLAMA_MODEL,
-        messages: [{ role: 'user', content: prompt }],
-        tools: [SESSION_NOTES_TOOL],
-        stream: false,
-      }),
-    });
+    // Call Gemma 4 — Google AI Studio if key is set, else Ollama
+    let toolCall: { function: { name: string; arguments: SessionNote } } | undefined;
 
-    if (!ollamaResp.ok) {
-      throw new Error(`Ollama error: ${ollamaResp.status} ${await ollamaResp.text()}`);
+    if (googleApiKey) {
+      const body = {
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        tools: [{ function_declarations: [SESSION_NOTES_TOOL.function] }],
+      };
+      const googleResp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${googleModel}:generateContent?key=${googleApiKey}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+      );
+      if (!googleResp.ok) throw new Error(`Google AI error (${googleResp.status}): ${await googleResp.text()}`);
+      const googleData = await googleResp.json();
+      const parts = googleData.candidates?.[0]?.content?.parts ?? [];
+      const fnPart = parts.find((p: Record<string, unknown>) => p.functionCall);
+      if (fnPart) toolCall = { function: { name: fnPart.functionCall.name, arguments: fnPart.functionCall.args } };
+    } else {
+      const ollamaResp = await fetch(`${ollamaBaseUrl}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: ollamaModel,
+          messages: [{ role: 'user', content: prompt }],
+          tools: [SESSION_NOTES_TOOL],
+          stream: false,
+        }),
+      });
+      if (!ollamaResp.ok) throw new Error(`Ollama error: ${ollamaResp.status} ${await ollamaResp.text()}`);
+      const ollamaData = await ollamaResp.json();
+      toolCall = ollamaData.message?.tool_calls?.[0];
     }
-
-    const ollamaData = await ollamaResp.json();
-    const toolCall = ollamaData.message?.tool_calls?.[0];
 
     if (!toolCall || toolCall.function?.name !== 'submit_session_note') {
       // Fallback: use raw content if no tool call

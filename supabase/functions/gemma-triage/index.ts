@@ -5,8 +5,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const OLLAMA_BASE_URL = Deno.env.get('OLLAMA_BASE_URL') ?? 'http://localhost:11434';
-const OLLAMA_MODEL = Deno.env.get('OLLAMA_MODEL') ?? 'gemma4:4b';
+// Google AI Studio takes priority; Ollama is the fallback for local dev
+const googleApiKey = Deno.env.get('GOOGLE_AI_API_KEY') ?? '';
+const googleModel = Deno.env.get('GEMMA_MODEL') ?? 'gemma-4-9b-it';
+const ollamaBaseUrl = Deno.env.get('OLLAMA_BASE_URL') ?? 'http://localhost:11434';
+const ollamaModel = Deno.env.get('OLLAMA_MODEL') ?? 'gemma4:4b';
+
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
@@ -32,80 +36,113 @@ Fanya mazungumzo ya kubadilishana 4–5. Kila mara, uliza kuhusu KITU KIMOJA tu 
 
 Mwisho wa mazungumzo (baada ya ubadilishano 4–5), piga simu ya submit_triage na muhtasari wako. Usiulize maswali zaidi baada ya hapo.`;
 
-const TRIAGE_TOOL = {
-  type: 'function',
-  function: {
-    name: 'submit_triage',
-    description: 'Submit the completed triage assessment once you have gathered enough information.',
-    parameters: {
-      type: 'object',
-      required: ['presenting_issue', 'urgency', 'summary'],
-      properties: {
-        presenting_issue: {
-          type: 'string',
-          description: 'Brief description of the main concern, e.g. "anxiety and work stress"',
-        },
-        urgency: {
-          type: 'string',
-          enum: ['low', 'moderate', 'high', 'crisis'],
-          description: 'low = mild and manageable, moderate = affecting daily life, high = significantly impairing, crisis = immediate risk',
-        },
-        language_preference: {
-          type: 'string',
-          description: 'Language the user prefers for therapy, e.g. "Swahili", "English"',
-        },
-        therapist_type: {
-          type: 'string',
-          description: 'Preferred therapeutic approach, e.g. "CBT", "talk therapy", "any"',
-        },
-        gender_preference: {
-          type: 'string',
-          description: 'Preferred therapist gender, e.g. "female", "male", "no preference"',
-        },
-        prior_therapy: {
-          type: 'boolean',
-          description: 'Whether the user has had therapy before',
-        },
-        summary: {
-          type: 'string',
-          description: 'One or two sentence clinical summary for therapist matching, in English',
-        },
+const TRIAGE_FUNCTION_DECL = {
+  name: 'submit_triage',
+  description: 'Submit the completed triage assessment once you have gathered enough information.',
+  parameters: {
+    type: 'object',
+    required: ['presenting_issue', 'urgency', 'summary'],
+    properties: {
+      presenting_issue: { type: 'string', description: 'Brief description of the main concern' },
+      urgency: {
+        type: 'string',
+        enum: ['low', 'moderate', 'high', 'crisis'],
+        description: 'low = mild and manageable, moderate = affecting daily life, high = significantly impairing, crisis = immediate risk',
       },
+      language_preference: { type: 'string', description: 'Language the user prefers for therapy' },
+      therapist_type: { type: 'string', description: 'Preferred therapeutic approach' },
+      gender_preference: { type: 'string', description: 'Preferred therapist gender' },
+      prior_therapy: { type: 'boolean', description: 'Whether the user has had therapy before' },
+      summary: { type: 'string', description: 'One or two sentence clinical summary for therapist matching, in English' },
     },
   },
 };
 
-interface OllamaMessage {
-  role: 'system' | 'user' | 'assistant' | 'tool';
+interface ChatMessage {
+  role: 'user' | 'assistant';
   content: string;
-  tool_calls?: { function: { name: string; arguments: Record<string, unknown> } }[];
 }
 
 interface RequestPayload {
-  messages: OllamaMessage[];
+  messages: ChatMessage[];
   language?: 'en' | 'sw';
   user_id?: string;
 }
 
-async function callOllama(messages: OllamaMessage[], language: 'en' | 'sw') {
-  const systemPrompt = language === 'sw' ? SYSTEM_PROMPT_SW : SYSTEM_PROMPT_EN;
-  const fullMessages = [{ role: 'system', content: systemPrompt }, ...messages];
+// ---- Google AI Studio ----
 
-  const resp = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
+async function callGoogleAI(messages: ChatMessage[], language: 'en' | 'sw') {
+  const systemPrompt = language === 'sw' ? SYSTEM_PROMPT_SW : SYSTEM_PROMPT_EN;
+
+  const contents = messages.map((m) => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: m.content }],
+  }));
+
+  const body = {
+    system_instruction: { parts: [{ text: systemPrompt }] },
+    contents,
+    tools: [{ function_declarations: [TRIAGE_FUNCTION_DECL] }],
+  };
+
+  const resp = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${googleModel}:generateContent?key=${googleApiKey}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+  );
+
+  if (!resp.ok) throw new Error(`Google AI error (${resp.status}): ${await resp.text()}`);
+  const json = await resp.json();
+
+  const candidate = json.candidates?.[0];
+  const parts = candidate?.content?.parts ?? [];
+
+  const fnCall = parts.find((p: Record<string, unknown>) => p.functionCall);
+  if (fnCall) {
+    return {
+      done: true,
+      triage: fnCall.functionCall.args,
+    };
+  }
+
+  const text = parts.map((p: Record<string, unknown>) => p.text ?? '').join('');
+  return { done: false, message: { role: 'assistant', content: text } };
+}
+
+// ---- Ollama (local dev fallback) ----
+
+async function callOllama(messages: ChatMessage[], language: 'en' | 'sw') {
+  const systemPrompt = language === 'sw' ? SYSTEM_PROMPT_SW : SYSTEM_PROMPT_EN;
+  const fullMessages = [
+    { role: 'system', content: systemPrompt },
+    ...messages.map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content })),
+  ];
+
+  const resp = await fetch(`${ollamaBaseUrl}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: OLLAMA_MODEL,
+      model: ollamaModel,
       messages: fullMessages,
-      tools: [TRIAGE_TOOL],
+      tools: [{ type: 'function', function: TRIAGE_FUNCTION_DECL }],
       stream: false,
     }),
   });
 
-  if (!resp.ok) {
-    throw new Error(`Ollama error: ${resp.status} ${await resp.text()}`);
+  if (!resp.ok) throw new Error(`Ollama error: ${resp.status} ${await resp.text()}`);
+  const json = await resp.json();
+  const assistantMessage = json.message;
+  const toolCall = assistantMessage?.tool_calls?.[0];
+
+  if (toolCall?.function?.name === 'submit_triage') {
+    return { done: true, triage: toolCall.function.arguments };
   }
-  return await resp.json();
+
+  return { done: false, message: { role: 'assistant', content: assistantMessage?.content ?? '' } };
+}
+
+async function callGemma(messages: ChatMessage[], language: 'en' | 'sw') {
+  if (googleApiKey) return callGoogleAI(messages, language);
+  return callOllama(messages, language);
 }
 
 Deno.serve(async (req) => {
@@ -126,7 +163,6 @@ Deno.serve(async (req) => {
   }
 
   const { messages, language = 'en', user_id } = payload;
-
   if (!messages || !Array.isArray(messages)) {
     return new Response(JSON.stringify({ error: 'messages array is required' }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -134,16 +170,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const ollamaResp = await callOllama(messages, language);
-    const assistantMessage: OllamaMessage = ollamaResp.message;
+    const result = await callGemma(messages, language);
 
-    // Check if Gemma called submit_triage
-    const toolCall = assistantMessage.tool_calls?.[0];
-    if (toolCall?.function?.name === 'submit_triage') {
-      const triageData = toolCall.function.arguments;
-
-      // Persist to Supabase if user is logged in
+    if (result.done) {
+      const triageData = result.triage;
       let savedId: string | null = null;
+
       if (user_id) {
         const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
           auth: { persistSession: false, autoRefreshToken: false },
@@ -172,9 +204,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Conversation continues — return the assistant message
     return new Response(
-      JSON.stringify({ done: false, message: assistantMessage }),
+      JSON.stringify({ done: false, message: result.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (err) {
