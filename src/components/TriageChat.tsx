@@ -25,11 +25,12 @@ const TriageChat = ({ onComplete }: Props) => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = messagesRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages, loading]);
 
   const switchLanguage = (lang: 'en' | 'sw') => {
@@ -137,7 +138,7 @@ const TriageChat = ({ onComplete }: Props) => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div ref={messagesRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.map((msg, i) => (
           <div
             key={i}
@@ -165,7 +166,6 @@ const TriageChat = ({ onComplete }: Props) => {
             </div>
           </div>
         )}
-        <div ref={bottomRef} />
       </div>
 
       {/* Input */}
