@@ -36,6 +36,7 @@ import Questionnaire from "@/pages/Questionnaire";
 import Matches from "@/pages/Matches";
 import TherapistProfile from "@/pages/TherapistProfile";
 import BookSession from "@/pages/BookSession";
+import Triage from "@/pages/Triage";
 
 // Therapist pages
 import TherapistDashboard from "@/pages/therapist/TherapistDashboard";
@@ -78,6 +79,7 @@ const App = () => (
               <Route path="/matches" element={<Matches />} />
               <Route path="/therapist/:id" element={<TherapistProfile />} />
               <Route path="/book/:id" element={<BookSession />} />
+              <Route path="/triage" element={<Triage />} />
             </Route>
 
             {/* Client portal — requires login */}
