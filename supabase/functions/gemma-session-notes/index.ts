@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 const googleApiKey = Deno.env.get('GOOGLE_AI_API_KEY') ?? '';
-const googleModel = Deno.env.get('GEMMA_MODEL') ?? 'gemma-4-9b-it';
+const googleModel = Deno.env.get('GEMMA_MODEL') ?? 'gemma-4-31b-it';
 const ollamaBaseUrl = Deno.env.get('OLLAMA_BASE_URL') ?? 'http://localhost:11434';
 const ollamaModel = Deno.env.get('OLLAMA_MODEL') ?? 'gemma4:4b';
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';

@@ -7,7 +7,7 @@ const corsHeaders = {
 
 // Google AI Studio takes priority; Ollama is the fallback for local dev
 const googleApiKey = Deno.env.get('GOOGLE_AI_API_KEY') ?? '';
-const googleModel = Deno.env.get('GEMMA_MODEL') ?? 'gemma-4-9b-it';
+const googleModel = Deno.env.get('GEMMA_MODEL') ?? 'gemma-4-31b-it';
 const ollamaBaseUrl = Deno.env.get('OLLAMA_BASE_URL') ?? 'http://localhost:11434';
 const ollamaModel = Deno.env.get('OLLAMA_MODEL') ?? 'gemma4:4b';
 
@@ -104,7 +104,11 @@ async function callGoogleAI(messages: ChatMessage[], language: 'en' | 'sw') {
     };
   }
 
-  const text = parts.map((p: Record<string, unknown>) => p.text ?? '').join('');
+  // Filter out thinking parts (thought: true) — only show the actual reply
+  const text = parts
+    .filter((p: Record<string, unknown>) => !p.thought)
+    .map((p: Record<string, unknown>) => p.text ?? '')
+    .join('');
   return { done: false, message: { role: 'assistant', content: text } };
 }
 
