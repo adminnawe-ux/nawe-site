@@ -33,3 +33,19 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  deno-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Test edge functions
+        run: |
+          deno test --allow-env supabase/functions/ncba-payment-webhook/index.test.ts
+          deno test --allow-env supabase/functions/gemma-triage/index.test.ts
+          deno test --allow-env supabase/functions/gemma-session-notes/index.test.ts
