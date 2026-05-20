@@ -57,8 +57,10 @@ Deno.serve(async (req) => {
     const name = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'Unknown';
     const email = userData.user.email ?? '';
 
+    const sends: Promise<Response>[] = [];
+
     if (adminEmail) {
-      await fetch('https://api.resend.com/emails', {
+      sends.push(fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -99,8 +101,39 @@ Deno.serve(async (req) => {
             </div>
           `,
         }),
-      });
+      }));
     }
+
+    // Confirmation email to the therapist
+    if (email) {
+      const firstName = profile?.first_name ? escapeHtml(profile.first_name) : escapeHtml(name.split(' ')[0]);
+      sends.push(fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: email,
+          subject: 'Your Nawe application is under review',
+          html: `
+            <div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937;max-width:600px">
+              <h2 style="color:#10b981">Application received</h2>
+              <p>Hi ${firstName},</p>
+              <p>Thank you for completing your therapist application on Nawe. Our team will review your profile and credentials within <strong>1–2 business days</strong>.</p>
+              <p>Once your application is approved, your profile will go live in the Nawe directory and clients will be able to book sessions with you.</p>
+              <p>If you have any questions in the meantime, feel free to reply to this email.</p>
+              <p>
+                <a href="${appUrl}/therapist-portal" style="display:inline-block;background:#10b981;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:bold">
+                  View your portal →
+                </a>
+              </p>
+              <p style="color:#6b7280;font-size:13px;margin-top:32px">The Nawe Team</p>
+            </div>
+          `,
+        }),
+      }));
+    }
+
+    await Promise.all(sends);
 
     return new Response(JSON.stringify({ notified: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
