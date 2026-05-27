@@ -49,3 +49,5 @@ jobs:
           deno test --allow-env supabase/functions/ncba-payment-webhook/index.test.ts
           deno test --allow-env supabase/functions/initiate-stk-push/index.test.ts
           deno test --allow-env supabase/functions/query-stk-push/index.test.ts
+          deno test --allow-env supabase/functions/gemma-triage/index.test.ts
+          deno test --allow-env supabase/functions/gemma-session-notes/index.test.ts

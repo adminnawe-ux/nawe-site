@@ -28,5 +28,6 @@ temp/
 *.sln
 *.sw?
 
+
 docs-api/*
-memory/*
+memory/

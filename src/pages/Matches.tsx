@@ -14,6 +14,7 @@ import {
   SlidersHorizontal, Heart, Shield, X, Users
 } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
+import { loadTriage, triageToIntake } from '@/lib/gemma';
 
 type Therapist = Tables<'therapists'>;
 type IntakeResponse = Tables<'intake_responses'>;
@@ -169,9 +170,13 @@ const Matches = () => {
     const load = async () => {
       setLoading(true);
 
-      // Fetch intake if logged in
+      // Fetch intake — triage result takes priority over questionnaire
       let intakeData: IntakeResponse | null = null;
-      if (user) {
+      const triageDraft = loadTriage();
+      if (triageDraft) {
+        intakeData = triageToIntake(triageDraft) as IntakeResponse;
+        setIntake(intakeData);
+      } else if (user) {
         const { data } = await supabase
           .from('intake_responses')
           .select('*')
