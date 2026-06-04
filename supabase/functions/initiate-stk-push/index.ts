@@ -14,6 +14,7 @@ const ncbaBaseUrl = 'https://c2bapis.ncbagroup.com';
 const ncbaStkUsername = Deno.env.get('NCBA_STK_USERNAME') ?? '';
 const ncbaStkPassword = Deno.env.get('NCBA_STK_PASSWORD') ?? '';
 const mpesaPaybill = Deno.env.get('MPESA_PAYBILL') ?? '880100';
+const mpesaAccount = Deno.env.get('MPESA_ACCOUNT') ?? mpesaPaybill;
 
 interface RequestPayload {
   phone: string;
@@ -204,7 +205,7 @@ Deno.serve(async (req) => {
         TelephoneNo: msisdn,
         Amount: String(amount),
         PayBillNo: mpesaPaybill,
-        AccountNo: mpesaPaybill,
+        AccountNo: mpesaAccount,
         Network: 'Safaricom',
         TransactionType: 'CustomerPayBillOnline',
       }),

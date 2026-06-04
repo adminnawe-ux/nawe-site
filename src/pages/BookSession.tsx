@@ -16,6 +16,7 @@ import {
 import { format, addDays, setHours, setMinutes, isBefore, startOfDay, getDay } from 'date-fns';
 import type { Tables } from '@/integrations/supabase/types';
 import { formatTherapistDisplayName } from '@/lib/therapist';
+import { SUPPORT_PHONE } from '@/lib/site';
 
 const generateTimeSlots = (start: string, end: string): string[] => {
   const slots: string[] = [];
@@ -153,7 +154,10 @@ const BookSession = () => {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
       });
 
-      if (error) throw error;
+      if (error) {
+        const serverMsg = (data as { error?: string } | null)?.error;
+        throw new Error(serverMsg ?? error.message);
+      }
       if (data?.error) throw new Error(data.error);
 
       setTransactionId(data.transaction_id);
@@ -161,7 +165,13 @@ const BookSession = () => {
       setPollCount(0);
       setStkPending(true);
     } catch (err) {
-      setPaymentError(err instanceof Error ? err.message : 'Could not initiate payment. Please try again.');
+      const msg = err instanceof Error ? err.message : '';
+      const isNetworkError = !msg || msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('failed to send');
+      setPaymentError(
+        isNetworkError
+          ? `Payment service is currently unavailable. Please try again or call us on ${SUPPORT_PHONE}.`
+          : msg
+      );
     } finally {
       setInitiating(false);
     }
@@ -171,11 +181,12 @@ const BookSession = () => {
     if (!transactionId || !sessionId) return;
     const { data: sessionData } = await supabase.auth.getSession();
     const accessToken = sessionData.session?.access_token;
+    if (!accessToken) { setPollCount((c) => c + 1); return; }
 
     try {
       const { data, error } = await supabase.functions.invoke('query-stk-push', {
         body: { transaction_id: transactionId, session_id: sessionId },
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
 
       if (error) throw error;
