@@ -13,7 +13,7 @@ import {
   ArrowLeft, Video, Phone, MapPin, MessageCircle,
   Shield, Loader2, CheckCircle2, Smartphone, AlertCircle,
 } from 'lucide-react';
-import { format, addDays, setHours, setMinutes, isBefore, startOfDay, getDay } from 'date-fns';
+import { format, addDays, setHours, setMinutes, isBefore, isToday, startOfDay, getDay } from 'date-fns';
 import type { Tables } from '@/integrations/supabase/types';
 import { formatTherapistDisplayName } from '@/lib/therapist';
 import { SUPPORT_PHONE } from '@/lib/site';
@@ -357,7 +357,12 @@ const BookSession = () => {
                 : hasAnyAvailability
                   ? []
                   : ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
-              const uniqueSlots = [...new Set(timeSlots)].sort();
+              const now = new Date();
+              const uniqueSlots = [...new Set(timeSlots)].sort().filter((slot) => {
+                if (!isToday(selectedDate)) return true;
+                const [h, m] = slot.split(':').map(Number);
+                return !isBefore(setMinutes(setHours(selectedDate, h), m), now);
+              });
 
               return (
                 <div>
