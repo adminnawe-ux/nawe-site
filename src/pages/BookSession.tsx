@@ -122,7 +122,7 @@ const BookSession = () => {
       setPaymentError('Enter your M-Pesa phone number.');
       return;
     }
-    if (/[^0-9+\s\-]/.test(trimmedPhone)) {
+    if (/[^0-9+\s-]/.test(trimmedPhone)) {
       setPaymentError('Phone number must contain only digits.');
       return;
     }
@@ -567,7 +567,7 @@ const BookSession = () => {
               {(() => {
                 const digits = phone.replace(/\D/g, '');
                 const normalised = digits.startsWith('0') ? '254' + digits.slice(1) : digits;
-                const hasInvalidChars = phone.length > 0 && /[^0-9+\s\-]/.test(phone);
+                const hasInvalidChars = phone.length > 0 && /[^0-9+\s-]/.test(phone);
                 const isValid = /^2547\d{8}$/.test(normalised);
                 const isTooLong = digits.length > 12;
                 const hint = hasInvalidChars ? 'Digits only'
