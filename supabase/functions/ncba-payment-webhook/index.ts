@@ -156,7 +156,7 @@
         .from('sessions')
         .select('id, client_id, therapist_id, price, currency, scheduled_at, session_format, duration_minutes, payment_status')
         .eq('payment_reference', transId)
-        .in('payment_status', ['pending_stk', 'pending_verification'])
+        .in('payment_status', ['pending_stk', 'pending_verification', 'failed'])
         .maybeSingle();
 
       if (sessionError) {
@@ -214,7 +214,7 @@
           platform_commission: platformCommission,
         })
         .eq('id', session.id)
-        .in('payment_status', ['pending_stk', 'pending_verification'])
+        .in('payment_status', ['pending_stk', 'pending_verification', 'failed'])
         .select('id');
 
       if (updateError) {

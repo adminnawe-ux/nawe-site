@@ -282,9 +282,16 @@ Deno.serve(async (req) => {
     }
 
     if (ncbaStatus.toUpperCase() === 'FAILED') {
-      await adminClient.from('sessions').update({ payment_status: 'failed' }).eq('id', session_id);
+      // Only mark as failed in DB if NCBA gives a user-actionable reason (not an internal API error).
+      // NCBA's query API can return FAILED with "System internal error" even when the payment is still
+      // processing — the webhook is the authoritative confirmation source.
+      const description = queryData.description ?? '';
+      const isApiError = !description || description.toLowerCase().includes('internal') || description.toLowerCase().includes('error');
+      if (!isApiError) {
+        await adminClient.from('sessions').update({ payment_status: 'failed' }).eq('id', session_id);
+      }
       return new Response(
-        JSON.stringify({ status: 'failed', reason: queryData.description ?? 'Payment failed or was cancelled' }),
+        JSON.stringify({ status: 'failed', reason: isApiError ? 'Payment not confirmed yet — please wait.' : description }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
