@@ -6,7 +6,6 @@ function loadGoogleMapsScript(apiKey: string): Promise<void> {
   return new Promise((resolve, reject) => {
     if (document.getElementById(SCRIPT_ID)) {
       if (window.google?.maps?.places) { resolve(); return; }
-      // Script tag exists but not loaded yet — wait
       const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement;
       existing.addEventListener('load', () => resolve());
       existing.addEventListener('error', reject);
@@ -31,20 +30,25 @@ interface PlaceResult {
 export function usePlacesAutocomplete(
   inputRef: React.RefObject<HTMLInputElement>,
   onSelect: (result: PlaceResult) => void,
+  enabled = false,
 ) {
   const [ready, setReady] = useState(false);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
 
+  // Load the script once
   useEffect(() => {
-    if (!apiKey || !inputRef.current) return;
+    if (!apiKey) return;
     loadGoogleMapsScript(apiKey)
       .then(() => setReady(true))
       .catch((e) => console.error('Google Maps failed to load:', e));
   }, [apiKey]);
 
+  // Attach autocomplete whenever the dialog opens and the input is mounted
   useEffect(() => {
-    if (!ready || !inputRef.current || autocompleteRef.current) return;
+    if (!ready || !enabled || !inputRef.current) return;
+    // Destroy previous instance so it re-attaches to the freshly mounted input
+    autocompleteRef.current = null;
     const ac = new window.google.maps.places.Autocomplete(inputRef.current, {
       fields: ['name', 'formatted_address', 'place_id', 'url'],
       types: ['establishment', 'geocode'],
@@ -58,5 +62,5 @@ export function usePlacesAutocomplete(
       onSelect({ name, mapsUrl });
     });
     autocompleteRef.current = ac;
-  }, [ready, inputRef, onSelect]);
+  }, [ready, enabled, inputRef, onSelect]);
 }

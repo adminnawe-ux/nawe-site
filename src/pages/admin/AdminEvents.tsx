@@ -1,8 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any;
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -10,6 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Calendar, MapPin, Trash2, ExternalLink, Pencil, Users, CheckCircle2, Circle, Mail, Ticket, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePlacesAutocomplete } from '@/hooks/usePlacesAutocomplete';
+
+// Cast to any — events/event_registrations tables not yet in generated types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 interface Registration {
   id: string;
@@ -51,24 +52,92 @@ const EMPTY_FORM: FormData = {
 
 function toLocalDatetimeValue(iso: string | null) {
   if (!iso) return '';
-  // Strip seconds/ms so datetime-local input renders correctly
   return iso.slice(0, 16);
 }
 
 function eventToForm(e: Event): FormData {
   return {
-    title: e.title,
-    slug: e.slug,
-    description: e.description ?? '',
-    starts_at: toLocalDatetimeValue(e.starts_at),
-    ends_at: toLocalDatetimeValue(e.ends_at),
-    location: e.location ?? '',
-    location_url: e.location_url ?? '',
-    is_free: e.is_free,
-    price: e.price != null ? String(e.price) : '',
-    status: e.status,
+    title: e.title, slug: e.slug, description: e.description ?? '',
+    starts_at: toLocalDatetimeValue(e.starts_at), ends_at: toLocalDatetimeValue(e.ends_at),
+    location: e.location ?? '', location_url: e.location_url ?? '',
+    is_free: e.is_free, price: e.price != null ? String(e.price) : '', status: e.status,
   };
 }
+
+// Module-level component — must NOT be defined inside AdminEvents to prevent
+// remount on every keystroke (which causes cursor loss and focus reset).
+interface EventFormProps {
+  formData: FormData;
+  setFormData: (f: FormData) => void;
+  locationRef: React.RefObject<HTMLInputElement>;
+  onSubmit: () => void;
+  submitLabel: string;
+  saving: boolean;
+  error: string;
+}
+
+const EventForm = ({ formData, setFormData, locationRef, onSubmit, submitLabel, saving, error }: EventFormProps) => (
+  <div className="space-y-4 py-2">
+    {error && <p className="text-sm text-destructive font-ui">{error}</p>}
+    <input type="text" placeholder="Title *" value={formData.title}
+      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+      className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
+    <input type="text" placeholder="Slug * (e.g. mental-health-talk-june)" value={formData.slug}
+      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+      className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
+    <textarea placeholder="Description" value={formData.description}
+      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+      className="w-full px-3 py-2 border rounded-lg text-sm font-ui" rows={3} />
+    <div className="grid grid-cols-2 gap-3">
+      <div>
+        <label className="block font-ui text-xs text-muted-foreground mb-1">Start *</label>
+        <input type="datetime-local" value={formData.starts_at}
+          onChange={(e) => setFormData({ ...formData, starts_at: e.target.value })}
+          className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
+      </div>
+      <div>
+        <label className="block font-ui text-xs text-muted-foreground mb-1">End</label>
+        <input type="datetime-local" value={formData.ends_at}
+          onChange={(e) => setFormData({ ...formData, ends_at: e.target.value })}
+          className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
+      </div>
+    </div>
+    <div>
+      <label className="block font-ui text-xs text-muted-foreground mb-1">Location (search Google Maps)</label>
+      <input ref={locationRef} type="text" placeholder="Search for a venue or address..."
+        value={formData.location}
+        onChange={(e) => setFormData({ ...formData, location: e.target.value, location_url: '' })}
+        className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
+      {formData.location_url && (
+        <a href={formData.location_url} target="_blank" rel="noopener noreferrer"
+          className="mt-1 flex items-center gap-1 font-ui text-xs text-primary hover:underline">
+          <MapPin className="h-3 w-3" /> View on Google Maps <ExternalLink className="h-2.5 w-2.5" />
+        </a>
+      )}
+    </div>
+    <label className="flex items-center gap-2 font-ui text-sm cursor-pointer">
+      <input type="checkbox" checked={formData.is_free}
+        onChange={(e) => setFormData({ ...formData, is_free: e.target.checked })} />
+      Free event
+    </label>
+    {!formData.is_free && (
+      <input type="number" placeholder="Price (KES)" value={formData.price}
+        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+        className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
+    )}
+    <select value={formData.status}
+      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+      className="w-full px-3 py-2 border rounded-lg text-sm font-ui">
+      <option value="draft">Draft</option>
+      <option value="published">Published</option>
+      <option value="cancelled">Cancelled</option>
+      <option value="completed">Completed</option>
+    </select>
+    <Button onClick={onSubmit} disabled={saving} className="w-full font-ui rounded-full">
+      {saving ? 'Saving...' : submitLabel}
+    </Button>
+  </div>
+);
 
 const AdminEvents = () => {
   const [events, setEvents] = useState<Event[]>([]);
@@ -93,36 +162,31 @@ const AdminEvents = () => {
     setFormData((prev) => ({ ...prev, location: name, location_url: mapsUrl }));
   }, []);
 
-  usePlacesAutocomplete(createLocationRef, handlePlaceSelectCreate);
-  usePlacesAutocomplete(editLocationRef, handlePlaceSelectEdit);
+  // Pass enabled=true only when the respective dialog is open so the autocomplete
+  // re-attaches each time (the input is remounted when the dialog opens).
+  usePlacesAutocomplete(createLocationRef, handlePlaceSelectCreate, createOpen);
+  usePlacesAutocomplete(editLocationRef, handlePlaceSelectEdit, !!editEvent);
 
   useEffect(() => {
-    db
-      .from('events')
+    db.from('events')
       .select('id, slug, title, description, starts_at, ends_at, location, location_url, status, is_free, price, currency')
       .order('starts_at', { ascending: false })
-      .then(({ data }) => { setEvents(data ?? []); setLoading(false); });
+      .then(({ data }: { data: Event[] }) => { setEvents(data ?? []); setLoading(false); });
   }, []);
 
   const buildPayload = (f: FormData) => ({
-    title: f.title,
-    slug: f.slug,
-    description: f.description || null,
+    title: f.title, slug: f.slug, description: f.description || null,
     starts_at: new Date(f.starts_at).toISOString(),
     ends_at: f.ends_at ? new Date(f.ends_at).toISOString() : null,
-    location: f.location || null,
-    location_url: f.location_url || null,
-    is_free: f.is_free,
-    price: f.is_free ? null : (parseFloat(f.price) || 0),
-    currency: 'KES',
-    status: f.status,
+    location: f.location || null, location_url: f.location_url || null,
+    is_free: f.is_free, price: f.is_free ? null : (parseFloat(f.price) || 0),
+    currency: 'KES', status: f.status,
   });
 
   const handleCreate = async () => {
     if (!formData.title.trim() || !formData.slug.trim() || !formData.starts_at) return;
     setSaving(true); setError('');
-    const { data: newEvent, error: err } = await db
-      .from('events').insert(buildPayload(formData)).select().single();
+    const { data: newEvent, error: err } = await db.from('events').insert(buildPayload(formData)).select().single();
     if (err) { setError(err.message.includes('unique') ? 'Slug already exists — choose a different one.' : err.message); setSaving(false); return; }
     if (newEvent) {
       try {
@@ -133,7 +197,7 @@ const AdminEvents = () => {
           body: JSON.stringify({ event_id: newEvent.id, title: formData.title, location: formData.location || null, starts_at: new Date(formData.starts_at).toISOString(), ends_at: formData.ends_at ? new Date(formData.ends_at).toISOString() : null }),
         });
       } catch (e) { console.error('Calendar creation failed:', e); }
-      setEvents([newEvent as Event, ...events]);
+      setEvents((prev) => [newEvent as Event, ...prev]);
       setCreateOpen(false);
       setFormData(EMPTY_FORM);
     }
@@ -143,11 +207,10 @@ const AdminEvents = () => {
   const handleEdit = async () => {
     if (!editEvent || !formData.title.trim() || !formData.starts_at) return;
     setSaving(true); setError('');
-    const { data: updated, error: err } = await db
-      .from('events').update(buildPayload(formData)).eq('id', editEvent.id).select().single();
+    const { data: updated, error: err } = await db.from('events').update(buildPayload(formData)).eq('id', editEvent.id).select().single();
     if (err) { setError(err.message); setSaving(false); return; }
     if (updated) {
-      setEvents(events.map(e => e.id === editEvent.id ? updated as Event : e));
+      setEvents((prev) => prev.map(e => e.id === editEvent.id ? updated as Event : e));
       setEditEvent(null);
     }
     setSaving(false);
@@ -157,8 +220,7 @@ const AdminEvents = () => {
     setAttendeesEvent(event);
     setAttendeeSearch('');
     setRegsLoading(true);
-    const { data } = await db
-      .from('event_registrations')
+    const { data } = await db.from('event_registrations')
       .select('id, attendee_name, attendee_email, ticket_code, payment_status, price_paid, checked_in, created_at')
       .eq('event_id', event.id)
       .order('created_at', { ascending: true });
@@ -167,21 +229,18 @@ const AdminEvents = () => {
   };
 
   const toggleCheckIn = async (reg: Registration) => {
-    const { data } = await db
-      .from('event_registrations')
+    const { data } = await db.from('event_registrations')
       .update({ checked_in: !reg.checked_in })
       .eq('id', reg.id)
       .select('id, checked_in')
       .single();
-    if (data) {
-      setRegistrations((prev) => prev.map((r) => r.id === reg.id ? { ...r, checked_in: data.checked_in } : r));
-    }
+    if (data) setRegistrations((prev) => prev.map((r) => r.id === reg.id ? { ...r, checked_in: data.checked_in } : r));
   };
 
   const handleDelete = async (id: string) => {
     if (confirm('Delete this event? This cannot be undone.')) {
       await db.from('events').delete().eq('id', id);
-      setEvents(events.filter(e => e.id !== id));
+      setEvents((prev) => prev.filter(e => e.id !== id));
     }
   };
 
@@ -190,73 +249,6 @@ const AdminEvents = () => {
     setError('');
     setEditEvent(event);
   };
-
-  const EventForm = ({ locationRef, onSubmit, submitLabel }: {
-    locationRef: React.RefObject<HTMLInputElement>;
-    onSubmit: () => void;
-    submitLabel: string;
-  }) => (
-    <div className="space-y-4 py-2">
-      {error && <p className="text-sm text-destructive font-ui">{error}</p>}
-      <input type="text" placeholder="Title *" value={formData.title}
-        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-        className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
-      <input type="text" placeholder="Slug * (e.g. mental-health-talk-june)" value={formData.slug}
-        onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-        className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
-      <textarea placeholder="Description" value={formData.description}
-        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-        className="w-full px-3 py-2 border rounded-lg text-sm font-ui" rows={3} />
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block font-ui text-xs text-muted-foreground mb-1">Start *</label>
-          <input type="datetime-local" value={formData.starts_at}
-            onChange={(e) => setFormData({ ...formData, starts_at: e.target.value })}
-            className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
-        </div>
-        <div>
-          <label className="block font-ui text-xs text-muted-foreground mb-1">End</label>
-          <input type="datetime-local" value={formData.ends_at}
-            onChange={(e) => setFormData({ ...formData, ends_at: e.target.value })}
-            className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
-        </div>
-      </div>
-      <div>
-        <label className="block font-ui text-xs text-muted-foreground mb-1">Location (search Google Maps)</label>
-        <input ref={locationRef} type="text" placeholder="Search for a venue or address..."
-          value={formData.location}
-          onChange={(e) => setFormData({ ...formData, location: e.target.value, location_url: '' })}
-          className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
-        {formData.location_url && (
-          <a href={formData.location_url} target="_blank" rel="noopener noreferrer"
-            className="mt-1 flex items-center gap-1 font-ui text-xs text-primary hover:underline">
-            <MapPin className="h-3 w-3" /> View on Google Maps <ExternalLink className="h-2.5 w-2.5" />
-          </a>
-        )}
-      </div>
-      <label className="flex items-center gap-2 font-ui text-sm cursor-pointer">
-        <input type="checkbox" checked={formData.is_free}
-          onChange={(e) => setFormData({ ...formData, is_free: e.target.checked })} />
-        Free event
-      </label>
-      {!formData.is_free && (
-        <input type="number" placeholder="Price (KES)" value={formData.price}
-          onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-          className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
-      )}
-      <select value={formData.status}
-        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-        className="w-full px-3 py-2 border rounded-lg text-sm font-ui">
-        <option value="draft">Draft</option>
-        <option value="published">Published</option>
-        <option value="cancelled">Cancelled</option>
-        <option value="completed">Completed</option>
-      </select>
-      <Button onClick={onSubmit} disabled={saving} className="w-full font-ui rounded-full">
-        {saving ? 'Saving...' : submitLabel}
-      </Button>
-    </div>
-  );
 
   return (
     <div className="space-y-6">
@@ -280,14 +272,9 @@ const AdminEvents = () => {
                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground font-ui">
                   <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {format(new Date(event.starts_at), 'd MMM yyyy, h:mm a')}</span>
                   {event.location && (
-                    event.location_url ? (
-                      <a href={event.location_url} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1 hover:text-primary transition-colors">
-                        <MapPin className="h-3 w-3" /> {event.location} <ExternalLink className="h-2.5 w-2.5" />
-                      </a>
-                    ) : (
-                      <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {event.location}</span>
-                    )
+                    event.location_url
+                      ? <a href={event.location_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-primary transition-colors"><MapPin className="h-3 w-3" /> {event.location} <ExternalLink className="h-2.5 w-2.5" /></a>
+                      : <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {event.location}</span>
                   )}
                   <span className={`px-2 py-0.5 rounded ${event.status === 'published' ? 'bg-success/10 text-success' : event.status === 'cancelled' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'}`}>{event.status}</span>
                   <span>{event.is_free ? 'Free' : `${event.currency} ${event.price?.toLocaleString()}`}</span>
@@ -313,7 +300,8 @@ const AdminEvents = () => {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Create Event</DialogTitle></DialogHeader>
-          <EventForm locationRef={createLocationRef} onSubmit={handleCreate} submitLabel="Create Event" />
+          <EventForm formData={formData} setFormData={setFormData} locationRef={createLocationRef}
+            onSubmit={handleCreate} submitLabel="Create Event" saving={saving} error={error} />
         </DialogContent>
       </Dialog>
 
@@ -321,7 +309,8 @@ const AdminEvents = () => {
       <Dialog open={!!editEvent} onOpenChange={(open) => { if (!open) setEditEvent(null); }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit Event</DialogTitle></DialogHeader>
-          <EventForm locationRef={editLocationRef} onSubmit={handleEdit} submitLabel="Save Changes" />
+          <EventForm formData={formData} setFormData={setFormData} locationRef={editLocationRef}
+            onSubmit={handleEdit} submitLabel="Save Changes" saving={saving} error={error} />
         </DialogContent>
       </Dialog>
 
@@ -344,14 +333,10 @@ const AdminEvents = () => {
           {!regsLoading && registrations.length > 0 && (
             <div className="relative mb-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Search by name or ticket #..."
-                value={attendeeSearch}
-                onChange={(e) => setAttendeeSearch(e.target.value)}
+              <input type="text" placeholder="Search by name or ticket #..."
+                value={attendeeSearch} onChange={(e) => setAttendeeSearch(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm font-ui bg-background"
-                autoFocus
-              />
+                autoFocus />
             </div>
           )}
 
@@ -366,10 +351,7 @@ const AdminEvents = () => {
             );
             const q = attendeeSearch.toLowerCase().trim();
             const filtered = q
-              ? registrations.filter(r =>
-                  r.attendee_name.toLowerCase().includes(q) ||
-                  r.ticket_code.toLowerCase().includes(q)
-                )
+              ? registrations.filter(r => r.attendee_name.toLowerCase().includes(q) || r.ticket_code.toLowerCase().includes(q))
               : registrations;
             if (filtered.length === 0) return (
               <p className="text-center py-8 text-muted-foreground font-ui text-sm">No match for "{attendeeSearch}"</p>
@@ -388,12 +370,8 @@ const AdminEvents = () => {
                       <div className="flex-1 min-w-0">
                         <p className="font-ui text-sm font-medium text-foreground truncate">{reg.attendee_name}</p>
                         <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                          <span className="flex items-center gap-1 font-ui text-xs text-muted-foreground">
-                            <Mail className="h-3 w-3" />{reg.attendee_email}
-                          </span>
-                          <span className="flex items-center gap-1 font-ui text-xs text-muted-foreground">
-                            <Ticket className="h-3 w-3" />{reg.ticket_code}
-                          </span>
+                          <span className="flex items-center gap-1 font-ui text-xs text-muted-foreground"><Mail className="h-3 w-3" />{reg.attendee_email}</span>
+                          <span className="flex items-center gap-1 font-ui text-xs text-muted-foreground"><Ticket className="h-3 w-3" />{reg.ticket_code}</span>
                         </div>
                       </div>
                       <div className="shrink-0 flex flex-col items-end gap-1">

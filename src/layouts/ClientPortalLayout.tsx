@@ -1,7 +1,7 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, Home, Search, Settings } from 'lucide-react';
+import { LogOut, Home, Search, Settings, CalendarDays } from 'lucide-react';
 import { SITE_NAME } from '@/lib/site';
 
 const ClientPortalLayout = () => {
@@ -33,6 +33,11 @@ const ClientPortalLayout = () => {
                 </Button>
               </Link>
             )}
+            <Link to="/events">
+              <Button variant="ghost" size="sm" className="font-ui text-sm gap-2">
+                <CalendarDays className="h-4 w-4" /> Events
+              </Button>
+            </Link>
             <Link to="/settings">
               <Button variant="ghost" size="sm" className="font-ui text-sm gap-2">
                 <Settings className="h-4 w-4" /> Settings
@@ -43,6 +48,9 @@ const ClientPortalLayout = () => {
             </Button>
           </div>
           <div className="md:hidden flex items-center gap-1">
+            <Link to="/events">
+              <Button variant="ghost" size="icon"><CalendarDays className="h-5 w-5" /></Button>
+            </Link>
             <Link to="/settings">
               <Button variant="ghost" size="icon"><Settings className="h-5 w-5" /></Button>
             </Link>
