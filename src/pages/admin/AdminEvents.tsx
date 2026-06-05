@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Calendar, MapPin, Trash2, ExternalLink, Pencil, Users, CheckCircle2, Circle, Mail, Ticket, Search } from 'lucide-react';
+import { Plus, Calendar, MapPin, Trash2, ExternalLink, Pencil, Users, CheckCircle2, Circle, Mail, Ticket, Search, Upload, X, ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePlacesAutocomplete } from '@/hooks/usePlacesAutocomplete';
 
@@ -32,6 +32,7 @@ interface Event {
   ends_at: string | null;
   location: string | null;
   location_url: string | null;
+  poster_url: string | null;
   status: string;
   is_free: boolean;
   price: number | null;
@@ -42,12 +43,13 @@ type FormData = {
   title: string; slug: string; description: string;
   starts_at: string; ends_at: string;
   location: string; location_url: string;
+  poster_url: string;
   is_free: boolean; price: string; status: string;
 };
 
 const EMPTY_FORM: FormData = {
   title: '', slug: '', description: '', starts_at: '', ends_at: '',
-  location: '', location_url: '', is_free: true, price: '', status: 'draft',
+  location: '', location_url: '', poster_url: '', is_free: true, price: '', status: 'draft',
 };
 
 function toLocalDatetimeValue(iso: string | null) {
@@ -60,6 +62,7 @@ function eventToForm(e: Event): FormData {
     title: e.title, slug: e.slug, description: e.description ?? '',
     starts_at: toLocalDatetimeValue(e.starts_at), ends_at: toLocalDatetimeValue(e.ends_at),
     location: e.location ?? '', location_url: e.location_url ?? '',
+    poster_url: e.poster_url ?? '',
     is_free: e.is_free, price: e.price != null ? String(e.price) : '', status: e.status,
   };
 }
@@ -76,68 +79,129 @@ interface EventFormProps {
   error: string;
 }
 
-const EventForm = ({ formData, setFormData, locationRef, onSubmit, submitLabel, saving, error }: EventFormProps) => (
-  <div className="space-y-4 py-2">
-    {error && <p className="text-sm text-destructive font-ui">{error}</p>}
-    <input type="text" placeholder="Title *" value={formData.title}
-      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-      className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
-    <input type="text" placeholder="Slug * (e.g. mental-health-talk-june)" value={formData.slug}
-      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-      className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
-    <textarea placeholder="Description" value={formData.description}
-      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-      className="w-full px-3 py-2 border rounded-lg text-sm font-ui" rows={3} />
-    <div className="grid grid-cols-2 gap-3">
+const EventForm = ({ formData, setFormData, locationRef, onSubmit, submitLabel, saving, error }: EventFormProps) => {
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePosterUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return;
+    if (file.size > 5 * 1024 * 1024) { alert('Image must be under 5MB.'); return; }
+    setUploading(true);
+    const ext = file.name.split('.').pop();
+    const path = `posters/${Date.now()}.${ext}`;
+    const { error: uploadErr } = await supabase.storage.from('event-posters').upload(path, file, { upsert: true });
+    if (uploadErr) { alert(`Upload failed: ${uploadErr.message}`); setUploading(false); return; }
+    const { data: { publicUrl } } = supabase.storage.from('event-posters').getPublicUrl(path);
+    setFormData({ ...formData, poster_url: publicUrl });
+    setUploading(false);
+  };
+
+  return (
+    <div className="space-y-4 py-2">
+      {error && <p className="text-sm text-destructive font-ui">{error}</p>}
+
+      {/* Poster upload */}
       <div>
-        <label className="block font-ui text-xs text-muted-foreground mb-1">Start *</label>
-        <input type="datetime-local" value={formData.starts_at}
-          onChange={(e) => setFormData({ ...formData, starts_at: e.target.value })}
-          className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
+        <label className="block font-ui text-xs text-muted-foreground mb-1">Event Poster</label>
+        <div className="flex gap-3 items-start">
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="flex-shrink-0 w-24 h-24 rounded-lg border-2 border-dashed border-border hover:border-primary/50 bg-muted/30 flex flex-col items-center justify-center cursor-pointer transition-colors overflow-hidden"
+          >
+            {formData.poster_url ? (
+              <img src={formData.poster_url} alt="Poster" className="w-full h-full object-cover" />
+            ) : uploading ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            ) : (
+              <>
+                <ImageIcon className="h-6 w-6 text-muted-foreground mb-1" />
+                <span className="font-ui text-xs text-muted-foreground">Upload</span>
+              </>
+            )}
+          </div>
+          <div className="flex-1 space-y-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}
+              disabled={uploading} className="font-ui text-xs gap-1.5">
+              <Upload className="h-3.5 w-3.5" /> {uploading ? 'Uploading...' : 'Choose image'}
+            </Button>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePosterUpload} />
+            <input type="text" placeholder="Or paste image URL"
+              value={formData.poster_url}
+              onChange={(e) => setFormData({ ...formData, poster_url: e.target.value })}
+              className="w-full px-3 py-1.5 border rounded-lg text-xs font-ui" />
+            {formData.poster_url && (
+              <button type="button" onClick={() => setFormData({ ...formData, poster_url: '' })}
+                className="flex items-center gap-1 font-ui text-xs text-destructive hover:underline">
+                <X className="h-3 w-3" /> Remove
+              </button>
+            )}
+          </div>
+        </div>
+        <p className="font-ui text-xs text-muted-foreground mt-1">JPG, PNG or WebP · max 5 MB</p>
       </div>
-      <div>
-        <label className="block font-ui text-xs text-muted-foreground mb-1">End</label>
-        <input type="datetime-local" value={formData.ends_at}
-          onChange={(e) => setFormData({ ...formData, ends_at: e.target.value })}
-          className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
-      </div>
-    </div>
-    <div>
-      <label className="block font-ui text-xs text-muted-foreground mb-1">Location (search Google Maps)</label>
-      <input ref={locationRef} type="text" placeholder="Search for a venue or address..."
-        value={formData.location}
-        onChange={(e) => setFormData({ ...formData, location: e.target.value, location_url: '' })}
+
+      <input type="text" placeholder="Title *" value={formData.title}
+        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
         className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
-      {formData.location_url && (
-        <a href={formData.location_url} target="_blank" rel="noopener noreferrer"
-          className="mt-1 flex items-center gap-1 font-ui text-xs text-primary hover:underline">
-          <MapPin className="h-3 w-3" /> View on Google Maps <ExternalLink className="h-2.5 w-2.5" />
-        </a>
+      <input type="text" placeholder="Slug * (e.g. mental-health-talk-june)" value={formData.slug}
+        onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+        className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
+      <textarea placeholder="Description" value={formData.description}
+        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+        className="w-full px-3 py-2 border rounded-lg text-sm font-ui" rows={3} />
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block font-ui text-xs text-muted-foreground mb-1">Start *</label>
+          <input type="datetime-local" value={formData.starts_at}
+            onChange={(e) => setFormData({ ...formData, starts_at: e.target.value })}
+            className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
+        </div>
+        <div>
+          <label className="block font-ui text-xs text-muted-foreground mb-1">End</label>
+          <input type="datetime-local" value={formData.ends_at}
+            onChange={(e) => setFormData({ ...formData, ends_at: e.target.value })}
+            className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
+        </div>
+      </div>
+      <div>
+        <label className="block font-ui text-xs text-muted-foreground mb-1">Location (search Google Maps)</label>
+        <input ref={locationRef} type="text" placeholder="Search for a venue or address..."
+          value={formData.location}
+          onChange={(e) => setFormData({ ...formData, location: e.target.value, location_url: '' })}
+          className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
+        {formData.location_url && (
+          <a href={formData.location_url} target="_blank" rel="noopener noreferrer"
+            className="mt-1 flex items-center gap-1 font-ui text-xs text-primary hover:underline">
+            <MapPin className="h-3 w-3" /> View on Google Maps <ExternalLink className="h-2.5 w-2.5" />
+          </a>
+        )}
+      </div>
+      <label className="flex items-center gap-2 font-ui text-sm cursor-pointer">
+        <input type="checkbox" checked={formData.is_free}
+          onChange={(e) => setFormData({ ...formData, is_free: e.target.checked })} />
+        Free event
+      </label>
+      {!formData.is_free && (
+        <input type="number" placeholder="Price (KES)" value={formData.price}
+          onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+          className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
       )}
+      <select value={formData.status}
+        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+        className="w-full px-3 py-2 border rounded-lg text-sm font-ui">
+        <option value="draft">Draft</option>
+        <option value="published">Published</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="completed">Completed</option>
+      </select>
+      <Button onClick={onSubmit} disabled={saving || uploading} className="w-full font-ui rounded-full">
+        {saving ? 'Saving...' : submitLabel}
+      </Button>
     </div>
-    <label className="flex items-center gap-2 font-ui text-sm cursor-pointer">
-      <input type="checkbox" checked={formData.is_free}
-        onChange={(e) => setFormData({ ...formData, is_free: e.target.checked })} />
-      Free event
-    </label>
-    {!formData.is_free && (
-      <input type="number" placeholder="Price (KES)" value={formData.price}
-        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-        className="w-full px-3 py-2 border rounded-lg text-sm font-ui" />
-    )}
-    <select value={formData.status}
-      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-      className="w-full px-3 py-2 border rounded-lg text-sm font-ui">
-      <option value="draft">Draft</option>
-      <option value="published">Published</option>
-      <option value="cancelled">Cancelled</option>
-      <option value="completed">Completed</option>
-    </select>
-    <Button onClick={onSubmit} disabled={saving} className="w-full font-ui rounded-full">
-      {saving ? 'Saving...' : submitLabel}
-    </Button>
-  </div>
-);
+  );
+};
 
 const AdminEvents = () => {
   const [events, setEvents] = useState<Event[]>([]);
@@ -169,7 +233,7 @@ const AdminEvents = () => {
 
   useEffect(() => {
     db.from('events')
-      .select('id, slug, title, description, starts_at, ends_at, location, location_url, status, is_free, price, currency')
+      .select('id, slug, title, description, starts_at, ends_at, location, location_url, poster_url, status, is_free, price, currency')
       .order('starts_at', { ascending: false })
       .then(({ data }: { data: Event[] }) => { setEvents(data ?? []); setLoading(false); });
   }, []);
@@ -179,6 +243,7 @@ const AdminEvents = () => {
     starts_at: new Date(f.starts_at).toISOString(),
     ends_at: f.ends_at ? new Date(f.ends_at).toISOString() : null,
     location: f.location || null, location_url: f.location_url || null,
+    poster_url: f.poster_url || null,
     is_free: f.is_free, price: f.is_free ? null : (parseFloat(f.price) || 0),
     currency: 'KES', status: f.status,
   });
@@ -267,6 +332,13 @@ const AdminEvents = () => {
         <div className="space-y-3">
           {events.map((event) => (
             <div key={event.id} className="rounded-lg border border-border bg-card p-4 flex items-center justify-between gap-4">
+              {event.poster_url ? (
+                <img src={event.poster_url} alt="" className="h-14 w-14 rounded-lg object-cover shrink-0" />
+              ) : (
+                <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                  <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                </div>
+              )}
               <div className="space-y-1 flex-1 min-w-0">
                 <h3 className="font-ui font-medium text-foreground truncate">{event.title}</h3>
                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground font-ui">
