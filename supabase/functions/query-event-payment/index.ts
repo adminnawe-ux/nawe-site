@@ -11,9 +11,6 @@ const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const resendApiKey = Deno.env.get('RESEND_API_KEY') ?? '';
 const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? 'support@nawe.co.ke';
 const appUrl = Deno.env.get('APP_URL') ?? 'https://nawe.co.ke';
-const googleServiceAccountEmail = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_EMAIL') ?? '';
-const googlePrivateKey = Deno.env.get('GOOGLE_PRIVATE_KEY') ?? '';
-const googleCalendarId = Deno.env.get('GOOGLE_CALENDAR_ID') ?? 'primary';
 const ncbaBaseUrl = 'https://c2bapis.ncbagroup.com';
 const ncbaStkUsername = Deno.env.get('NCBA_STK_USERNAME') ?? '';
 const ncbaStkPassword = Deno.env.get('NCBA_STK_PASSWORD') ?? '';
@@ -46,58 +43,26 @@ async function getNcbaToken(): Promise<string> {
   return json.access_token as string;
 }
 
-async function getGoogleToken(): Promise<string> {
-  const now = Math.floor(Date.now() / 1000);
-  const payload = { iss: googleServiceAccountEmail, scope: 'https://www.googleapis.com/auth/calendar',
-    aud: 'https://oauth2.googleapis.com/token', exp: now + 3600, iat: now };
-  const encode = (obj: unknown) =>
-    btoa(JSON.stringify(obj)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-  const signingInput = `${encode({ alg: 'RS256', typ: 'JWT' })}.${encode(payload)}`;
-  const pem = googlePrivateKey.replace(/\\n/g, '\n');
-  const b64 = pem.replace(/-----BEGIN PRIVATE KEY-----/, '').replace(/-----END PRIVATE KEY-----/, '').replace(/\s/g, '');
-  const keyBytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-  const cryptoKey = await crypto.subtle.importKey('pkcs8', keyBytes.buffer,
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
-  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey, new TextEncoder().encode(signingInput));
-  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-  const jwt = `${signingInput}.${sigB64}`;
-  const resp = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: jwt }),
-  });
-  if (!resp.ok) throw new Error(`Google token error: ${await resp.text()}`);
-  return (await resp.json()).access_token as string;
-}
-
-async function addToCalendarAndEmail(adminClient: ReturnType<typeof createClient>, reg: {
+async function addToCalendarAndEmail(reg: {
   id: string; ticket_code: string; attendee_name: string; attendee_email: string;
   price_paid: number | null; event: {
     title: string; location: string | null; starts_at: string; ends_at: string | null;
-    currency: string;
+    currency: string; google_calendar_id: string | null; google_calendar_event_id: string | null;
   };
 }) {
-  let calendarLink: string | null = null;
-  if (googleServiceAccountEmail && googlePrivateKey) {
+  // Add attendee to the event's dedicated Google Calendar (best-effort)
+  if (reg.event.google_calendar_id && reg.event.google_calendar_event_id) {
     try {
-      const token = await getGoogleToken();
-      const start = new Date(reg.event.starts_at);
-      const end = reg.event.ends_at ? new Date(reg.event.ends_at) : new Date(start.getTime() + 2 * 60 * 60 * 1000);
-      const body = {
-        summary: reg.event.title, location: reg.event.location ?? undefined,
-        description: `Your ticket code: ${reg.ticket_code}\n\nView ticket: ${appUrl}/events/ticket/${reg.ticket_code}`,
-        start: { dateTime: start.toISOString(), timeZone: 'Africa/Nairobi' },
-        end: { dateTime: end.toISOString(), timeZone: 'Africa/Nairobi' },
-        attendees: [{ email: reg.attendee_email }],
-        reminders: { useDefault: false, overrides: [{ method: 'email', minutes: 1440 }, { method: 'popup', minutes: 60 }] },
-      };
-      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(googleCalendarId)}/events?sendUpdates=all`;
-      const resp = await fetch(url, {
+      await fetch(`${supabaseUrl}/functions/v1/add-event-guest`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${supabaseServiceRoleKey}` },
+        body: JSON.stringify({
+          calendar_id: reg.event.google_calendar_id,
+          event_id: reg.event.google_calendar_event_id,
+          attendee_email: reg.attendee_email,
+        }),
       });
-      if (resp.ok) calendarLink = ((await resp.json()).htmlLink as string) ?? null;
-    } catch (e) { console.error('Calendar invite failed:', e); }
+    } catch (e) { console.error('Calendar guest addition failed:', e); }
   }
 
   if (!resendApiKey) return;
@@ -127,7 +92,6 @@ async function addToCalendarAndEmail(adminClient: ReturnType<typeof createClient
         </tr>
       </table>
       <p><a href="${ticketUrl}" style="display:inline-block;background:#10b981;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold">View Your Ticket →</a></p>
-      ${calendarLink ? `<p><a href="${calendarLink}" style="color:#10b981">Add to Google Calendar →</a></p>` : ''}
       <p style="color:#6b7280;font-size:13px;margin-top:32px">The Nawe Team</p>
     </div>`;
   const resp = await fetch('https://api.resend.com/emails', {
@@ -174,7 +138,7 @@ Deno.serve(async (req) => {
   // Check DB status first — webhook may have already confirmed
   const { data: reg } = await adminClient
     .from('event_registrations')
-    .select('id, ticket_code, payment_status, attendee_name, attendee_email, price_paid, event:events(title, location, starts_at, ends_at, currency)')
+    .select('id, ticket_code, payment_status, attendee_name, attendee_email, price_paid, event:events(title, location, starts_at, ends_at, currency, google_calendar_id, google_calendar_event_id)')
     .eq('id', registration_id)
     .maybeSingle();
 
@@ -205,7 +169,7 @@ Deno.serve(async (req) => {
         .eq('id', registration_id).eq('payment_status', 'pending_stk')
         .select('id');
       if (claimed && claimed.length > 0) {
-        await addToCalendarAndEmail(adminClient, reg as Parameters<typeof addToCalendarAndEmail>[1]);
+        await addToCalendarAndEmail(reg as Parameters<typeof addToCalendarAndEmail>[0]);
       }
       return new Response(JSON.stringify({ status: 'confirmed', ticket_code: reg.ticket_code }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

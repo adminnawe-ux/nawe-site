@@ -12,10 +12,21 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, Clock, Video, Phone, MapPin, MessageSquare, X, Search, Link2, RefreshCw, Receipt, Star } from 'lucide-react';
+import { Calendar, Clock, Video, Phone, MapPin, MessageSquare, X, Search, Link2, RefreshCw, Receipt, Star, Ticket } from 'lucide-react';
 import { format, isPast, isToday } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import ReviewDialog from '@/components/client/ReviewDialog';
+
+interface UpcomingEvent {
+  id: string;
+  slug: string;
+  title: string;
+  starts_at: string;
+  location: string | null;
+  is_free: boolean;
+  price: number | null;
+  currency: string;
+}
 
 interface SessionWithTherapist {
   id: string;
@@ -85,6 +96,7 @@ const ClientDashboard = () => {
   const [cancelReason, setCancelReason] = useState('');
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [receiptSession, setReceiptSession] = useState<SessionWithTherapist | null>(null);
+  const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
 
   const fetchSessions = async () => {
     if (!user) return;
@@ -140,6 +152,14 @@ const ClientDashboard = () => {
 
   useEffect(() => {
     fetchSessions();
+    supabase
+      .from('events')
+      .select('id, slug, title, starts_at, location, is_free, price, currency')
+      .eq('status', 'published')
+      .gte('starts_at', new Date().toISOString())
+      .order('starts_at', { ascending: true })
+      .limit(3)
+      .then(({ data }) => setUpcomingEvents(data ?? []));
   }, [user]);
 
   const handleCancel = async (sessionId: string) => {
@@ -212,6 +232,31 @@ const ClientDashboard = () => {
             </p>
           </div>
         </div>
+
+        {/* Upcoming Events */}
+        {upcomingEvents.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display text-xl text-foreground">Upcoming Events</h2>
+              <Link to="/events" className="font-ui text-sm text-primary hover:underline">View all →</Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {upcomingEvents.map((event) => (
+                <Link key={event.id} to={`/events/${event.slug}`}
+                  className="bg-card rounded-[var(--radius)] p-4 border border-border shadow-[var(--shadow-card)] hover:border-primary/40 transition-colors group">
+                  <p className="font-display text-sm text-foreground group-hover:text-primary transition-colors line-clamp-2 mb-2">{event.title}</p>
+                  <div className="space-y-1 text-xs text-muted-foreground font-ui">
+                    <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" />{format(new Date(event.starts_at), 'EEE, MMM d · h:mm a')}</span>
+                    {event.location && <span className="flex items-center gap-1.5"><MapPin className="h-3 w-3" />{event.location}</span>}
+                  </div>
+                  <span className={`mt-3 inline-block px-2 py-0.5 rounded text-xs font-ui ${event.is_free ? 'bg-success/10 text-success' : 'bg-primary/10 text-primary'}`}>
+                    {event.is_free ? 'Free' : `${event.currency} ${event.price?.toLocaleString()}`}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Upcoming */}
         <section>

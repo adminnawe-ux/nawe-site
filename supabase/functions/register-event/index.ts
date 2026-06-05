@@ -11,9 +11,6 @@ const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const resendApiKey = Deno.env.get('RESEND_API_KEY') ?? '';
 const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? 'support@nawe.co.ke';
 const appUrl = Deno.env.get('APP_URL') ?? 'https://nawe.co.ke';
-const googleServiceAccountEmail = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_EMAIL') ?? '';
-const googlePrivateKey = Deno.env.get('GOOGLE_PRIVATE_KEY') ?? '';
-const googleCalendarId = Deno.env.get('GOOGLE_CALENDAR_ID') ?? 'primary';
 const ncbaBaseUrl = 'https://c2bapis.ncbagroup.com';
 const ncbaStkUsername = Deno.env.get('NCBA_STK_USERNAME') ?? '';
 const ncbaStkPassword = Deno.env.get('NCBA_STK_PASSWORD') ?? '';
@@ -59,71 +56,9 @@ async function getNcbaToken(): Promise<string> {
   return json.access_token as string;
 }
 
-async function getGoogleToken(): Promise<string> {
-  const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    iss: googleServiceAccountEmail,
-    scope: 'https://www.googleapis.com/auth/calendar',
-    aud: 'https://oauth2.googleapis.com/token',
-    exp: now + 3600, iat: now,
-  };
-  const encode = (obj: unknown) =>
-    btoa(JSON.stringify(obj)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-  const signingInput = `${encode({ alg: 'RS256', typ: 'JWT' })}.${encode(payload)}`;
-  const pem = googlePrivateKey.replace(/\\n/g, '\n');
-  const b64 = pem.replace(/-----BEGIN PRIVATE KEY-----/, '').replace(/-----END PRIVATE KEY-----/, '').replace(/\s/g, '');
-  const keyBytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-  const cryptoKey = await crypto.subtle.importKey('pkcs8', keyBytes.buffer,
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
-  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey, new TextEncoder().encode(signingInput));
-  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-  const jwt = `${signingInput}.${sigB64}`;
-  const resp = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: jwt }),
-  });
-  if (!resp.ok) throw new Error(`Google token error: ${await resp.text()}`);
-  const data = await resp.json();
-  return data.access_token as string;
-}
-
-async function addToCalendar(params: {
-  title: string; location: string | null; starts_at: string; ends_at: string | null;
-  attendeeEmail: string; ticketCode: string;
-}): Promise<string | null> {
-  if (!googleServiceAccountEmail || !googlePrivateKey) return null;
-  try {
-    const token = await getGoogleToken();
-    const start = new Date(params.starts_at);
-    const end = params.ends_at ? new Date(params.ends_at) : new Date(start.getTime() + 2 * 60 * 60 * 1000);
-    const body = {
-      summary: params.title,
-      location: params.location ?? undefined,
-      description: `Your ticket code: ${params.ticketCode}\n\nView your ticket: ${appUrl}/events/ticket/${params.ticketCode}`,
-      start: { dateTime: start.toISOString(), timeZone: 'Africa/Nairobi' },
-      end: { dateTime: end.toISOString(), timeZone: 'Africa/Nairobi' },
-      attendees: [{ email: params.attendeeEmail }],
-      reminders: { useDefault: false, overrides: [{ method: 'email', minutes: 1440 }, { method: 'popup', minutes: 60 }] },
-    };
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(googleCalendarId)}/events?sendUpdates=all`;
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    if (!resp.ok) { console.error('Calendar error:', await resp.text()); return null; }
-    const event = await resp.json();
-    return event.htmlLink as string ?? null;
-  } catch (e) {
-    console.error('Calendar invite failed (non-fatal):', e);
-    return null;
-  }
-}
-
 async function sendTicketEmail(params: {
   to: string; name: string; eventTitle: string; eventDate: string; eventLocation: string | null;
-  ticketCode: string; calendarLink: string | null; isFree: boolean; price: number | null; currency: string;
+  ticketCode: string; isFree: boolean; price: number | null; currency: string;
 }) {
   if (!resendApiKey) return;
   const ticketUrl = `${appUrl}/events/ticket/${params.ticketCode}`;
@@ -155,7 +90,6 @@ async function sendTicketEmail(params: {
           View Your Ticket →
         </a>
       </p>
-      ${params.calendarLink ? `<p><a href="${params.calendarLink}" style="color:#10b981">Add to Google Calendar →</a></p>` : ''}
       <p style="color:#6b7280;font-size:13px;margin-top:32px">The Nawe Team · <a href="https://nawe.co.ke" style="color:#10b981">nawe.co.ke</a></p>
     </div>
   `;
@@ -240,16 +174,26 @@ Deno.serve(async (req) => {
       }).select('id, ticket_code').single();
       if (regError) throw regError;
 
-      // Calendar invite + confirmation email (best-effort)
+      // Add to event's calendar (best-effort)
+      if (event.google_calendar_id && event.google_calendar_event_id) {
+        try {
+          await fetch(`${supabaseUrl}/functions/v1/add-event-guest`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${supabaseServiceRoleKey}` },
+            body: JSON.stringify({
+              calendar_id: event.google_calendar_id,
+              event_id: event.google_calendar_event_id,
+              attendee_email,
+            }),
+          });
+        } catch (e) { console.error('Failed to add guest to calendar:', e); }
+      }
+
       const eventDate = new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeStyle: 'short', timeZone: 'Africa/Nairobi' }).format(new Date(event.starts_at));
-      const calendarLink = await addToCalendar({
-        title: event.title, location: event.location, starts_at: event.starts_at,
-        ends_at: event.ends_at, attendeeEmail: attendee_email, ticketCode: reg.ticket_code,
-      });
       await sendTicketEmail({
         to: attendee_email, name: attendee_name, eventTitle: event.title,
         eventDate, eventLocation: event.location, ticketCode: reg.ticket_code,
-        calendarLink, isFree: true, price: null, currency: event.currency,
+        isFree: true, price: null, currency: event.currency,
       });
 
       return new Response(JSON.stringify({ ticket_code: reg.ticket_code }), {

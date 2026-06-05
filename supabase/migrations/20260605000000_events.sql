@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS public.events (
   capacity         integer, -- null = unlimited
   status           text NOT NULL DEFAULT 'draft'
                    CHECK (status IN ('draft', 'published', 'cancelled', 'completed')),
+  google_calendar_id text,
+  google_calendar_event_id text,
   created_by       uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at       timestamptz NOT NULL DEFAULT now(),
   updated_at       timestamptz NOT NULL DEFAULT now()
@@ -49,9 +51,11 @@ RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN NEW.updated_at = now(); RETURN NEW; END;
 $$;
 
+DROP TRIGGER IF EXISTS events_updated_at ON public.events;
 CREATE TRIGGER events_updated_at BEFORE UPDATE ON public.events
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
+DROP TRIGGER IF EXISTS event_registrations_updated_at ON public.event_registrations;
 CREATE TRIGGER event_registrations_updated_at BEFORE UPDATE ON public.event_registrations
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 

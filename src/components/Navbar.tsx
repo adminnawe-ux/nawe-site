@@ -27,6 +27,9 @@ const Navbar = () => {
           <Link to="/for-therapists" className="font-ui text-sm text-muted-foreground hover:text-foreground transition-colors">
             For Therapists
           </Link>
+          <Link to="/events" className="font-ui text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Events
+          </Link>
           <Link to="/blog" className="font-ui text-sm text-muted-foreground hover:text-foreground transition-colors">
             Journal
           </Link>
@@ -72,6 +75,9 @@ const Navbar = () => {
         <div className="md:hidden bg-card border-b border-border px-6 py-4 space-y-3 animate-fade-in">
           <Link to="/for-therapists" className="block font-ui text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             For Therapists
+          </Link>
+          <Link to="/events" className="block font-ui text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
+            Events
           </Link>
           <Link to="/blog" className="block font-ui text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             Journal
