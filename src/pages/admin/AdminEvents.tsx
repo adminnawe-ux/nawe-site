@@ -1,10 +1,26 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Calendar, MapPin, Trash2, ExternalLink, Pencil } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Calendar, MapPin, Trash2, ExternalLink, Pencil, Users, CheckCircle2, Circle, Mail, Ticket, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePlacesAutocomplete } from '@/hooks/usePlacesAutocomplete';
+
+interface Registration {
+  id: string;
+  attendee_name: string;
+  attendee_email: string;
+  ticket_code: string;
+  payment_status: string;
+  price_paid: number | null;
+  checked_in: boolean;
+  created_at: string;
+}
 
 interface Event {
   id: string;
@@ -62,6 +78,10 @@ const AdminEvents = () => {
   const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [attendeesEvent, setAttendeesEvent] = useState<Event | null>(null);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [regsLoading, setRegsLoading] = useState(false);
+  const [attendeeSearch, setAttendeeSearch] = useState('');
 
   const createLocationRef = useRef<HTMLInputElement>(null);
   const editLocationRef = useRef<HTMLInputElement>(null);
@@ -77,7 +97,7 @@ const AdminEvents = () => {
   usePlacesAutocomplete(editLocationRef, handlePlaceSelectEdit);
 
   useEffect(() => {
-    supabase
+    db
       .from('events')
       .select('id, slug, title, description, starts_at, ends_at, location, location_url, status, is_free, price, currency')
       .order('starts_at', { ascending: false })
@@ -101,7 +121,7 @@ const AdminEvents = () => {
   const handleCreate = async () => {
     if (!formData.title.trim() || !formData.slug.trim() || !formData.starts_at) return;
     setSaving(true); setError('');
-    const { data: newEvent, error: err } = await supabase
+    const { data: newEvent, error: err } = await db
       .from('events').insert(buildPayload(formData)).select().single();
     if (err) { setError(err.message.includes('unique') ? 'Slug already exists — choose a different one.' : err.message); setSaving(false); return; }
     if (newEvent) {
@@ -123,7 +143,7 @@ const AdminEvents = () => {
   const handleEdit = async () => {
     if (!editEvent || !formData.title.trim() || !formData.starts_at) return;
     setSaving(true); setError('');
-    const { data: updated, error: err } = await supabase
+    const { data: updated, error: err } = await db
       .from('events').update(buildPayload(formData)).eq('id', editEvent.id).select().single();
     if (err) { setError(err.message); setSaving(false); return; }
     if (updated) {
@@ -133,9 +153,34 @@ const AdminEvents = () => {
     setSaving(false);
   };
 
+  const openAttendees = async (event: Event) => {
+    setAttendeesEvent(event);
+    setAttendeeSearch('');
+    setRegsLoading(true);
+    const { data } = await db
+      .from('event_registrations')
+      .select('id, attendee_name, attendee_email, ticket_code, payment_status, price_paid, checked_in, created_at')
+      .eq('event_id', event.id)
+      .order('created_at', { ascending: true });
+    setRegistrations(data ?? []);
+    setRegsLoading(false);
+  };
+
+  const toggleCheckIn = async (reg: Registration) => {
+    const { data } = await db
+      .from('event_registrations')
+      .update({ checked_in: !reg.checked_in })
+      .eq('id', reg.id)
+      .select('id, checked_in')
+      .single();
+    if (data) {
+      setRegistrations((prev) => prev.map((r) => r.id === reg.id ? { ...r, checked_in: data.checked_in } : r));
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (confirm('Delete this event? This cannot be undone.')) {
-      await supabase.from('events').delete().eq('id', id);
+      await db.from('events').delete().eq('id', id);
       setEvents(events.filter(e => e.id !== id));
     }
   };
@@ -249,6 +294,9 @@ const AdminEvents = () => {
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                <Button variant="ghost" size="sm" onClick={() => openAttendees(event)} className="text-muted-foreground hover:text-foreground gap-1.5 font-ui text-xs">
+                  <Users className="h-4 w-4" /> Attendees
+                </Button>
                 <Button variant="ghost" size="sm" onClick={() => openEdit(event)} className="text-muted-foreground hover:text-foreground">
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -276,6 +324,100 @@ const AdminEvents = () => {
           <EventForm locationRef={editLocationRef} onSubmit={handleEdit} submitLabel="Save Changes" />
         </DialogContent>
       </Dialog>
+
+      {/* Attendees sheet */}
+      <Sheet open={!!attendeesEvent} onOpenChange={(open) => { if (!open) setAttendeesEvent(null); }}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader className="mb-4">
+            <SheetTitle className="font-display text-lg">{attendeesEvent?.title}</SheetTitle>
+            {!regsLoading && (
+              <div className="flex gap-4 text-xs font-ui text-muted-foreground pt-1">
+                <span>{registrations.length} registered</span>
+                <span>{registrations.filter(r => r.checked_in).length} checked in</span>
+                {!attendeesEvent?.is_free && (
+                  <span>KES {registrations.filter(r => r.payment_status === 'paid').reduce((s, r) => s + (r.price_paid ?? 0), 0).toLocaleString()} collected</span>
+                )}
+              </div>
+            )}
+          </SheetHeader>
+
+          {!regsLoading && registrations.length > 0 && (
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search by name or ticket #..."
+                value={attendeeSearch}
+                onChange={(e) => setAttendeeSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm font-ui bg-background"
+                autoFocus
+              />
+            </div>
+          )}
+
+          {(() => {
+            if (regsLoading) return (
+              <div className="flex items-center justify-center py-16">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            );
+            if (registrations.length === 0) return (
+              <div className="text-center py-16 text-muted-foreground font-body">No registrations yet.</div>
+            );
+            const q = attendeeSearch.toLowerCase().trim();
+            const filtered = q
+              ? registrations.filter(r =>
+                  r.attendee_name.toLowerCase().includes(q) ||
+                  r.ticket_code.toLowerCase().includes(q)
+                )
+              : registrations;
+            if (filtered.length === 0) return (
+              <p className="text-center py-8 text-muted-foreground font-ui text-sm">No match for "{attendeeSearch}"</p>
+            );
+            return (
+              <div className="space-y-2">
+                {filtered.map((reg) => {
+                  const isPaid = reg.payment_status === 'paid' || reg.payment_status === 'free';
+                  return (
+                    <div key={reg.id} className={`rounded-lg border p-3 flex items-center gap-3 transition-colors ${reg.checked_in ? 'border-success/30 bg-success/5' : 'border-border bg-card'}`}>
+                      <button onClick={() => toggleCheckIn(reg)} className="shrink-0" title={reg.checked_in ? 'Mark not checked in' : 'Check in'}>
+                        {reg.checked_in
+                          ? <CheckCircle2 className="h-5 w-5 text-success" />
+                          : <Circle className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />}
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-ui text-sm font-medium text-foreground truncate">{reg.attendee_name}</p>
+                        <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                          <span className="flex items-center gap-1 font-ui text-xs text-muted-foreground">
+                            <Mail className="h-3 w-3" />{reg.attendee_email}
+                          </span>
+                          <span className="flex items-center gap-1 font-ui text-xs text-muted-foreground">
+                            <Ticket className="h-3 w-3" />{reg.ticket_code}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="shrink-0 flex flex-col items-end gap-1">
+                        {attendeesEvent?.is_free ? (
+                          <Badge variant="outline" className="font-ui text-xs">Free</Badge>
+                        ) : (
+                          <>
+                            <Badge className={`font-ui text-xs ${isPaid ? 'bg-success/10 text-success border-success/20' : reg.payment_status === 'pending_stk' ? 'bg-warning/10 text-warning border-warning/20' : 'bg-destructive/10 text-destructive border-destructive/20'}`}>
+                              {reg.payment_status === 'paid' ? 'Paid' : reg.payment_status === 'pending_stk' ? 'Pending' : reg.payment_status === 'free' ? 'Free' : 'Failed'}
+                            </Badge>
+                            {reg.price_paid != null && reg.payment_status === 'paid' && (
+                              <span className="font-ui text-xs text-muted-foreground">KES {reg.price_paid.toLocaleString()}</span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
