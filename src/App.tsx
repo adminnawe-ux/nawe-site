@@ -28,6 +28,9 @@ import Terms from "@/pages/Terms";
 import AboutUs from "@/pages/AboutUs";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import Resources from "@/pages/Resources";
+import Events from "@/pages/Events";
+import EventDetail from "@/pages/EventDetail";
+import EventTicket from "@/pages/EventTicket";
 
 // Client pages
 import ClientDashboard from "@/pages/ClientDashboard";
@@ -55,6 +58,7 @@ import AdminFinance from "@/pages/admin/AdminFinance";
 import AdminContent from "@/pages/admin/AdminContent";
 import AdminAnalytics from "@/pages/admin/AdminAnalytics";
 import AdminSettings from "@/pages/admin/AdminSettings";
+import AdminEvents from "@/pages/admin/AdminEvents";
 
 const queryClient = new QueryClient();
 
@@ -80,7 +84,13 @@ const App = () => (
               <Route path="/therapist/:id" element={<TherapistProfile />} />
               <Route path="/book/:id" element={<BookSession />} />
               <Route path="/triage" element={<Triage />} />
+              {/* Events */}
+              <Route path="/events" element={<Events />} />
+              <Route path="/events/:slug" element={<EventDetail />} />
             </Route>
+
+            {/* Event ticket (no layout, public access) */}
+            <Route path="/events/ticket/:code" element={<EventTicket />} />
 
             {/* Client portal — requires login */}
             <Route element={
@@ -129,6 +139,7 @@ const App = () => (
               <Route path="/admin/content" element={<AdminContent />} />
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
               <Route path="/admin/settings" element={<AdminSettings />} />
+              <Route path="/admin/events" element={<AdminEvents />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
