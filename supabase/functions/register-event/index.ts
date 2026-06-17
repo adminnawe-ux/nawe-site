@@ -276,18 +276,34 @@ Deno.serve(async (req) => {
       if (awRow) approvedWaitlistRow = awRow;
     }
 
+    // Auto-expire stale pending_stk registrations for this user+event.
+    // Mirrors the session flow: STK prompts expire ~30 s; 5 min is a safe cutoff.
+    // The webhook can still confirm a 'failed' row → it handles failed status.
+    if (userId && !approvedWaitlistRow) {
+      const expiryCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      await adminClient.from('event_registrations')
+        .update({ payment_status: 'failed' })
+        .eq('event_id', event_id).eq('user_id', userId)
+        .is('group_lead_id', null)
+        .eq('payment_status', 'pending_stk')
+        .lt('created_at', expiryCutoff);
+    }
+
+    // Track a failed row for in-place retry (avoids unique constraint on re-insert)
+    let failedRow: { id: string; payment_reference: string | null } | null = null;
+
     if (!approvedWaitlistRow) {
       // ── Normal duplicate guard ────────────────────────────────────────────
       if (userId) {
         const { data: existing } = await adminClient.from('event_registrations')
-          .select('id, ticket_code, payment_status').eq('event_id', event_id).eq('user_id', userId)
+          .select('id, ticket_code, payment_status, payment_reference').eq('event_id', event_id).eq('user_id', userId)
           .is('group_lead_id', null)
           .in('payment_status', [...ACTIVE_STATUSES, 'waitlisted', 'failed']).maybeSingle();
         if (existing) {
           if (existing.payment_status === 'failed') {
-            // Previous payment attempt failed — drop the stale row and let them retry.
-            await adminClient.from('event_registrations').delete().eq('id', existing.id);
-            // Fall through to normal registration below
+            // Previous STK push failed — save details and fall through to retry in paid path.
+            // We update the row in-place rather than delete+insert to avoid the unique constraint.
+            failedRow = { id: existing.id, payment_reference: existing.payment_reference ?? null };
           } else if (existing.payment_status === 'waitlisted') {
             // If capacity has since opened (or is unlimited), drop the stale waitlisted
             // row and let the normal flow create a fresh registration.
@@ -445,8 +461,23 @@ Deno.serve(async (req) => {
       }),
     });
     const stkData = await stkResp.json();
+
+    // NCBA "still under processing" means the previous STK push is still live.
+    // Resume polling for it rather than starting a new transaction.
     if (!stkResp.ok || stkData.StatusCode === '1' || !stkData.TransactionID) {
-      throw new Error(stkData.StatusDescription ?? 'STK push failed');
+      const desc: string = stkData.StatusDescription ?? '';
+      const isStillProcessing = desc.toLowerCase().includes('still under processing');
+      if (isStillProcessing && failedRow?.payment_reference) {
+        // Reactivate the failed row so the webhook can still confirm it
+        await adminClient.from('event_registrations')
+          .update({ payment_status: 'pending_stk', attendee_name: attendee_name.trim(), attendee_email: attendee_email.trim() })
+          .eq('id', failedRow.id);
+        return new Response(JSON.stringify({
+          registration_id: failedRow.id,
+          transaction_id: failedRow.payment_reference,
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      throw new Error(desc || 'STK push failed');
     }
 
     let leadRegId: string;
@@ -463,6 +494,19 @@ Deno.serve(async (req) => {
         })
         .eq('id', approvedWaitlistRow.id);
       leadRegId = approvedWaitlistRow.id;
+    } else if (failedRow) {
+      // Previous attempt failed cleanly — reuse the row with new transaction
+      await adminClient.from('event_registrations')
+        .update({
+          payment_status: 'pending_stk',
+          payment_reference: stkData.TransactionID,
+          price_paid: stkAmount,
+          attendee_name: attendee_name.trim(),
+          attendee_email: attendee_email.trim(),
+          tier_id: tier_id ?? null,
+        })
+        .eq('id', failedRow.id);
+      leadRegId = failedRow.id;
     } else {
       const { data: leadReg, error: regError } = await adminClient.from('event_registrations').insert({
         event_id, user_id: userId,
