@@ -114,6 +114,9 @@ const EventDetail = () => {
   const [registrationId, setRegistrationId] = useState('');
   const [transactionId, setTransactionId] = useState('');
   const [pollCount, setPollCount] = useState(0);
+  // After fast polls exhaust, slow-poll for another minute before giving up
+  const [stkSlowPoll, setStkSlowPoll] = useState(false);
+  const [slowPollCount, setSlowPollCount] = useState(0);
 
   // Success
   const [ticketCode, setTicketCode] = useState('');
@@ -193,13 +196,14 @@ const EventDetail = () => {
     if (user && dialogOpen) setEmail(user.email ?? '');
   }, [user, dialogOpen]);
 
-  // STK poll
+  // STK fast poll — every 4 s for up to 30 polls (2 min)
   useEffect(() => {
     if (!stkPending) return;
-    if (pollCount >= 15) {
+    if (pollCount >= 30) {
+      // Transition to slow-poll phase instead of giving up
       setStkPending(false);
-      setStep('details');
-      setError('M-Pesa prompt expired — tap "Send M-Pesa Prompt" to try again.');
+      setStkSlowPoll(true);
+      setSlowPollCount(0);
       return;
     }
     const timer = setTimeout(async () => {
@@ -236,6 +240,49 @@ const EventDetail = () => {
     return () => clearTimeout(timer);
   }, [stkPending, pollCount, transactionId, registrationId]);
 
+  // STK slow poll — every 15 s for up to 4 more checks (1 min) after fast polling ends
+  useEffect(() => {
+    if (!stkSlowPoll) return;
+    if (slowPollCount >= 4) {
+      // Truly give up — payment may still confirm via webhook, tell user to check ticket
+      setStkSlowPoll(false);
+      setStep('stk-pending'); // keep dialog open with final message
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+        if (!accessToken) { setSlowPollCount(c => c + 1); return; }
+
+        const { data, error: invokeErr } = await supabase.functions.invoke('query-event-payment', {
+          body: { transaction_id: transactionId, registration_id: registrationId },
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        if (invokeErr) { setSlowPollCount(c => c + 1); return; }
+
+        if (data?.status === 'confirmed') {
+          setStkSlowPoll(false);
+          setTicketCode(data.ticket_code);
+          setAlreadyRegistered(true);
+          setDialogOpen(false);
+          return;
+        }
+        if (data?.status === 'failed') {
+          setStkSlowPoll(false);
+          setStep('details');
+          setError(data.reason ?? 'Payment was not completed. Please try again.');
+          return;
+        }
+        setSlowPollCount(c => c + 1);
+      } catch {
+        setSlowPollCount(c => c + 1);
+      }
+    }, 15000);
+    return () => clearTimeout(timer);
+  }, [stkSlowPoll, slowPollCount, transactionId, registrationId]);
+
   const openDialog = (joinWaitlist = false) => {
     setError('');
     setPhone('');
@@ -243,6 +290,9 @@ const EventDetail = () => {
     setGroupMembers([]);
     setQuantity(1);
     setStkPending(false);
+    setStkSlowPoll(false);
+    setSlowPollCount(0);
+    setPollCount(0);
     setIsWaitlistJoin(joinWaitlist);
     setStep(tiers.length > 0 && !joinWaitlist ? 'tier' : 'details');
     setDialogOpen(true);
@@ -857,26 +907,47 @@ const EventDetail = () => {
           {step === 'stk-pending' && (
             <div className="space-y-5 py-2">
               <div className="flex flex-col items-center gap-4 py-4">
-                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Smartphone className="h-8 w-8 text-primary animate-pulse" />
+                <div className={`h-16 w-16 rounded-full flex items-center justify-center ${!stkPending && !stkSlowPoll ? 'bg-amber-500/10' : 'bg-primary/10'}`}>
+                  <Smartphone className={`h-8 w-8 ${!stkPending && !stkSlowPoll ? 'text-amber-500' : 'text-primary animate-pulse'}`} />
                 </div>
                 <div className="text-center">
-                  <p className="font-ui font-medium text-foreground">Check your phone</p>
-                  <p className="font-body text-sm text-muted-foreground mt-1">
-                    Enter your M-Pesa PIN to pay{' '}
-                    <strong>KES {selectedTier?.price.toLocaleString()}{selectedTier?.ticket_type === 'group' ? ` × ${selectedTier.group_size}` : ''}</strong>.
-                  </p>
+                  {!stkPending && !stkSlowPoll ? (
+                    <>
+                      <p className="font-ui font-medium text-foreground">Still waiting for M-Pesa</p>
+                      <p className="font-body text-sm text-muted-foreground mt-1">
+                        Your payment may still be processing. Close this and check{' '}
+                        <button className="text-primary underline" onClick={() => { setDialogOpen(false); navigate('/dashboard'); }}>
+                          your tickets
+                        </button>{' '}
+                        in a few minutes.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-ui font-medium text-foreground">Check your phone</p>
+                      <p className="font-body text-sm text-muted-foreground mt-1">
+                        Enter your M-Pesa PIN to pay{' '}
+                        <strong>KES {(selectedTier ? selectedTier.price * (selectedTier.ticket_type === 'group' ? (selectedTier.group_size ?? 1) : quantity) : 0).toLocaleString()}</strong>.
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
-              <div className="flex items-center gap-2 bg-muted/40 rounded-xl p-3">
-                <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
-                <p className="font-body text-xs text-muted-foreground">
-                  Waiting for confirmation… ({pollCount > 0 ? `${pollCount * 4}s` : 'just sent'})
-                </p>
-              </div>
+
+              {(stkPending || stkSlowPoll) && (
+                <div className="flex items-center gap-2 bg-muted/40 rounded-xl p-3">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+                  <p className="font-body text-xs text-muted-foreground">
+                    {stkSlowPoll
+                      ? 'Still checking — this can take a couple of minutes…'
+                      : `Waiting for confirmation… (${pollCount > 0 ? `${pollCount * 4}s` : 'just sent'})`}
+                  </p>
+                </div>
+              )}
+
               <Button variant="outline" className="w-full font-ui rounded-full"
-                onClick={() => { setStkPending(false); setStep('details'); setError(''); }}>
-                Cancel
+                onClick={() => { setStkPending(false); setStkSlowPoll(false); setStep('details'); setError(''); }}>
+                {!stkPending && !stkSlowPoll ? 'Close' : 'Cancel'}
               </Button>
             </div>
           )}
