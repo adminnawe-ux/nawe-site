@@ -43,63 +43,116 @@ async function getNcbaToken(): Promise<string> {
   return json.access_token as string;
 }
 
-async function addToCalendarAndEmail(reg: {
-  id: string; ticket_code: string; attendee_name: string; attendee_email: string;
-  price_paid: number | null; event: {
+interface RegRow {
+  id: string;
+  ticket_code: string;
+  attendee_name: string;
+  attendee_email: string;
+  price_paid: number | null;
+  payment_status: string;
+  tier_id: string | null;
+  event: {
     title: string; location: string | null; starts_at: string; ends_at: string | null;
     currency: string; google_calendar_id: string | null; google_calendar_event_id: string | null;
   };
-}) {
-  // Add attendee to the event's dedicated Google Calendar (best-effort)
-  if (reg.event.google_calendar_id && reg.event.google_calendar_event_id) {
+}
+
+interface MemberRow {
+  id: string;
+  ticket_code: string;
+  attendee_name: string;
+  attendee_email: string;
+}
+
+async function confirmPaymentAndNotify(
+  adminClient: ReturnType<typeof createClient>,
+  lead: RegRow,
+  tierName: string | null,
+) {
+  // Mark lead as paid
+  const { data: claimed } = await adminClient.from('event_registrations')
+    .update({ payment_status: 'paid' })
+    .eq('id', lead.id).eq('payment_status', 'pending_stk')
+    .select('id');
+
+  if (!claimed || claimed.length === 0) return; // already handled (e.g. by webhook)
+
+  // Mark all group members as paid
+  await adminClient.from('event_registrations')
+    .update({ payment_status: 'paid' })
+    .eq('group_lead_id', lead.id);
+
+  const { data: members } = await adminClient.from('event_registrations')
+    .select('id, ticket_code, attendee_name, attendee_email')
+    .eq('group_lead_id', lead.id) as { data: MemberRow[] | null };
+
+  const eventDate = new Intl.DateTimeFormat('en-GB', {
+    dateStyle: 'full', timeStyle: 'short', timeZone: 'Africa/Nairobi',
+  }).format(new Date(lead.event.starts_at));
+
+  const sendEmail = async (to: string, name: string, ticketCode: string, isGroupMember: boolean) => {
+    if (!resendApiKey) return;
+    const ticketUrl = `${appUrl}/events/ticket/${ticketCode}`;
+    const html = `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937;max-width:600px">
+        <h2 style="color:#10b981">Payment confirmed — you're in! 🎉</h2>
+        <p>Hi ${escapeHtml(name)},</p>
+        <p>${isGroupMember ? 'Your spot as part of a group booking for' : 'Your payment has been received and your spot for'} <strong>${escapeHtml(lead.event.title)}</strong> is confirmed.</p>
+        <table style="border-collapse:collapse;width:100%;margin:16px 0;border:1px solid #e5e7eb">
+          <tr style="border-bottom:1px solid #e5e7eb">
+            <td style="padding:10px 14px;font-weight:bold;color:#6b7280;width:40%;background:#f9fafb">Date</td>
+            <td style="padding:10px 14px">${escapeHtml(eventDate)}</td>
+          </tr>
+          ${lead.event.location ? `<tr style="border-bottom:1px solid #e5e7eb">
+            <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Location</td>
+            <td style="padding:10px 14px">${escapeHtml(lead.event.location)}</td>
+          </tr>` : ''}
+          ${tierName ? `<tr style="border-bottom:1px solid #e5e7eb">
+            <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Ticket type</td>
+            <td style="padding:10px 14px">${escapeHtml(tierName)}</td>
+          </tr>` : ''}
+          ${!isGroupMember ? `<tr style="border-bottom:1px solid #e5e7eb">
+            <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Amount paid</td>
+            <td style="padding:10px 14px;font-weight:bold">${escapeHtml(lead.event.currency)} ${(lead.price_paid ?? 0).toLocaleString()}</td>
+          </tr>` : ''}
+          <tr>
+            <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Ticket Code</td>
+            <td style="padding:10px 14px;font-family:monospace;font-size:20px;font-weight:bold;letter-spacing:3px">${escapeHtml(ticketCode)}</td>
+          </tr>
+        </table>
+        <p><a href="${ticketUrl}" style="display:inline-block;background:#10b981;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold">View Your Ticket →</a></p>
+        <p style="color:#6b7280;font-size:13px;margin-top:32px">The Nawe Team</p>
+      </div>`;
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: fromEmail, to, subject: `Payment confirmed — ${lead.event.title}`, html }),
+    });
+    if (!r.ok) console.error('Resend error:', await r.text());
+  };
+
+  const addToCalendar = async (email: string) => {
+    if (!lead.event.google_calendar_id || !lead.event.google_calendar_event_id) return;
     try {
       await fetch(`${supabaseUrl}/functions/v1/add-event-guest`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${supabaseServiceRoleKey}` },
         body: JSON.stringify({
-          calendar_id: reg.event.google_calendar_id,
-          event_id: reg.event.google_calendar_event_id,
-          attendee_email: reg.attendee_email,
+          calendar_id: lead.event.google_calendar_id,
+          event_id: lead.event.google_calendar_event_id,
+          attendee_email: email,
         }),
       });
     } catch (e) { console.error('Calendar guest addition failed:', e); }
-  }
+  };
 
-  if (!resendApiKey) return;
-  const ticketUrl = `${appUrl}/events/ticket/${reg.ticket_code}`;
-  const eventDate = new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeStyle: 'short', timeZone: 'Africa/Nairobi' }).format(new Date(reg.event.starts_at));
-  const html = `
-    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937;max-width:600px">
-      <h2 style="color:#10b981">Payment confirmed — you're in! 🎉</h2>
-      <p>Hi ${escapeHtml(reg.attendee_name)},</p>
-      <p>Your payment has been received and your spot for <strong>${escapeHtml(reg.event.title)}</strong> is confirmed.</p>
-      <table style="border-collapse:collapse;width:100%;margin:16px 0;border:1px solid #e5e7eb">
-        <tr style="border-bottom:1px solid #e5e7eb">
-          <td style="padding:10px 14px;font-weight:bold;color:#6b7280;width:40%;background:#f9fafb">Date</td>
-          <td style="padding:10px 14px">${escapeHtml(eventDate)}</td>
-        </tr>
-        ${reg.event.location ? `<tr style="border-bottom:1px solid #e5e7eb">
-          <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Location</td>
-          <td style="padding:10px 14px">${escapeHtml(reg.event.location)}</td>
-        </tr>` : ''}
-        <tr style="border-bottom:1px solid #e5e7eb">
-          <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Amount paid</td>
-          <td style="padding:10px 14px;font-weight:bold">${escapeHtml(reg.event.currency)} ${(reg.price_paid ?? 0).toLocaleString()}</td>
-        </tr>
-        <tr>
-          <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Ticket Code</td>
-          <td style="padding:10px 14px;font-family:monospace;font-size:20px;font-weight:bold;letter-spacing:3px">${escapeHtml(reg.ticket_code)}</td>
-        </tr>
-      </table>
-      <p><a href="${ticketUrl}" style="display:inline-block;background:#10b981;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold">View Your Ticket →</a></p>
-      <p style="color:#6b7280;font-size:13px;margin-top:32px">The Nawe Team</p>
-    </div>`;
-  const resp = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: fromEmail, to: reg.attendee_email, subject: `Payment confirmed — ${reg.event.title}`, html }),
-  });
-  if (!resp.ok) console.error('Resend error:', await resp.text());
+  await addToCalendar(lead.attendee_email);
+  await sendEmail(lead.attendee_email, lead.attendee_name, lead.ticket_code, false);
+
+  for (const m of (members ?? [])) {
+    await addToCalendar(m.attendee_email);
+    await sendEmail(m.attendee_email, m.attendee_name, m.ticket_code, true);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -135,21 +188,27 @@ Deno.serve(async (req) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  // Check DB status first — webhook may have already confirmed
-  const { data: reg } = await adminClient
+  const { data: lead } = await adminClient
     .from('event_registrations')
-    .select('id, ticket_code, payment_status, attendee_name, attendee_email, price_paid, event:events(title, location, starts_at, ends_at, currency, google_calendar_id, google_calendar_event_id)')
+    .select('id, ticket_code, payment_status, attendee_name, attendee_email, price_paid, tier_id, event:events(title, location, starts_at, ends_at, currency, google_calendar_id, google_calendar_event_id)')
     .eq('id', registration_id)
-    .maybeSingle();
+    .maybeSingle() as { data: RegRow | null };
 
-  if (!reg) return new Response(JSON.stringify({ error: 'Registration not found' }), {
+  if (!lead) return new Response(JSON.stringify({ error: 'Registration not found' }), {
     status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
-  if (reg.payment_status === 'paid') {
-    return new Response(JSON.stringify({ status: 'confirmed', ticket_code: reg.ticket_code }), {
+  if (lead.payment_status === 'paid') {
+    return new Response(JSON.stringify({ status: 'confirmed', ticket_code: lead.ticket_code }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+  }
+
+  // Resolve tier name for email
+  let tierName: string | null = null;
+  if (lead.tier_id) {
+    const { data: tierData } = await adminClient.from('event_ticket_tiers').select('name').eq('id', lead.tier_id).maybeSingle();
+    tierName = tierData?.name ?? null;
   }
 
   try {
@@ -164,14 +223,8 @@ Deno.serve(async (req) => {
     const ncbaStatus: string = queryData.status ?? '';
 
     if (ncbaStatus.toUpperCase() === 'SUCCESS') {
-      const { data: claimed } = await adminClient.from('event_registrations')
-        .update({ payment_status: 'paid' })
-        .eq('id', registration_id).eq('payment_status', 'pending_stk')
-        .select('id');
-      if (claimed && claimed.length > 0) {
-        await addToCalendarAndEmail(reg as Parameters<typeof addToCalendarAndEmail>[0]);
-      }
-      return new Response(JSON.stringify({ status: 'confirmed', ticket_code: reg.ticket_code }), {
+      await confirmPaymentAndNotify(adminClient, lead, tierName);
+      return new Response(JSON.stringify({ status: 'confirmed', ticket_code: lead.ticket_code }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -180,7 +233,9 @@ Deno.serve(async (req) => {
       const description = queryData.description ?? '';
       const isApiError = !description || description.toLowerCase().includes('error') || description.toLowerCase().includes('internal');
       if (!isApiError) {
+        // Mark lead + all group members as failed
         await adminClient.from('event_registrations').update({ payment_status: 'failed' }).eq('id', registration_id);
+        await adminClient.from('event_registrations').update({ payment_status: 'failed' }).eq('group_lead_id', registration_id);
         return new Response(JSON.stringify({ status: 'failed', reason: description }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
