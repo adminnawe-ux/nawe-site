@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   AlertCircle, Calendar, Clock, MapPin, Users, ExternalLink, Loader2,
-  CheckCircle2, Smartphone, ArrowLeft, Ticket, ChevronLeft, Tag,
+  CheckCircle2, Smartphone, ArrowLeft, Ticket, ChevronLeft, Tag, Minus, Plus,
 } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
 import { SUPPORT_PHONE } from '@/lib/site';
@@ -89,6 +89,7 @@ const EventDetail = () => {
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [waitlisted, setWaitlisted] = useState(false);
   const [approvedWaitlist, setApprovedWaitlist] = useState(false);
+  const [pendingPayment, setPendingPayment] = useState<{ registrationId: string; transactionId: string } | null>(null);
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -104,6 +105,7 @@ const EventDetail = () => {
   const [groupMembers, setGroupMembers] = useState<GroupMemberForm[]>([]);
 
   const [isWaitlistJoin, setIsWaitlistJoin] = useState(false);
+  const [quantity, setQuantity] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -130,11 +132,11 @@ const EventDetail = () => {
   useEffect(() => {
     if (!event) return;
 
-    // Overall registration count
+    // Overall registration count — must match ACTIVE_STATUSES in register-event
     db.from('event_registrations')
       .select('id', { count: 'exact', head: true })
       .eq('event_id', event.id)
-      .in('payment_status', ['free', 'paid', 'pending_stk'])
+      .in('payment_status', ['free', 'paid', 'pending_stk', 'approved_waitlist'])
       .then(({ count }: { count: number | null }) => setRegistrationCount(count ?? 0));
 
     // Fetch tiers with sold counts
@@ -159,16 +161,19 @@ const EventDetail = () => {
     // Check if logged-in user already has a registration in any active state
     if (user) {
       db.from('event_registrations')
-        .select('id, ticket_code, payment_status, tier_id')
+        .select('id, ticket_code, payment_status, tier_id, payment_reference')
         .eq('event_id', event.id)
         .eq('user_id', user.id)
-        .in('payment_status', ['free', 'paid', 'waitlisted', 'approved_waitlist'])
+        .is('group_lead_id', null)
+        .in('payment_status', ['free', 'paid', 'pending_stk', 'waitlisted', 'approved_waitlist'])
         .maybeSingle()
-        .then(({ data }: { data: { id: string; ticket_code: string; payment_status: string; tier_id: string | null } | null }) => {
+        .then(({ data }: { data: { id: string; ticket_code: string; payment_status: string; tier_id: string | null; payment_reference: string | null } | null }) => {
           if (!data) return;
           if (data.payment_status === 'free' || data.payment_status === 'paid') {
             setAlreadyRegistered(true);
             setTicketCode(data.ticket_code);
+          } else if (data.payment_status === 'pending_stk') {
+            setPendingPayment({ registrationId: data.id, transactionId: data.payment_reference ?? '' });
           } else if (data.payment_status === 'waitlisted') {
             setWaitlisted(true);
           } else if (data.payment_status === 'approved_waitlist') {
@@ -236,9 +241,9 @@ const EventDetail = () => {
     setPhone('');
     setSelectedTier(null);
     setGroupMembers([]);
+    setQuantity(1);
     setStkPending(false);
     setIsWaitlistJoin(joinWaitlist);
-    // Waitlist registrations don't need tier selection; same for no-tier events
     setStep(tiers.length > 0 && !joinWaitlist ? 'tier' : 'details');
     setDialogOpen(true);
   };
@@ -258,9 +263,13 @@ const EventDetail = () => {
       const normalised = digits.startsWith('0') ? '254' + digits.slice(1) : digits;
       if (!/^2547\d{8}$/.test(normalised)) { setError('Enter a valid Safaricom number — 07XXXXXXXX.'); return; }
     }
-    if (selectedTier?.ticket_type === 'group' && selectedTier.group_size) {
-      const membersNeeded = selectedTier.group_size - 1;
-      setGroupMembers(Array.from({ length: membersNeeded }, () => ({ name: '', email: '' })));
+    // Group tier: fixed group_size - 1 extra members
+    // Individual tier with quantity > 1: quantity - 1 extra attendees
+    const extraNeeded = selectedTier?.ticket_type === 'group' && selectedTier.group_size
+      ? selectedTier.group_size - 1
+      : quantity - 1;
+    if (extraNeeded > 0) {
+      setGroupMembers(Array.from({ length: extraNeeded }, () => ({ name: '', email: '' })));
       setError('');
       setStep('group-members');
     } else {
@@ -286,6 +295,7 @@ const EventDetail = () => {
           attendee_name: name.trim(),
           attendee_email: email.trim(),
           phone: isFree ? undefined : phone.trim(),
+          quantity: selectedTier?.ticket_type !== 'group' ? quantity : undefined,
           group_members: members,
         },
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
@@ -526,13 +536,30 @@ const EventDetail = () => {
                 </div>
               ) : waitlisted ? (
                 <div className="space-y-2 pt-2">
-                  <div className="flex items-center gap-2 text-amber-600 text-sm font-ui">
-                    <Users className="h-4 w-4" />
-                    You're on the waitlist
-                  </div>
-                  <p className="font-body text-xs text-muted-foreground">
-                    We'll email you if a spot opens up and the organiser approves your entry.
-                  </p>
+                  {!soldOut ? (
+                    <>
+                      <div className="flex items-center gap-2 text-emerald-600 text-sm font-ui">
+                        <CheckCircle2 className="h-4 w-4" />
+                        Spots are now available!
+                      </div>
+                      <p className="font-body text-xs text-muted-foreground">
+                        You were on the waitlist but capacity has opened up. Register now to secure your spot.
+                      </p>
+                      <Button className="w-full font-ui rounded-full" onClick={() => { setWaitlisted(false); openDialog(); }}>
+                        {hasTiers ? 'Get Tickets' : 'Register Now'}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 text-amber-600 text-sm font-ui">
+                        <Users className="h-4 w-4" />
+                        You're on the waitlist
+                      </div>
+                      <p className="font-body text-xs text-muted-foreground">
+                        We'll email you if a spot opens up and the organiser approves your entry.
+                      </p>
+                    </>
+                  )}
                 </div>
               ) : approvedWaitlist ? (
                 <div className="space-y-3 pt-2">
@@ -553,8 +580,28 @@ const EventDetail = () => {
                     Complete Payment
                   </Button>
                 </div>
+              ) : pendingPayment ? (
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center gap-2 text-amber-600 text-sm font-ui">
+                    <Smartphone className="h-4 w-4" />
+                    Payment pending
+                  </div>
+                  <p className="font-body text-xs text-muted-foreground">
+                    We sent an M-Pesa prompt to your phone. If it didn't arrive, you can resend it.
+                  </p>
+                  <Button className="w-full font-ui rounded-full" onClick={() => {
+                    setRegistrationId(pendingPayment.registrationId);
+                    setTransactionId(pendingPayment.transactionId);
+                    setPollCount(0);
+                    setStkPending(true);
+                    setStep('stk-pending');
+                    setDialogOpen(true);
+                  }}>
+                    Check payment status
+                  </Button>
+                </div>
               ) : registrationOpen && !soldOut ? (
-                <Button className="w-full font-ui rounded-full" onClick={openDialog}>
+                <Button className="w-full font-ui rounded-full" onClick={() => openDialog()}>
                   {isFreeEvent ? 'Register — Free' : hasTiers ? 'Get Tickets' : `Book — KES ${(event.price ?? 0).toLocaleString()}`}
                 </Button>
               ) : registrationOpen && soldOut ? (
@@ -576,15 +623,18 @@ const EventDetail = () => {
             <DialogTitle className="font-display text-xl">
               {step === 'tier' ? 'Choose a ticket' :
                step === 'details' ? (isWaitlistJoin ? 'Join the waitlist' : selectedTier?.price === 0 || !selectedTier ? 'Register for event' : 'Your details') :
-               step === 'group-members' ? 'Group members' :
+               step === 'group-members' ? (selectedTier?.ticket_type === 'group' ? 'Group members' : 'Other attendees') :
                'Check your phone'}
             </DialogTitle>
             <DialogDescription className="font-body text-sm text-muted-foreground">
               {step === 'tier' ? event.title :
                step === 'stk-pending' ? 'Check your phone for the M-Pesa prompt.' :
-               step === 'group-members' ? `Enter details for the other ${groupMembers.length} people in your group.` :
-               isWaitlistJoin ? "You'll be notified by email if a spot opens up." :
-               selectedTier?.price === 0 || !selectedTier
+               step === 'group-members'
+                 ? (selectedTier?.ticket_type === 'group'
+                     ? `Enter details for the other ${groupMembers.length} people in your group.`
+                     : `Enter details for the other ${groupMembers.length} ${groupMembers.length === 1 ? 'attendee' : 'attendees'}.`)
+               : isWaitlistJoin ? "You'll be notified by email if a spot opens up."
+               : selectedTier?.price === 0 || !selectedTier
                  ? 'Secure your spot — a confirmation email will be sent to you.'
                  : 'Enter your details and pay via M-Pesa.'}
             </DialogDescription>
@@ -656,13 +706,52 @@ const EventDetail = () => {
                 </div>
               )}
 
-              {(!selectedTier || selectedTier.price > 0) && selectedTier && (
+              {/* Quantity picker — individual tiers only */}
+              {selectedTier && selectedTier.ticket_type !== 'group' && !isWaitlistJoin && (() => {
+                const remaining = selectedTier.capacity !== null
+                  ? selectedTier.capacity - (selectedTier.soldCount ?? 0)
+                  : null;
+                const maxQty = remaining !== null ? Math.min(10, remaining) : 10;
+                return (
+                  <div className="flex items-center justify-between bg-muted/40 rounded-xl px-4 py-3">
+                    <span className="font-ui text-sm font-medium text-foreground">Tickets</span>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        disabled={quantity <= 1 || submitting}
+                        onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                        className="h-8 w-8 rounded-full border border-input flex items-center justify-center text-foreground disabled:opacity-40 hover:bg-muted transition-colors"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+                      <span className="font-ui text-sm font-semibold w-5 text-center">{quantity}</span>
+                      <button
+                        type="button"
+                        disabled={quantity >= maxQty || submitting}
+                        onClick={() => setQuantity(q => Math.min(maxQty, q + 1))}
+                        className="h-8 w-8 rounded-full border border-input flex items-center justify-center text-foreground disabled:opacity-40 hover:bg-muted transition-colors"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {selectedTier && selectedTier.price > 0 && (
                 <div className="bg-muted/40 rounded-xl p-4 flex justify-between items-center font-ui text-sm">
                   <span className="text-muted-foreground">Total to pay</span>
-                  <span className="font-display text-xl font-semibold">
-                    KES {selectedTier.price.toLocaleString()}
-                    {selectedTier.ticket_type === 'group' && ` × ${selectedTier.group_size} people`}
-                  </span>
+                  <div className="text-right">
+                    <span className="font-display text-xl font-semibold">
+                      KES {(selectedTier.price * (selectedTier.ticket_type === 'group' ? (selectedTier.group_size ?? 1) : quantity)).toLocaleString()}
+                    </span>
+                    {selectedTier.ticket_type !== 'group' && quantity > 1 && (
+                      <p className="font-ui text-xs text-muted-foreground">KES {selectedTier.price.toLocaleString()} × {quantity} tickets</p>
+                    )}
+                    {selectedTier.ticket_type === 'group' && (selectedTier.group_size ?? 1) > 1 && (
+                      <p className="font-ui text-xs text-muted-foreground">KES {Math.round(selectedTier.price / (selectedTier.group_size ?? 1)).toLocaleString()} × {selectedTier.group_size} people</p>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -711,8 +800,8 @@ const EventDetail = () => {
                     ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing…</>
                     : isWaitlistJoin
                       ? 'Join Waitlist'
-                      : selectedTier?.ticket_type === 'group'
-                        ? 'Next — Add Members'
+                      : (selectedTier?.ticket_type === 'group' || quantity > 1)
+                        ? `Next — Add ${selectedTier?.ticket_type === 'group' ? 'Members' : 'Attendees'}`
                         : (!selectedTier || selectedTier.price === 0) ? 'Confirm Registration' : 'Send M-Pesa Prompt'}
                 </Button>
               </div>

@@ -179,6 +179,7 @@ interface RequestBody {
   attendee_name: string;
   attendee_email: string;
   phone?: string;
+  quantity?: number;
   group_members?: AttendeeInput[];
 }
 
@@ -213,6 +214,7 @@ Deno.serve(async (req) => {
   }
 
   const { event_id, tier_id, attendee_name, attendee_email, phone, group_members } = body;
+  const quantity = Math.max(1, Math.min(10, Math.floor(body.quantity ?? 1)));
   if (!event_id || !attendee_name?.trim() || !attendee_email?.trim()) {
     return new Response(JSON.stringify({ error: 'event_id, attendee_name, and attendee_email are required' }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -253,9 +255,13 @@ Deno.serve(async (req) => {
         const { count: tierSold } = await adminClient
           .from('event_registrations').select('id', { count: 'exact', head: true })
           .eq('tier_id', tier_id).in('payment_status', ACTIVE_STATUSES);
-        if ((tierSold ?? 0) >= tier.capacity) return new Response(JSON.stringify({ error: 'This ticket tier is sold out.' }), {
+        const remaining = tier.capacity - (tierSold ?? 0);
+        if (remaining <= 0) return new Response(JSON.stringify({ error: 'This ticket tier is sold out.' }), {
           status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
+        if (quantity > remaining) return new Response(JSON.stringify({
+          error: `Only ${remaining} spot${remaining === 1 ? '' : 's'} left in this tier.`,
+        }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
     }
 
@@ -278,13 +284,27 @@ Deno.serve(async (req) => {
           .in('payment_status', [...ACTIVE_STATUSES, 'waitlisted']).maybeSingle();
         if (existing) {
           if (existing.payment_status === 'waitlisted') {
-            return new Response(JSON.stringify({ error: 'You are already on the waitlist for this event.' }), {
+            // If capacity has since opened (or is unlimited), drop the stale waitlisted
+            // row and let the normal flow create a fresh registration.
+            let capacityStillFull = false;
+            if (event.capacity) {
+              const { count: activeCount } = await adminClient.from('event_registrations')
+                .select('id', { count: 'exact', head: true })
+                .eq('event_id', event_id).in('payment_status', ACTIVE_STATUSES);
+              capacityStillFull = (activeCount ?? 0) >= event.capacity;
+            }
+            if (capacityStillFull) {
+              return new Response(JSON.stringify({ error: 'You are already on the waitlist for this event.' }), {
+                status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              });
+            }
+            await adminClient.from('event_registrations').delete().eq('id', existing.id);
+            // Fall through to normal registration below
+          } else {
+            return new Response(JSON.stringify({ error: 'You are already registered for this event.', ticket_code: existing.ticket_code }), {
               status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
           }
-          return new Response(JSON.stringify({ error: 'You are already registered for this event.', ticket_code: existing.ticket_code }), {
-            status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
         }
       }
 
@@ -321,12 +341,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── Group member validation ───────────────────────────────────────────────
+    // ── Group member / multi-ticket validation ────────────────────────────────
     const isGroupTier = tier?.ticket_type === 'group';
-    const expectedMembers = isGroupTier ? (tier!.group_size! - 1) : 0;
-    if (isGroupTier && (!group_members || group_members.length !== expectedMembers)) {
+    // Group tier: extra members = group_size - 1 (fixed)
+    // Individual tier with quantity > 1: extra members = quantity - 1
+    const expectedMembers = isGroupTier ? (tier!.group_size! - 1) : (quantity - 1);
+    if (expectedMembers > 0 && (!group_members || group_members.length !== expectedMembers)) {
       return new Response(JSON.stringify({
-        error: `This is a group ticket for ${tier!.group_size} people. Please provide details for all ${expectedMembers} additional members.`,
+        error: isGroupTier
+          ? `This is a group ticket for ${tier!.group_size} people. Please provide details for all ${expectedMembers} additional members.`
+          : `Please provide details for all ${expectedMembers} additional ${expectedMembers === 1 ? 'attendee' : 'attendees'}.`,
       }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     if (isGroupTier && group_members) {
@@ -356,7 +380,7 @@ Deno.serve(async (req) => {
       }).select('id, ticket_code').single();
       if (regError) throw regError;
 
-      if (isGroupTier && group_members) {
+      if (group_members && group_members.length > 0) {
         for (const m of group_members) {
           await adminClient.from('event_registrations').insert({
             event_id, user_id: null,
@@ -367,7 +391,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      const { data: memberRows } = isGroupTier
+      const { data: memberRows } = expectedMembers > 0
         ? await adminClient.from('event_registrations')
             .select('id, ticket_code, attendee_name, attendee_email').eq('group_lead_id', leadReg.id)
         : { data: [] };
@@ -401,7 +425,9 @@ Deno.serve(async (req) => {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
-    const stkAmount = isGroupTier ? effectivePrice * tier!.group_size! : effectivePrice;
+    const stkAmount = isGroupTier
+      ? effectivePrice * tier!.group_size!
+      : effectivePrice * quantity;
 
     const token = await getNcbaToken();
     const stkResp = await ncbaFetch(`${ncbaBaseUrl}/payments/api/v1/stk-push/initiate`, {
@@ -444,7 +470,7 @@ Deno.serve(async (req) => {
       if (regError) throw regError;
       leadRegId = leadReg.id;
 
-      if (isGroupTier && group_members) {
+      if (group_members && group_members.length > 0) {
         for (const m of group_members) {
           await adminClient.from('event_registrations').insert({
             event_id, user_id: null,
