@@ -281,9 +281,14 @@ Deno.serve(async (req) => {
       if (userId) {
         const { data: existing } = await adminClient.from('event_registrations')
           .select('id, ticket_code, payment_status').eq('event_id', event_id).eq('user_id', userId)
-          .in('payment_status', [...ACTIVE_STATUSES, 'waitlisted']).maybeSingle();
+          .is('group_lead_id', null)
+          .in('payment_status', [...ACTIVE_STATUSES, 'waitlisted', 'failed']).maybeSingle();
         if (existing) {
-          if (existing.payment_status === 'waitlisted') {
+          if (existing.payment_status === 'failed') {
+            // Previous payment attempt failed — drop the stale row and let them retry.
+            await adminClient.from('event_registrations').delete().eq('id', existing.id);
+            // Fall through to normal registration below
+          } else if (existing.payment_status === 'waitlisted') {
             // If capacity has since opened (or is unlimited), drop the stale waitlisted
             // row and let the normal flow create a fresh registration.
             let capacityStillFull = false;
@@ -490,7 +495,14 @@ Deno.serve(async (req) => {
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   } catch (err) {
     console.error('register-event error:', err);
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Unexpected error' }), {
+    // Unique constraint violation = duplicate registration slipped through the guard
+    if (err && typeof err === 'object' && (err as { code?: string }).code === '23505') {
+      return new Response(JSON.stringify({ error: 'You are already registered for this event.' }), {
+        status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? 'Unexpected error';
+    return new Response(JSON.stringify({ error: msg }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
