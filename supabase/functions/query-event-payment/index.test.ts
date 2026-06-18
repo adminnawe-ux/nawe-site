@@ -32,7 +32,8 @@ function resolveNcbaStatus(ncbaStatus: string, description: string): PollStatus 
   if (upper === 'SUCCESS') return 'confirmed';
   if (upper === 'FAILED') {
     const desc = description.toLowerCase();
-    if (desc.includes('error') || desc.includes('internal')) return 'pending';
+    // Transient: no description, NCBA internal error, or prompt still being processed
+    if (!description || desc.includes('error') || desc.includes('internal') || desc.includes('processing')) return 'pending';
     return 'failed';
   }
   return 'pending';
@@ -90,6 +91,10 @@ Deno.test('resolveNcbaStatus: success lowercase → confirmed', () => {
 
 Deno.test('resolveNcbaStatus: FAILED with normal description → failed', () => {
   assertEquals(resolveNcbaStatus('FAILED', 'User cancelled the request'), 'failed');
+});
+
+Deno.test('resolveNcbaStatus: FAILED with "processing" in description → pending (prompt awaiting PIN)', () => {
+  assertEquals(resolveNcbaStatus('FAILED', 'The transaction is still under processing'), 'pending');
 });
 
 Deno.test('resolveNcbaStatus: FAILED with "error" in description → pending (transient)', () => {

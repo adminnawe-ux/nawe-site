@@ -231,8 +231,11 @@ Deno.serve(async (req) => {
 
     if (ncbaStatus.toUpperCase() === 'FAILED') {
       const description = queryData.description ?? '';
-      const isApiError = !description || description.toLowerCase().includes('error') || description.toLowerCase().includes('internal');
-      if (!isApiError) {
+      const desc = description.toLowerCase();
+      // Treat as transient/pending: no description, NCBA internal errors, or
+      // "still under processing" (prompt delivered but user hasn't entered PIN yet).
+      const isTransient = !description || desc.includes('error') || desc.includes('internal') || desc.includes('processing');
+      if (!isTransient) {
         // Mark lead + all group members as failed
         await adminClient.from('event_registrations').update({ payment_status: 'failed' }).eq('id', registration_id);
         await adminClient.from('event_registrations').update({ payment_status: 'failed' }).eq('group_lead_id', registration_id);
@@ -240,6 +243,7 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+      // Transient — keep polling
       return new Response(JSON.stringify({ status: 'pending' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
