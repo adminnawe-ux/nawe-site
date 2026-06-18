@@ -45,6 +45,7 @@ async function getNcbaToken(): Promise<string> {
 
 interface RegRow {
   id: string;
+  user_id: string | null;
   ticket_code: string;
   attendee_name: string;
   attendee_email: string;
@@ -190,13 +191,22 @@ Deno.serve(async (req) => {
 
   const { data: lead } = await adminClient
     .from('event_registrations')
-    .select('id, ticket_code, payment_status, attendee_name, attendee_email, price_paid, tier_id, event:events(title, location, starts_at, ends_at, currency, google_calendar_id, google_calendar_event_id)')
+    .select('id, user_id, ticket_code, payment_status, attendee_name, attendee_email, price_paid, tier_id, event:events(title, location, starts_at, ends_at, currency, google_calendar_id, google_calendar_event_id)')
     .eq('id', registration_id)
     .maybeSingle() as { data: RegRow | null };
 
   if (!lead) return new Response(JSON.stringify({ error: 'Registration not found' }), {
     status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+
+  // Ownership check — prevent one user from polling (and potentially failing) another's registration.
+  // Guest registrations (user_id = null) are skipped; they have no owner to check against and
+  // registration requires login going forward, so null rows are legacy only.
+  if (lead.user_id !== null && lead.user_id !== userData.user.id) {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), {
+      status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 
   if (lead.payment_status === 'paid') {
     return new Response(JSON.stringify({ status: 'confirmed', ticket_code: lead.ticket_code }), {

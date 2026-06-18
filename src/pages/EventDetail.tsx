@@ -284,6 +284,10 @@ const EventDetail = () => {
   }, [stkSlowPoll, slowPollCount, transactionId, registrationId]);
 
   const openDialog = (joinWaitlist = false) => {
+    if (!user) {
+      navigate(`/login?redirect_to=${encodeURIComponent(`/events/${event?.slug ?? slug}`)}`);
+      return;
+    }
     setError('');
     setPhone('');
     setSelectedTier(null);
