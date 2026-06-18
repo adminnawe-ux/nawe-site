@@ -208,6 +208,7 @@ Deno.serve(async (req) => {
   try {
     body = await req.json();
   } catch {
+    console.error('[register-event] 400: Invalid JSON');
     return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -215,7 +216,9 @@ Deno.serve(async (req) => {
 
   const { event_id, tier_id, attendee_name, attendee_email, phone, group_members } = body;
   const quantity = Math.max(1, Math.min(10, Math.floor(body.quantity ?? 1)));
+  console.log('[register-event] body:', JSON.stringify({ event_id, tier_id, attendee_name, attendee_email, phone: phone ? '***' : undefined, quantity, group_members_count: group_members?.length }));
   if (!event_id || !attendee_name?.trim() || !attendee_email?.trim()) {
+    console.error('[register-event] 400: missing required fields', { event_id: !!event_id, attendee_name: !!attendee_name?.trim(), attendee_email: !!attendee_email?.trim() });
     return new Response(JSON.stringify({ error: 'event_id, attendee_name, and attendee_email are required' }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -367,7 +370,9 @@ Deno.serve(async (req) => {
     // Group tier: extra members = group_size - 1 (fixed)
     // Individual tier with quantity > 1: extra members = quantity - 1
     const expectedMembers = isGroupTier ? (tier!.group_size! - 1) : (quantity - 1);
+    console.log('[register-event] group check:', { isGroupTier, expectedMembers, group_members_len: group_members?.length });
     if (expectedMembers > 0 && (!group_members || group_members.length !== expectedMembers)) {
+      console.error('[register-event] 400: wrong group_members count', { expectedMembers, got: group_members?.length });
       return new Response(JSON.stringify({
         error: isGroupTier
           ? `This is a group ticket for ${tier!.group_size} people. Please provide details for all ${expectedMembers} additional members.`
@@ -377,6 +382,7 @@ Deno.serve(async (req) => {
     if (isGroupTier && group_members) {
       for (const m of group_members) {
         if (!m.name?.trim() || !m.email?.trim() || !m.email.includes('@')) {
+          console.error('[register-event] 400: invalid group member', m);
           return new Response(JSON.stringify({ error: 'Each group member must have a valid name and email.' }), {
             status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
@@ -438,13 +444,20 @@ Deno.serve(async (req) => {
     }
 
     // ── Paid registration (including approved_waitlist resume) ────────────────
-    if (!phone) return new Response(JSON.stringify({ error: 'Phone number required for paid events.' }), {
-      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.log('[register-event] paid path: phone present?', !!phone, 'effectivePrice:', effectivePrice, 'isFree:', isFree);
+    if (!phone) {
+      console.error('[register-event] 400: phone missing for paid event');
+      return new Response(JSON.stringify({ error: 'Phone number required for paid events.' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     const msisdn = normaliseMsisdn(phone);
-    if (!/^2547\d{8}$/.test(msisdn)) return new Response(JSON.stringify({ error: 'Invalid Safaricom number. Use 07XXXXXXXX.' }), {
-      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    if (!/^2547\d{8}$/.test(msisdn)) {
+      console.error('[register-event] 400: invalid msisdn', msisdn);
+      return new Response(JSON.stringify({ error: 'Invalid Safaricom number. Use 07XXXXXXXX.' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const stkAmount = isGroupTier
       ? effectivePrice * tier!.group_size!
