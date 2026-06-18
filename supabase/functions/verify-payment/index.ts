@@ -15,8 +15,6 @@ const appUrl = Deno.env.get('APP_URL') ?? 'https://nawe.co.ke';
 
 interface RequestPayload {
   payment_reference: string;
-  expected_amount: number;
-  currency: string;
   therapist_id: string;
   client_id: string;
   scheduled_at: string;
@@ -81,12 +79,12 @@ Deno.serve(async (req) => {
   }
 
   const {
-    payment_reference, expected_amount, currency,
+    payment_reference,
     therapist_id, client_id, scheduled_at, session_format,
     duration_minutes, notes_client,
   } = payload;
 
-  if (!payment_reference || !expected_amount || !therapist_id || !client_id || !scheduled_at) {
+  if (!payment_reference || !therapist_id || !client_id || !scheduled_at) {
     return new Response(JSON.stringify({ error: 'Missing required fields' }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -103,6 +101,22 @@ Deno.serve(async (req) => {
   });
 
   try {
+    // Fetch therapist's authoritative price and currency — never trust the client-supplied value
+    const { data: therapistData, error: therapistError } = await adminClient
+      .from('therapists')
+      .select('price_per_session, currency, user_id, professional_title')
+      .eq('id', therapist_id)
+      .maybeSingle();
+
+    if (therapistError || !therapistData) {
+      return new Response(JSON.stringify({ error: 'Therapist not found.' }), {
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const sessionPrice: number = therapistData.price_per_session ?? 0;
+    const sessionCurrency: string = therapistData.currency ?? 'KES';
+
     // Create session as pending_verification — admin confirms after checking NCBA
     const { data: session, error: insertError } = await adminClient
       .from('sessions')
@@ -112,8 +126,8 @@ Deno.serve(async (req) => {
         scheduled_at,
         session_format,
         duration_minutes,
-        price: expected_amount,
-        currency: currency ?? 'KES',
+        price: sessionPrice,
+        currency: sessionCurrency,
         status: 'pending',
         notes_client: notes_client ?? null,
         payment_reference,
@@ -129,20 +143,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch names for admin email
-    const [{ data: clientProfile }, { data: therapist }] = await Promise.all([
+    // Fetch client profile; therapist profile comes from the therapistData query above
+    const [{ data: clientProfile }] = await Promise.all([
       adminClient.from('profiles').select('first_name, last_name').eq('user_id', client_id).maybeSingle(),
-      adminClient.from('therapists').select('user_id, professional_title').eq('id', therapist_id).maybeSingle(),
     ]);
 
     const clientName = [clientProfile?.first_name, clientProfile?.last_name].filter(Boolean).join(' ')
       || userData.user.email || 'Unknown client';
 
-    let therapistName = 'Unknown therapist';
-    if (therapist?.user_id) {
-      const { data: tp } = await adminClient.from('profiles').select('first_name, last_name').eq('user_id', therapist.user_id).maybeSingle();
+    let therapistName = therapistData.professional_title || 'Unknown therapist';
+    if (therapistData.user_id) {
+      const { data: tp } = await adminClient.from('profiles').select('first_name, last_name').eq('user_id', therapistData.user_id).maybeSingle();
       therapistName = [tp?.first_name, tp?.last_name].filter(Boolean).join(' ')
-        || therapist.professional_title || 'Unknown therapist';
+        || therapistData.professional_title || 'Unknown therapist';
     }
 
     const formattedDate = formatScheduledAt(scheduled_at);
@@ -175,7 +188,7 @@ Deno.serve(async (req) => {
             </tr>
             <tr style="border-bottom:1px solid #e5e7eb">
               <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Amount</td>
-              <td style="padding:10px 14px;font-size:20px;font-weight:bold;color:#10b981">${escapeHtml(currency ?? 'KES')} ${expected_amount.toLocaleString()}</td>
+              <td style="padding:10px 14px;font-size:20px;font-weight:bold;color:#10b981">${escapeHtml(sessionCurrency)} ${sessionPrice.toLocaleString()}</td>
             </tr>
             <tr style="border-bottom:1px solid #e5e7eb">
               <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">M-Pesa Code</td>
