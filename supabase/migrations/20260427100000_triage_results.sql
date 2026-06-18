@@ -21,5 +21,14 @@ CREATE POLICY "Users can read own triage results"
 CREATE POLICY "Users can insert own triage results"
   ON triage_results FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Service role full access on triage_results"
-  ON triage_results FOR ALL USING (true);
+-- Admins can read all triage results for clinical oversight.
+-- Write access goes through edge functions using the service role key,
+-- which bypasses RLS entirely and needs no explicit policy here.
+CREATE POLICY "Admins can read triage results"
+  ON triage_results FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM user_roles
+      WHERE user_id = auth.uid() AND role = 'admin'
+    )
+  );

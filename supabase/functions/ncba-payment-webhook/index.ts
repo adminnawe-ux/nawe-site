@@ -5,6 +5,7 @@
     const resendApiKey = Deno.env.get('RESEND_API_KEY') ?? '';
     const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? 'support@nawe.co.ke';
     const appUrl = Deno.env.get('APP_URL') ?? 'https://nawe.co.ke';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
     // Credentials you provide to NCBA in the letter
     const ncbaWebhookUsername = Deno.env.get('NCBA_WEBHOOK_USERNAME') ?? '';
@@ -165,6 +166,10 @@
       }
 
       if (!session) {
+        // Check event registrations before treating as unmatched
+        const eventResp = await handleEventRegistration(adminClient, transId);
+        if (eventResp) return eventResp;
+
         // Store notification for later matching (session may not exist yet)
         const { error: insertNotifErr } = await adminClient.from('ncba_payment_notifications').insert({
           trans_id: transId,
@@ -323,3 +328,100 @@
       console.log(`Payment auto-confirmed: session=${session.id} transId=${transId} amount=${transAmount}`);
       return ok('Payment confirmed successfully');
     });
+
+    async function handleEventRegistration(
+      adminClient: ReturnType<typeof createClient>,
+      transId: string,
+    ): Promise<Response | null> {
+      // Find the lead registration (no group_lead_id) matching this transaction
+      const { data: lead } = await adminClient
+        .from('event_registrations')
+        .select('id, ticket_code, attendee_name, attendee_email, price_paid, tier_id, event:events(title, location, starts_at, currency, google_calendar_id, google_calendar_event_id)')
+        .eq('payment_reference', transId)
+        .is('group_lead_id', null)
+        .in('payment_status', ['pending_stk', 'failed'])
+        .maybeSingle();
+
+      if (!lead) return null;
+
+      // Atomic claim
+      const { data: claimed } = await adminClient.from('event_registrations')
+        .update({ payment_status: 'paid' })
+        .eq('id', lead.id)
+        .in('payment_status', ['pending_stk', 'failed'])
+        .select('id');
+
+      if (!claimed || claimed.length === 0) return ok('Already confirmed');
+
+      // Mark group members paid
+      await adminClient.from('event_registrations')
+        .update({ payment_status: 'paid' })
+        .eq('group_lead_id', lead.id);
+
+      const { data: members } = await adminClient.from('event_registrations')
+        .select('id, ticket_code, attendee_name, attendee_email')
+        .eq('group_lead_id', lead.id);
+
+      // Resolve tier name
+      let tierName: string | null = null;
+      if (lead.tier_id) {
+        const { data: tierData } = await adminClient.from('event_ticket_tiers').select('name').eq('id', lead.tier_id).maybeSingle();
+        tierName = tierData?.name ?? null;
+      }
+
+      const eventData = lead.event as { title: string; location: string | null; starts_at: string; currency: string; google_calendar_id: string | null; google_calendar_event_id: string | null };
+      const eventDate = new Intl.DateTimeFormat('en-GB', { dateStyle: 'full', timeStyle: 'short', timeZone: 'Africa/Nairobi' }).format(new Date(eventData.starts_at));
+
+      const sendTicket = async (to: string, name: string, ticketCode: string, isGroupMember: boolean) => {
+        if (!resendApiKey) return;
+        const ticketUrl = `${appUrl}/events/ticket/${ticketCode}`;
+        const html = `
+          <div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937;max-width:600px">
+            <h2 style="color:#10b981">Payment confirmed — you're in! 🎉</h2>
+            <p>Hi ${escapeHtml(name)},</p>
+            <p>${isGroupMember ? 'Your spot as part of a group booking for' : 'Your payment has been received and your spot for'} <strong>${escapeHtml(eventData.title)}</strong> is confirmed.</p>
+            <table style="border-collapse:collapse;width:100%;margin:16px 0;border:1px solid #e5e7eb">
+              <tr style="border-bottom:1px solid #e5e7eb">
+                <td style="padding:10px 14px;font-weight:bold;color:#6b7280;width:40%;background:#f9fafb">Date</td>
+                <td style="padding:10px 14px">${escapeHtml(eventDate)}</td>
+              </tr>
+              ${eventData.location ? `<tr style="border-bottom:1px solid #e5e7eb">
+                <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Location</td>
+                <td style="padding:10px 14px">${escapeHtml(eventData.location)}</td>
+              </tr>` : ''}
+              ${tierName ? `<tr style="border-bottom:1px solid #e5e7eb">
+                <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Ticket type</td>
+                <td style="padding:10px 14px">${escapeHtml(tierName)}</td>
+              </tr>` : ''}
+              ${!isGroupMember ? `<tr style="border-bottom:1px solid #e5e7eb">
+                <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Amount paid</td>
+                <td style="padding:10px 14px;font-weight:bold">${escapeHtml(eventData.currency)} ${(lead.price_paid ?? 0).toLocaleString()}</td>
+              </tr>` : ''}
+              <tr>
+                <td style="padding:10px 14px;font-weight:bold;color:#6b7280;background:#f9fafb">Ticket Code</td>
+                <td style="padding:10px 14px;font-family:monospace;font-size:20px;font-weight:bold;letter-spacing:3px">${escapeHtml(ticketCode)}</td>
+              </tr>
+            </table>
+            <p><a href="${ticketUrl}" style="display:inline-block;background:#10b981;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold">View Your Ticket →</a></p>
+            <p style="color:#6b7280;font-size:13px;margin-top:32px">The Nawe Team</p>
+          </div>`;
+        await sendEmail(to, `Payment confirmed — ${eventData.title}`, html);
+        if (eventData.google_calendar_id && eventData.google_calendar_event_id) {
+          try {
+            await fetch(`${supabaseUrl}/functions/v1/add-event-guest`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${supabaseServiceRoleKey}` },
+              body: JSON.stringify({ calendar_id: eventData.google_calendar_id, event_id: eventData.google_calendar_event_id, attendee_email: to }),
+            });
+          } catch (e) { console.error('Calendar guest addition failed:', e); }
+        }
+      };
+
+      await sendTicket(lead.attendee_email, lead.attendee_name, lead.ticket_code, false);
+      for (const m of (members ?? [])) {
+        await sendTicket(m.attendee_email, m.attendee_name, m.ticket_code, true);
+      }
+
+      console.log(`Event payment confirmed: registration=${lead.id} transId=${transId}`);
+      return ok('Event payment confirmed');
+    }

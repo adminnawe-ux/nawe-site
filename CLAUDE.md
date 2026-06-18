@@ -61,6 +61,43 @@ The `gemma-triage` and `gemma-session-notes` functions call Google's Gemma API v
 
 Key env vars for the STK flow: `NCBA_STK_USERNAME`, `NCBA_STK_PASSWORD` (Basic auth to get token), `MPESA_PAYBILL` (880100), `MPESA_ACCOUNT` (231112), `NCBA_WEBHOOK_USERNAME`/`NCBA_WEBHOOK_PASSWORD` (credentials NCBA sends to our webhook), `NCBA_SECRET_KEY` (hash verification — currently bypassed pending NCBA clarification).
 
+### Event ticket tiers (`event_ticket_tiers` table)
+Each event can have multiple ticket tiers (e.g. Early Bird, Regular, Men Only, Group of 4). Key fields:
+- `ticket_type`: `'individual'` or `'group'`
+- `group_size`: required when `ticket_type = 'group'` (≥ 2); STK push charges `price × group_size`
+- `capacity`: per-tier hard cap (enforced by `register-event`); `NULL` = unlimited
+- `sale_starts_at` / `sale_ends_at`: date gates — hard errors if outside window (not bypassable by waitlist)
+- `sort_order`: display order
+
+Group ticket flow: lead pays full amount in one STK push; `register-event` creates one row per member (linked via `group_lead_id`); on payment confirmation all member rows flip to `paid` and each gets a ticket email.
+
+Admin UI (`src/pages/admin/AdminEvents.tsx`) includes a `TierManager` component for adding/removing/reordering tiers in the event form. The attendees panel shows per-tier stats (sold / capacity / checked-in / revenue).
+
+### Event waitlist
+When an event's total capacity is full (counting `ACTIVE_STATUSES = ['free', 'paid', 'pending_stk', 'approved_waitlist']`), `register-event` creates a `waitlisted` registration and returns `{ waitlisted: true }`. The `waitlisted` status does NOT count toward capacity.
+
+**Waitlist approval flow (admin):**
+1. Admin selects waitlisted registrations in the Waitlist tab of the attendees panel and clicks "Approve N"
+2. The `approve-waitlist` edge function is called (admin-only, verifies role)
+3. Free event → status becomes `free`, ticket email sent immediately
+4. Paid event → status becomes `approved_waitlist`, email sent asking user to complete payment
+
+**`approved_waitlist` status:** counts toward capacity (slot is reserved). When the user opens the event page they see a "Complete Payment" button. Clicking it opens the registration dialog pre-filled with their tier. The `register-event` function has a fast-path: if the caller has an `approved_waitlist` row, it skips the duplicate guard and updates the existing row with a new STK `payment_reference`.
+
+**`payment_status` values:**
+- `free` — registered, no payment required
+- `pending_stk` — STK push sent, awaiting M-Pesa confirmation
+- `paid` — payment confirmed
+- `failed` — STK push failed or expired
+- `waitlisted` — event full; queued for admin approval
+- `approved_waitlist` — admin approved; paid-event user must complete payment
+
+**Edge functions involved:**
+- `register-event` — handles tier validation, capacity check, group creation, waitlist, approved_waitlist resume
+- `query-event-payment` — polls NCBA for event STK push status; marks lead + all group members
+- `ncba-payment-webhook` — authoritative confirmation; handles both session-booking and event-registration payments
+- `approve-waitlist` — admin-only; approves selected waitlisted registrations
+
 ### Styling conventions
 Tailwind only. Three font utility classes used throughout:
 - `font-display` — headings
