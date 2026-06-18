@@ -12,6 +12,7 @@ Items marked **FIXED** are resolved. Open items need a dedicated work session.
 | C-1 | `verify-payment` price/currency from request body | Fetch `price_per_session` and `currency` from `therapists` table; ignore client-supplied values |
 | C-3 | `query-event-payment` no ownership check | Return 403 if `lead.user_id !== caller.id`; legacy guest rows exempted |
 | H-1 | `triage_results` RLS `USING (true)` exposed all mental health records to authenticated users | Dropped over-permissive policy; added scoped admin SELECT policy |
+| H-4 | Clients could directly UPDATE `payment_status`, `price`, `currency` on sessions | Drop unrestricted client UPDATE policy; add trigger blocking sensitive-column writes from user-context requests |
 | Auth gate | Unauthenticated users could open the ticket purchase dialog | Redirect to `/login?redirect_to=` before opening the dialog |
 
 ---
@@ -52,7 +53,7 @@ Note: auth is now required for registration (login gate added in this audit), wh
 
 ---
 
-### H-4 · Clients can directly UPDATE `payment_status` on their sessions
+### ~~H-4~~ · ~~Clients can directly UPDATE `payment_status` on their sessions~~ — FIXED
 **Migration:** sessions UPDATE policy has no column restriction.
 
 Any authenticated client can call `supabase.from('sessions').update({ payment_status: 'paid' })` from the browser and bypass the payment flow.
