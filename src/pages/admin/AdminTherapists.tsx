@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -10,7 +12,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Search, CheckCircle, XCircle, Eye, Shield, Clock } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Eye, Shield, Clock, Pencil, UserPlus } from 'lucide-react';
 
 interface TherapistRow {
   id: string;
@@ -20,13 +22,27 @@ interface TherapistRow {
   issuing_body: string | null;
   specialisations: string[] | null;
   languages: string[] | null;
+  modalities: string[] | null;
   years_experience: number | null;
+  bio: string | null;
   verified: boolean | null;
   verification_status: string | null;
   price_per_session: number | null;
   currency: string | null;
   created_at: string;
-  profile?: { first_name: string | null; last_name: string | null; email?: string } | null;
+  profile?: { first_name: string | null; last_name: string | null } | null;
+}
+
+interface EditForm {
+  professional_title: string;
+  license_number: string;
+  issuing_body: string;
+  years_experience: string;
+  bio: string;
+  price_per_session: string;
+  currency: string;
+  specialisations: string;
+  languages: string;
 }
 
 const AdminTherapists = () => {
@@ -36,25 +52,70 @@ const AdminTherapists = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selected, setSelected] = useState<TherapistRow | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState<EditForm>({
+    professional_title: '',
+    license_number: '',
+    issuing_body: '',
+    years_experience: '',
+    bio: '',
+    price_per_session: '',
+    currency: 'KES',
+    specialisations: '',
+    languages: '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  // Invite dialog state
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ email: '', first_name: '', last_name: '' });
+  const [inviting, setInviting] = useState(false);
+
+  const handleInvite = async () => {
+    setInviting(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      const { error } = await supabase.functions.invoke('invite-therapist', {
+        body: inviteForm,
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      });
+      if (error) throw error;
+      toast({ title: 'Invite sent', description: `${inviteForm.email} will receive a setup link.` });
+      setShowInvite(false);
+      setInviteForm({ email: '', first_name: '', last_name: '' });
+      fetchTherapists();
+    } catch (err) {
+      toast({
+        title: 'Invite failed',
+        description: err instanceof Error ? err.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setInviting(false);
+    }
+  };
 
   const fetchTherapists = async () => {
-    const { data, error } = await supabase
+    const { data: therapistData, error } = await supabase
       .from('therapists')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) { console.error(error); setLoading(false); return; }
 
-    const enriched: TherapistRow[] = [];
-    for (const t of data || []) {
-      const { data: profile } = await supabase
-        .from('therapist_public_profiles')
-        .select('first_name, last_name')
-        .eq('user_id', t.user_id)
-        .maybeSingle();
-      enriched.push({ ...t, profile });
-    }
-    setTherapists(enriched);
+    // Batch-fetch all profiles in one query (avoids N+1)
+    const userIds = (therapistData || []).map(t => t.user_id);
+    const { data: profilesData } = userIds.length
+      ? await supabase.from('profiles').select('user_id, first_name, last_name').in('user_id', userIds)
+      : { data: [] };
+
+    const profileMap = new Map((profilesData || []).map(p => [p.user_id, p]));
+
+    setTherapists((therapistData || []).map(t => ({
+      ...t,
+      profile: profileMap.get(t.user_id) ?? null,
+    })));
     setLoading(false);
   };
 
@@ -68,7 +129,55 @@ const AdminTherapists = () => {
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Updated', description: `Therapist ${status}.` });
+      toast({ title: 'Updated', description: `Therapist marked as ${status}.` });
+      fetchTherapists();
+      setSelected(null);
+    }
+  };
+
+  const openEdit = (t: TherapistRow) => {
+    setEditForm({
+      professional_title: t.professional_title ?? '',
+      license_number: t.license_number ?? '',
+      issuing_body: t.issuing_body ?? '',
+      years_experience: t.years_experience?.toString() ?? '',
+      bio: t.bio ?? '',
+      price_per_session: t.price_per_session?.toString() ?? '',
+      currency: t.currency ?? 'KES',
+      specialisations: (t.specialisations ?? []).join(', '),
+      languages: (t.languages ?? []).join(', '),
+    });
+    setEditMode(true);
+  };
+
+  const saveEdit = async () => {
+    if (!selected) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from('therapists')
+      .update({
+        professional_title: editForm.professional_title || null,
+        license_number: editForm.license_number || null,
+        issuing_body: editForm.issuing_body || null,
+        years_experience: editForm.years_experience ? parseInt(editForm.years_experience) : null,
+        bio: editForm.bio || null,
+        price_per_session: editForm.price_per_session ? parseInt(editForm.price_per_session) : null,
+        currency: editForm.currency || 'KES',
+        specialisations: editForm.specialisations
+          ? editForm.specialisations.split(',').map(s => s.trim()).filter(Boolean)
+          : [],
+        languages: editForm.languages
+          ? editForm.languages.split(',').map(s => s.trim()).filter(Boolean)
+          : [],
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', selected.id);
+    setSaving(false);
+    if (error) {
+      toast({ title: 'Save failed', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Profile updated' });
+      setEditMode(false);
       fetchTherapists();
       setSelected(null);
     }
@@ -93,7 +202,12 @@ const AdminTherapists = () => {
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-foreground mb-2">Therapist Management</h1>
+      <div className="flex items-start justify-between mb-2">
+        <h1 className="font-display text-3xl text-foreground">Therapist Management</h1>
+        <Button className="font-ui gap-1.5" onClick={() => setShowInvite(true)}>
+          <UserPlus className="h-4 w-4" /> Invite Therapist
+        </Button>
+      </div>
       <p className="font-body text-muted-foreground mb-8">Review applications, verify credentials, and manage therapist profiles.</p>
 
       {/* Filters */}
@@ -155,7 +269,7 @@ const AdminTherapists = () => {
                   <td className="p-4 font-ui text-sm text-muted-foreground">{t.years_experience ? `${t.years_experience} yrs` : '—'}</td>
                   <td className="p-4">{statusBadge(t.verification_status)}</td>
                   <td className="p-4 text-right">
-                    <Button variant="ghost" size="sm" className="font-ui gap-1.5" onClick={() => setSelected(t)}>
+                    <Button variant="ghost" size="sm" className="font-ui gap-1.5" onClick={() => { setSelected(t); setEditMode(false); }}>
                       <Eye className="h-3.5 w-3.5" /> View
                     </Button>
                   </td>
@@ -169,55 +283,182 @@ const AdminTherapists = () => {
         </div>
       </div>
 
-      {/* Detail Dialog */}
-      <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
-        <DialogContent className="max-w-lg">
+      {/* Invite Therapist Dialog */}
+      <Dialog open={showInvite} onOpenChange={setShowInvite}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">Invite Therapist</DialogTitle>
+            <DialogDescription className="font-body">
+              Send a setup link to a therapist. They will receive an email to set their password
+              and complete their profile. Their account will be pending admin verification.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="font-ui text-xs">Email <span className="text-destructive">*</span></Label>
+              <Input
+                className="font-ui"
+                type="email"
+                placeholder="therapist@example.com"
+                value={inviteForm.email}
+                onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="font-ui text-xs">First Name <span className="text-destructive">*</span></Label>
+                <Input
+                  className="font-ui"
+                  placeholder="Jane"
+                  value={inviteForm.first_name}
+                  onChange={e => setInviteForm(f => ({ ...f, first_name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="font-ui text-xs">Last Name</Label>
+                <Input
+                  className="font-ui"
+                  placeholder="Doe"
+                  value={inviteForm.last_name}
+                  onChange={e => setInviteForm(f => ({ ...f, last_name: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" className="font-ui" onClick={() => setShowInvite(false)} disabled={inviting}>
+              Cancel
+            </Button>
+            <Button
+              className="font-ui gap-1.5"
+              onClick={handleInvite}
+              disabled={inviting || !inviteForm.email || !inviteForm.first_name}
+            >
+              <UserPlus className="h-4 w-4" />
+              {inviting ? 'Sending…' : 'Send Invite'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail / Edit Dialog */}
+      <Dialog open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setEditMode(false); } }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display">
               {selected?.profile?.first_name} {selected?.profile?.last_name}
             </DialogTitle>
-            <DialogDescription className="font-body">{selected?.professional_title}</DialogDescription>
+            <DialogDescription className="font-body">{selected?.professional_title || 'Therapist profile'}</DialogDescription>
           </DialogHeader>
-          {selected && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <Detail label="License #" value={selected.license_number} />
-                <Detail label="Issuing Body" value={selected.issuing_body} />
-                <Detail label="Experience" value={selected.years_experience ? `${selected.years_experience} years` : null} />
-                <Detail label="Rate" value={selected.price_per_session ? `${selected.currency || 'KES'} ${selected.price_per_session.toLocaleString()}` : null} />
+
+          {selected && !editMode && (
+            <>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <Detail label="License #" value={selected.license_number} />
+                  <Detail label="Issuing Body" value={selected.issuing_body} />
+                  <Detail label="Experience" value={selected.years_experience ? `${selected.years_experience} years` : null} />
+                  <Detail label="Rate" value={selected.price_per_session ? `${selected.currency || 'KES'} ${selected.price_per_session.toLocaleString()}` : null} />
+                </div>
+                {selected.bio && (
+                  <div>
+                    <p className="font-ui text-xs text-muted-foreground mb-1">Bio</p>
+                    <p className="font-body text-sm text-foreground">{selected.bio}</p>
+                  </div>
+                )}
+                {selected.specialisations && selected.specialisations.length > 0 && (
+                  <div>
+                    <p className="font-ui text-xs text-muted-foreground mb-2">Specialisations</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selected.specialisations.map(s => <Badge key={s} variant="outline" className="font-ui text-xs">{s}</Badge>)}
+                    </div>
+                  </div>
+                )}
+                {selected.languages && selected.languages.length > 0 && (
+                  <div>
+                    <p className="font-ui text-xs text-muted-foreground mb-2">Languages</p>
+                    <p className="font-body text-sm">{selected.languages.join(', ')}</p>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <p className="font-ui text-xs text-muted-foreground">Current Status:</p>
+                  {statusBadge(selected.verification_status)}
+                </div>
               </div>
-              {selected.specialisations && selected.specialisations.length > 0 && (
-                <div>
-                  <p className="font-ui text-xs text-muted-foreground mb-2">Specialisations</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {selected.specialisations.map(s => <Badge key={s} variant="outline" className="font-ui text-xs">{s}</Badge>)}
+              <DialogFooter className="flex-wrap gap-2">
+                <Button variant="outline" size="sm" className="font-ui gap-1.5" onClick={() => openEdit(selected)}>
+                  <Pencil className="h-3.5 w-3.5" /> Edit Profile
+                </Button>
+                {selected.verification_status !== 'verified' && (
+                  <Button className="font-ui gap-1.5" onClick={() => updateStatus(selected.id, 'verified', true)}>
+                    <CheckCircle className="h-4 w-4" /> Verify
+                  </Button>
+                )}
+                {selected.verification_status !== 'rejected' && (
+                  <Button variant="destructive" className="font-ui gap-1.5" onClick={() => updateStatus(selected.id, 'rejected', false)}>
+                    <XCircle className="h-4 w-4" /> Reject
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          )}
+
+          {selected && editMode && (
+            <>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2 space-y-1.5">
+                    <Label className="font-ui text-xs">Professional Title</Label>
+                    <Input className="font-ui" value={editForm.professional_title} onChange={e => setEditForm(f => ({ ...f, professional_title: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="font-ui text-xs">License Number</Label>
+                    <Input className="font-ui" value={editForm.license_number} onChange={e => setEditForm(f => ({ ...f, license_number: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="font-ui text-xs">Issuing Body</Label>
+                    <Input className="font-ui" value={editForm.issuing_body} onChange={e => setEditForm(f => ({ ...f, issuing_body: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="font-ui text-xs">Years Experience</Label>
+                    <Input className="font-ui" type="number" min="0" value={editForm.years_experience} onChange={e => setEditForm(f => ({ ...f, years_experience: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="font-ui text-xs">Rate (per session)</Label>
+                    <div className="flex gap-2">
+                      <Select value={editForm.currency} onValueChange={v => setEditForm(f => ({ ...f, currency: v }))}>
+                        <SelectTrigger className="w-20 font-ui"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="KES">KES</SelectItem>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="UGX">UGX</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input className="font-ui flex-1" type="number" min="0" value={editForm.price_per_session} onChange={e => setEditForm(f => ({ ...f, price_per_session: e.target.value }))} />
+                    </div>
                   </div>
                 </div>
-              )}
-              {selected.languages && selected.languages.length > 0 && (
-                <div>
-                  <p className="font-ui text-xs text-muted-foreground mb-2">Languages</p>
-                  <p className="font-body text-sm">{selected.languages.join(', ')}</p>
+                <div className="space-y-1.5">
+                  <Label className="font-ui text-xs">Bio</Label>
+                  <Textarea className="font-body text-sm" rows={4} value={editForm.bio} onChange={e => setEditForm(f => ({ ...f, bio: e.target.value }))} />
                 </div>
-              )}
-              <div className="flex items-center gap-2">
-                <p className="font-ui text-xs text-muted-foreground">Current Status:</p>
-                {statusBadge(selected.verification_status)}
+                <div className="space-y-1.5">
+                  <Label className="font-ui text-xs">Specialisations <span className="text-muted-foreground">(comma-separated)</span></Label>
+                  <Input className="font-ui" value={editForm.specialisations} onChange={e => setEditForm(f => ({ ...f, specialisations: e.target.value }))} placeholder="e.g. Anxiety, Depression, Trauma" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-ui text-xs">Languages <span className="text-muted-foreground">(comma-separated)</span></Label>
+                  <Input className="font-ui" value={editForm.languages} onChange={e => setEditForm(f => ({ ...f, languages: e.target.value }))} placeholder="e.g. English, Swahili" />
+                </div>
               </div>
-            </div>
+              <DialogFooter className="gap-2">
+                <Button variant="outline" className="font-ui" onClick={() => setEditMode(false)} disabled={saving}>Cancel</Button>
+                <Button className="font-ui" onClick={saveEdit} disabled={saving}>
+                  {saving ? 'Saving…' : 'Save Changes'}
+                </Button>
+              </DialogFooter>
+            </>
           )}
-          <DialogFooter className="gap-2">
-            {selected?.verification_status !== 'approved' && (
-              <Button className="font-ui gap-1.5" onClick={() => selected && updateStatus(selected.id, 'approved', true)}>
-                <CheckCircle className="h-4 w-4" /> Verify
-              </Button>
-            )}
-            {selected?.verification_status !== 'rejected' && (
-              <Button variant="destructive" className="font-ui gap-1.5" onClick={() => selected && updateStatus(selected.id, 'rejected', false)}>
-                <XCircle className="h-4 w-4" /> Reject
-              </Button>
-            )}
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

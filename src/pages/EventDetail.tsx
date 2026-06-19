@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import {
   AlertCircle, Calendar, Clock, MapPin, Users, ExternalLink, Loader2,
   CheckCircle2, Smartphone, ArrowLeft, Ticket, ChevronLeft, Tag, Minus, Plus,
+  Share2, Check,
 } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
 import { SUPPORT_PHONE } from '@/lib/site';
@@ -108,6 +109,20 @@ const EventDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Share
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    const shareData = { title: event?.title ?? 'Nawe Event', url };
+    if (navigator.share && navigator.canShare?.(shareData)) {
+      try { await navigator.share(shareData); return; } catch { /* user cancelled */ }
+    }
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   // STK polling
   const [stkPending, setStkPending] = useState(false);
@@ -451,12 +466,17 @@ const EventDetail = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-6 py-10 max-w-3xl">
-        <button
-          onClick={() => navigate('/events')}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground font-ui text-sm transition-colors mb-6"
-        >
-          <ArrowLeft className="h-4 w-4" /> All Events
-        </button>
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={() => navigate('/events')}
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground font-ui text-sm transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" /> All Events
+          </button>
+          <Button variant="outline" size="sm" className="font-ui gap-1.5 rounded-full" onClick={handleShare}>
+            {copied ? <><Check className="h-3.5 w-3.5 text-success" /> Copied!</> : <><Share2 className="h-3.5 w-3.5" /> Share</>}
+          </Button>
+        </div>
 
         {event.poster_url && (
           <div className="rounded-[var(--radius-card)] overflow-hidden mb-8 border border-border">

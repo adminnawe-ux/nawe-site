@@ -30,14 +30,14 @@ const AdminClients = () => {
 
   useEffect(() => {
     const fetch = async () => {
-      // Get all profiles
-      const { data: profiles } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-      // Get client roles
-      const { data: roles } = await supabase.from('user_roles').select('user_id, role');
-      // Get session counts
-      const { data: sessions } = await supabase.from('sessions').select('client_id');
-      // Get intake status
-      const { data: intakes } = await supabase.from('intake_responses').select('user_id, completed');
+      // Fetch up to 5000 rows per query so large user bases don't silently truncate
+      const [{ data: roles }, { data: profiles }, { data: sessions }, { data: intakes }] =
+        await Promise.all([
+          supabase.from('user_roles').select('user_id, role').limit(5000),
+          supabase.from('profiles').select('user_id, first_name, last_name, phone, country, location, created_at').order('created_at', { ascending: false }).limit(5000),
+          supabase.from('sessions').select('client_id').limit(10000),
+          supabase.from('intake_responses').select('user_id, completed').limit(5000),
+        ]);
 
       const clientUserIds = new Set(
         (roles || []).filter(r => r.role === 'client').map(r => r.user_id)
