@@ -25,6 +25,8 @@ interface TherapistRow {
   modalities: string[] | null;
   years_experience: number | null;
   bio: string | null;
+  photo_url: string | null;
+  tagline: string | null;
   verified: boolean | null;
   verification_status: string | null;
   price_per_session: number | null;
@@ -183,12 +185,13 @@ const AdminTherapists = () => {
     }
   };
 
+  // 'approved' was saved by a previous version of this page; treat it as 'verified'
+  const isVerified = (status: string | null) => status === 'verified' || status === 'approved';
+
   const statusBadge = (status: string | null) => {
-    switch (status) {
-      case 'verified': return <Badge className="bg-success/15 text-success border-success/20 font-ui">Verified</Badge>;
-      case 'rejected': return <Badge variant="destructive" className="font-ui">Rejected</Badge>;
-      default: return <Badge className="bg-warning/15 text-warning border-warning/20 font-ui">Pending</Badge>;
-    }
+    if (isVerified(status)) return <Badge className="bg-success/15 text-success border-success/20 font-ui">Verified</Badge>;
+    if (status === 'rejected') return <Badge variant="destructive" className="font-ui">Rejected</Badge>;
+    return <Badge className="bg-warning/15 text-warning border-warning/20 font-ui">Pending</Badge>;
   };
 
   const filtered = therapists.filter((t) => {
@@ -231,8 +234,8 @@ const AdminTherapists = () => {
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
           { label: 'Total', value: therapists.length, icon: Shield },
-          { label: 'Verified', value: therapists.filter(t => t.verified).length, icon: CheckCircle },
-          { label: 'Pending', value: therapists.filter(t => t.verification_status === 'pending').length, icon: Clock },
+          { label: 'Verified', value: therapists.filter(t => isVerified(t.verification_status)).length, icon: CheckCircle },
+          { label: 'Pending', value: therapists.filter(t => !isVerified(t.verification_status) && t.verification_status !== 'rejected').length, icon: Clock },
         ].map(s => (
           <div key={s.label} className="bg-card rounded-card p-4 border border-border shadow-card flex items-center gap-3">
             <s.icon className="h-5 w-5 text-muted-foreground" />
@@ -380,16 +383,33 @@ const AdminTherapists = () => {
                     <p className="font-body text-sm">{selected.languages.join(', ')}</p>
                   </div>
                 )}
+                {selected.photo_url && (
+                  <div>
+                    <p className="font-ui text-xs text-muted-foreground mb-2">Photo</p>
+                    <img src={selected.photo_url} alt="Therapist" className="h-20 w-20 rounded-full object-cover border border-border" />
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <p className="font-ui text-xs text-muted-foreground">Current Status:</p>
                   {statusBadge(selected.verification_status)}
+                </div>
+                <div>
+                  <p className="font-ui text-xs text-muted-foreground mb-1">Public Profile Link</p>
+                  <a
+                    href={`/therapist/${selected.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-ui text-xs text-primary hover:underline break-all"
+                  >
+                    /therapist/{selected.id}
+                  </a>
                 </div>
               </div>
               <DialogFooter className="flex-wrap gap-2">
                 <Button variant="outline" size="sm" className="font-ui gap-1.5" onClick={() => openEdit(selected)}>
                   <Pencil className="h-3.5 w-3.5" /> Edit Profile
                 </Button>
-                {selected.verification_status !== 'verified' && (
+                {!isVerified(selected.verification_status) && (
                   <Button className="font-ui gap-1.5" onClick={() => updateStatus(selected.id, 'verified', true)}>
                     <CheckCircle className="h-4 w-4" /> Verify
                   </Button>
