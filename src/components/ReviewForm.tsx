@@ -49,17 +49,19 @@ const ReviewForm = ({ therapistId, eventId, onSubmitted }: Props) => {
       : null;
 
     const payload: Record<string, unknown> = {
-      reviewer_id: user.id,
+      client_id: user.id,     // original NOT NULL column
+      reviewer_id: user.id,   // new alias column
       reviewer_name,
       rating,
       comment: comment.trim() || null,
+      text: comment.trim() || null,  // original column
       status: 'pending',
     };
     if (therapistId) payload.therapist_id = therapistId;
     if (eventId)     payload.event_id = eventId;
 
     const { error } = await db.from('reviews').upsert(payload, {
-      onConflict: therapistId ? 'reviewer_id,therapist_id' : 'reviewer_id,event_id',
+      onConflict: therapistId ? 'client_id,therapist_id' : 'client_id,event_id',
     });
 
     if (error) {
