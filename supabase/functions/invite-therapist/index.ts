@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
     email,
     {
       data: { first_name: firstName, last_name: lastName, account_type: 'therapist' },
-      redirectTo: `${appUrl}/therapist-portal/onboarding`,
+      redirectTo: `${appUrl}/auth-redirect`,
     },
   );
 
