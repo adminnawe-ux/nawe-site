@@ -184,6 +184,18 @@ const AdminContent = () => {
       return;
     }
     setSaving(true);
+
+    // Fetch the author's display name so the public blog page doesn't need
+    // to join profiles (profiles is not readable by anon users)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('user_id', user!.id)
+      .maybeSingle();
+    const author_name = profile
+      ? [profile.first_name, profile.last_name].filter(Boolean).join(' ') || null
+      : null;
+
     const slug = form.slug.trim() || slugify(form.title);
     const status = publishNow ? 'published' : form.status;
     const payload = {
@@ -196,6 +208,7 @@ const AdminContent = () => {
       cover_image_url: form.cover_image_url.trim() || null,
       status,
       author_id: user!.id,
+      author_name,
       published_at: status === 'published' ? new Date().toISOString() : null,
     };
 

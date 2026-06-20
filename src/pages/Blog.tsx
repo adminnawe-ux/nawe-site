@@ -18,15 +18,8 @@ interface Article {
   published_at: string | null;
   created_at: string;
   author_id: string | null;
-  author_first_name: string | null;
-  author_last_name: string | null;
-  author_is_therapist: boolean;
+  author_name: string | null;
 }
-
-const authorName = (a: Article) => {
-  if (!a.author_first_name) return null;
-  return [a.author_first_name, a.author_last_name].filter(Boolean).join(' ');
-};
 
 // ─── Blog index ───────────────────────────────────────────────────────────────
 
@@ -37,17 +30,11 @@ const Blog = () => {
   useEffect(() => {
     supabase
       .from('articles')
-      .select(`*, profiles:author_id ( first_name, last_name )`)
+      .select('*')
       .eq('status', 'published')
       .order('published_at', { ascending: false })
       .then(({ data }) => {
-        if (data) {
-          setArticles(data.map((a) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const p = (a as any).profiles as { first_name?: string; last_name?: string } | null;
-            return { ...a, author_first_name: p?.first_name ?? null, author_last_name: p?.last_name ?? null, author_is_therapist: false } as Article;
-          }));
-        }
+        if (data) setArticles(data as Article[]);
         setLoading(false);
       });
   }, []);
@@ -82,9 +69,9 @@ const Blog = () => {
                   </div>
                   <h2 className="font-display text-xl text-foreground group-hover:text-primary transition-colors mb-2">{a.title}</h2>
                   {a.excerpt && <p className="font-body text-muted-foreground line-clamp-2 mb-3">{a.excerpt}</p>}
-                  {authorName(a) && (
+                  {a.author_name && (
                     <p className="font-ui text-xs text-muted-foreground flex items-center gap-1.5 mt-2">
-                      <User className="h-3 w-3" /> {authorName(a)}
+                      <User className="h-3 w-3" /> {a.author_name}
                     </p>
                   )}
                   {a.tags && a.tags.length > 0 && (
@@ -116,25 +103,12 @@ export const BlogPost = () => {
   useEffect(() => {
     supabase
       .from('articles')
-      .select(`
-        *,
-        profiles:author_id ( first_name, last_name ),
-        therapists:author_id ( id )
-      `)
+      .select('*')
       .eq('slug', slug!)
       .eq('status', 'published')
       .maybeSingle()
       .then(({ data }) => {
-        if (data) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const d = data as any;
-          setArticle({
-            ...data,
-            author_first_name: d.profiles?.first_name ?? null,
-            author_last_name: d.profiles?.last_name ?? null,
-            author_is_therapist: !!d.therapists?.id,
-          } as Article);
-        }
+        setArticle(data as Article | null);
         setLoading(false);
       });
   }, [slug]);
@@ -147,8 +121,6 @@ export const BlogPost = () => {
       <Link to="/blog"><Button variant="outline" className="font-ui">Back to Blog</Button></Link>
     </div>
   );
-
-  const name = authorName(article);
 
   return (
     <div className="container mx-auto px-6 py-16">
@@ -170,22 +142,14 @@ export const BlogPost = () => {
 
         <h1 className="font-display text-3xl text-foreground mb-4">{article.title}</h1>
 
-        {name && (
+        {article.author_name && (
           <div className="flex items-center gap-3 mb-8 pb-6 border-b border-border">
             <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
               <User className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <p className="font-ui text-sm font-medium text-foreground leading-none">
-                {article.author_is_therapist && article.author_id ? (
-                  <Link to={`/therapist/${article.author_id}`} className="hover:text-primary transition-colors">
-                    {name}
-                  </Link>
-                ) : name}
-              </p>
-              <p className="font-ui text-xs text-muted-foreground mt-1">
-                {article.author_is_therapist ? 'Nawe Therapist' : 'Nawe Team'}
-              </p>
+              <p className="font-ui text-sm font-medium text-foreground">{article.author_name}</p>
+              <p className="font-ui text-xs text-muted-foreground mt-0.5">Nawe Team</p>
             </div>
           </div>
         )}
