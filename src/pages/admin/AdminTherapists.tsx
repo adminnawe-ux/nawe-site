@@ -83,10 +83,14 @@ const AdminTherapists = () => {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
       });
       if (error) {
-        // functions.invoke wraps non-2xx in a generic error — read the actual body message
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const bodyMsg = (data as any)?.error ?? (error as any)?.context?.error;
-        throw new Error(bodyMsg || error.message);
+        // functions.invoke wraps non-2xx responses — parse the body from the raw Response
+        let message = error.message;
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const body = await (error as any).context?.json?.();
+          if (body?.error) message = body.error;
+        } catch { /* ignore parse errors */ }
+        throw new Error(message);
       }
       toast({ title: 'Invite sent', description: `${inviteForm.email} will receive a setup link.` });
       setShowInvite(false);
