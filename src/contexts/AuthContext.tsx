@@ -41,7 +41,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    // onAuthStateChange fires INITIAL_SESSION as its first event, which also
+    // processes any invite/magic-link tokens from the URL hash. Using getSession()
+    // in parallel races against this and can set loading=false before the hash
+    // token is resolved, causing protected routes to redirect prematurely.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
@@ -55,17 +58,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
       }
     );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchRoles(session.user.id);
-      } else {
-        setRolesLoaded(true);
-      }
-      setLoading(false);
-    });
 
     return () => subscription.unsubscribe();
   }, []);

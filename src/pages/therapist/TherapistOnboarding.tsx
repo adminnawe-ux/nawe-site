@@ -50,6 +50,7 @@ interface OnboardingData {
   issuing_body: string;
   education: string;
   years_experience: number;
+  gender: string;
   bio: string;
   tagline: string;
   specialisations: string[];
@@ -71,6 +72,7 @@ const defaultData: OnboardingData = {
   professional_title: '',
   license_number: '',
   issuing_body: '',
+  gender: '',
   education: '',
   years_experience: 1,
   bio: '',
@@ -298,6 +300,21 @@ const TherapistOnboarding = () => {
                     max={50}
                     className="rounded-full"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-ui text-sm">Gender</Label>
+                  <div className="flex gap-3">
+                    {['Male', 'Female', 'Non-binary / Other'].map((g) => (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => update('gender', g)}
+                        className={`flex-1 py-2 rounded-full border font-ui text-sm transition-colors ${data.gender === g ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:border-primary'}`}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label className="font-ui text-sm">Tagline</Label>

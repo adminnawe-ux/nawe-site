@@ -26,8 +26,11 @@ const AuthRedirect = () => {
       return;
     }
 
+    const isInvitedTherapist =
+      user.user_metadata?.account_type === 'therapist' ||
+      user.app_metadata?.account_type === 'therapist';
     const pendingTherapistApplication = localStorage.getItem(THERAPIST_ONBOARDING_FLAG) === '1';
-    if (pendingTherapistApplication && !roles.includes('therapist')) {
+    if ((isInvitedTherapist || pendingTherapistApplication) && !roles.includes('therapist')) {
       navigate('/therapist-portal/onboarding', { replace: true });
       return;
     }
