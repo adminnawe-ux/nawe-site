@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +20,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Edit, Trash2, Eye, FileText, Send, Upload, X as XIcon } from 'lucide-react';
+import {
+  Plus, Edit, Trash2, FileText, Send, Upload, X as XIcon,
+  Bold, Italic, Heading2, Heading3, List, ListOrdered, Quote,
+} from 'lucide-react';
 import { format } from 'date-fns';
 
 const CATEGORIES = ['Mental Health', 'Self-Care', 'Relationships', 'Anxiety', 'Depression', 'Wellness Tips', 'General'];
@@ -38,9 +44,65 @@ interface Article {
 }
 
 const emptyArticle = {
-  title: '', slug: '', excerpt: '', content: '', category: 'General',
+  title: '', slug: '', excerpt: '', category: 'General',
   tags: '', cover_image_url: '', status: 'draft',
 };
+
+// ─── Rich text editor ────────────────────────────────────────────────────────
+
+interface RichEditorProps {
+  initialContent: string;
+  onChange: (html: string) => void;
+}
+
+const RichEditor = ({ initialContent, onChange }: RichEditorProps) => {
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Placeholder.configure({ placeholder: 'Write your article here…' }),
+    ],
+    content: initialContent || '',
+    onUpdate: ({ editor: e }) => onChange(e.getHTML()),
+  });
+
+  if (!editor) return null;
+
+  const btn = (active: boolean, onClick: () => void, label: React.ReactNode) => (
+    <button
+      type="button"
+      onMouseDown={(e) => { e.preventDefault(); onClick(); }}
+      className={`p-1.5 rounded font-ui text-sm transition-colors ${active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+      title={typeof label === 'string' ? label : undefined}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="border border-border rounded-lg overflow-hidden">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-0.5 px-3 py-2 border-b border-border bg-muted/40">
+        {btn(editor.isActive('bold'),        () => editor.chain().focus().toggleBold().run(),          <Bold className="h-4 w-4" />)}
+        {btn(editor.isActive('italic'),      () => editor.chain().focus().toggleItalic().run(),        <Italic className="h-4 w-4" />)}
+        <div className="w-px h-4 bg-border mx-1" />
+        {btn(editor.isActive('heading', { level: 2 }), () => editor.chain().focus().toggleHeading({ level: 2 }).run(), <Heading2 className="h-4 w-4" />)}
+        {btn(editor.isActive('heading', { level: 3 }), () => editor.chain().focus().toggleHeading({ level: 3 }).run(), <Heading3 className="h-4 w-4" />)}
+        <div className="w-px h-4 bg-border mx-1" />
+        {btn(editor.isActive('bulletList'),  () => editor.chain().focus().toggleBulletList().run(),    <List className="h-4 w-4" />)}
+        {btn(editor.isActive('orderedList'), () => editor.chain().focus().toggleOrderedList().run(),   <ListOrdered className="h-4 w-4" />)}
+        <div className="w-px h-4 bg-border mx-1" />
+        {btn(editor.isActive('blockquote'),  () => editor.chain().focus().toggleBlockquote().run(),    <Quote className="h-4 w-4" />)}
+      </div>
+      {/* Editor area */}
+      <EditorContent
+        editor={editor}
+        className="prose prose-sm max-w-none px-4 py-3 min-h-[240px] focus-within:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-muted-foreground [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0"
+      />
+    </div>
+  );
+};
+
+// ─── Main page ───────────────────────────────────────────────────────────────
 
 const AdminContent = () => {
   const { user } = useAuth();
@@ -49,10 +111,12 @@ const AdminContent = () => {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(emptyArticle);
+  const [editorContent, setEditorContent] = useState('');
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState('all');
   const [uploading, setUploading] = useState(false);
+  const [editorKey, setEditorKey] = useState(0);
 
   const handleCoverUpload = async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -92,6 +156,8 @@ const AdminContent = () => {
 
   const openNew = () => {
     setForm(emptyArticle);
+    setEditorContent('');
+    setEditorKey(k => k + 1);
     setEditId(null);
     setEditing(true);
   };
@@ -101,18 +167,19 @@ const AdminContent = () => {
       title: a.title,
       slug: a.slug,
       excerpt: a.excerpt || '',
-      content: a.content,
       category: a.category,
       tags: (a.tags || []).join(', '),
       cover_image_url: a.cover_image_url || '',
       status: a.status,
     });
+    setEditorContent(a.content);
+    setEditorKey(k => k + 1);
     setEditId(a.id);
     setEditing(true);
   };
 
   const handleSave = async (publishNow = false) => {
-    if (!form.title.trim() || !form.content.trim()) {
+    if (!form.title.trim() || !editorContent || editorContent === '<p></p>') {
       toast({ title: 'Missing fields', description: 'Title and content are required.', variant: 'destructive' });
       return;
     }
@@ -123,7 +190,7 @@ const AdminContent = () => {
       title: form.title.trim(),
       slug,
       excerpt: form.excerpt.trim() || null,
-      content: form.content,
+      content: editorContent,
       category: form.category,
       tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
       cover_image_url: form.cover_image_url.trim() || null,
@@ -225,11 +292,11 @@ const AdminContent = () => {
               <Button variant="ghost" size="sm" className="font-ui gap-1.5" onClick={() => openEdit(a)}>
                 <Edit className="h-3.5 w-3.5" /> Edit
               </Button>
-              {a.status === 'published' ? (
+              {a.status === 'published' && (
                 <Button variant="ghost" size="sm" className="font-ui text-muted-foreground" onClick={() => handleUnpublish(a.id)}>
                   Unpublish
                 </Button>
-              ) : null}
+              )}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="ghost" size="sm" className="font-ui text-destructive hover:text-destructive">
@@ -262,7 +329,7 @@ const AdminContent = () => {
 
       {/* Editor Dialog */}
       <Dialog open={editing} onOpenChange={setEditing}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display">{editId ? 'Edit Article' : 'New Article'}</DialogTitle>
           </DialogHeader>
@@ -326,16 +393,16 @@ const AdminContent = () => {
             </div>
             <div className="space-y-2">
               <Label className="font-ui">Excerpt</Label>
-              <Textarea value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} className="font-ui" rows={2} placeholder="Brief summary..." />
+              <Textarea value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} className="font-ui" rows={2} placeholder="Brief summary shown in the blog list…" />
             </div>
             <div className="space-y-2">
               <Label className="font-ui">Content</Label>
-              <Textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} className="font-ui min-h-[200px]" placeholder="Write your article content here... (Supports basic text formatting)" />
+              <RichEditor key={editorKey} initialContent={editorContent} onChange={setEditorContent} />
             </div>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" className="font-ui" onClick={() => handleSave(false)} disabled={saving}>
-              {saving ? 'Saving...' : 'Save Draft'}
+              {saving ? 'Saving…' : 'Save Draft'}
             </Button>
             <Button className="font-ui gap-2" onClick={() => handleSave(true)} disabled={saving}>
               <Send className="h-4 w-4" /> Publish

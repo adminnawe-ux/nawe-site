@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Calendar, Tag } from 'lucide-react';
+import { ArrowLeft, Calendar, Tag, User } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Article {
@@ -17,7 +17,18 @@ interface Article {
   cover_image_url: string | null;
   published_at: string | null;
   created_at: string;
+  author_id: string | null;
+  author_first_name: string | null;
+  author_last_name: string | null;
+  author_is_therapist: boolean;
 }
+
+const authorName = (a: Article) => {
+  if (!a.author_first_name) return null;
+  return [a.author_first_name, a.author_last_name].filter(Boolean).join(' ');
+};
+
+// ─── Blog index ───────────────────────────────────────────────────────────────
 
 const Blog = () => {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -26,11 +37,17 @@ const Blog = () => {
   useEffect(() => {
     supabase
       .from('articles')
-      .select('*')
+      .select(`*, profiles:author_id ( first_name, last_name )`)
       .eq('status', 'published')
       .order('published_at', { ascending: false })
       .then(({ data }) => {
-        if (data) setArticles(data);
+        if (data) {
+          setArticles(data.map((a) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const p = (a as any).profiles as { first_name?: string; last_name?: string } | null;
+            return { ...a, author_first_name: p?.first_name ?? null, author_last_name: p?.last_name ?? null, author_is_therapist: false } as Article;
+          }));
+        }
         setLoading(false);
       });
   }, []);
@@ -64,7 +81,12 @@ const Blog = () => {
                     )}
                   </div>
                   <h2 className="font-display text-xl text-foreground group-hover:text-primary transition-colors mb-2">{a.title}</h2>
-                  {a.excerpt && <p className="font-body text-muted-foreground line-clamp-2">{a.excerpt}</p>}
+                  {a.excerpt && <p className="font-body text-muted-foreground line-clamp-2 mb-3">{a.excerpt}</p>}
+                  {authorName(a) && (
+                    <p className="font-ui text-xs text-muted-foreground flex items-center gap-1.5 mt-2">
+                      <User className="h-3 w-3" /> {authorName(a)}
+                    </p>
+                  )}
                   {a.tags && a.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-3">
                       {a.tags.map(t => (
@@ -84,6 +106,8 @@ const Blog = () => {
   );
 };
 
+// ─── Blog post ────────────────────────────────────────────────────────────────
+
 export const BlogPost = () => {
   const { slug } = useParams();
   const [article, setArticle] = useState<Article | null>(null);
@@ -92,17 +116,31 @@ export const BlogPost = () => {
   useEffect(() => {
     supabase
       .from('articles')
-      .select('*')
-      .eq('slug', slug)
+      .select(`
+        *,
+        profiles:author_id ( first_name, last_name ),
+        therapists:author_id ( id )
+      `)
+      .eq('slug', slug!)
       .eq('status', 'published')
       .maybeSingle()
       .then(({ data }) => {
-        setArticle(data);
+        if (data) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const d = data as any;
+          setArticle({
+            ...data,
+            author_first_name: d.profiles?.first_name ?? null,
+            author_last_name: d.profiles?.last_name ?? null,
+            author_is_therapist: !!d.therapists?.id,
+          } as Article);
+        }
         setLoading(false);
       });
   }, [slug]);
 
   if (loading) return <div className="flex justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>;
+
   if (!article) return (
     <div className="container mx-auto px-6 py-16 text-center">
       <p className="font-display text-2xl text-foreground mb-4">Article not found</p>
@@ -110,27 +148,62 @@ export const BlogPost = () => {
     </div>
   );
 
+  const name = authorName(article);
+
   return (
     <div className="container mx-auto px-6 py-16">
       <div className="max-w-2xl mx-auto">
         <Link to="/blog" className="inline-flex items-center gap-1.5 font-ui text-sm text-muted-foreground hover:text-foreground mb-8">
           <ArrowLeft className="h-4 w-4" /> Back to Journal
         </Link>
+
         {article.cover_image_url && (
           <img src={article.cover_image_url} alt={article.title} className="w-full h-64 object-cover rounded-card mb-6" />
         )}
+
         <div className="flex items-center gap-2 mb-4">
           <Badge variant="outline" className="font-ui text-xs">{article.category}</Badge>
           {article.published_at && (
             <span className="font-ui text-xs text-muted-foreground">{format(new Date(article.published_at), 'MMMM d, yyyy')}</span>
           )}
         </div>
-        <h1 className="font-display text-3xl text-foreground mb-6">{article.title}</h1>
-        <div className="font-body text-foreground leading-relaxed whitespace-pre-wrap">
-          {article.content}
-        </div>
+
+        <h1 className="font-display text-3xl text-foreground mb-4">{article.title}</h1>
+
+        {name && (
+          <div className="flex items-center gap-3 mb-8 pb-6 border-b border-border">
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <User className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="font-ui text-sm font-medium text-foreground leading-none">
+                {article.author_is_therapist && article.author_id ? (
+                  <Link to={`/therapist/${article.author_id}`} className="hover:text-primary transition-colors">
+                    {name}
+                  </Link>
+                ) : name}
+              </p>
+              <p className="font-ui text-xs text-muted-foreground mt-1">
+                {article.author_is_therapist ? 'Nawe Therapist' : 'Nawe Team'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Rich HTML from TipTap rendered with Tailwind prose */}
+        <div
+          className="prose prose-neutral max-w-none
+            prose-headings:font-display prose-headings:text-foreground
+            prose-p:font-body prose-p:text-foreground prose-p:leading-relaxed
+            prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:pl-4 prose-blockquote:text-muted-foreground prose-blockquote:not-italic
+            prose-strong:text-foreground prose-em:text-foreground
+            prose-li:font-body prose-li:text-foreground prose-li:leading-relaxed
+            prose-a:text-primary prose-a:no-underline hover:prose-a:underline"
+          dangerouslySetInnerHTML={{ __html: article.content }}
+        />
+
         {article.tags && article.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-8 pt-6 border-t border-border">
+          <div className="flex flex-wrap gap-2 mt-10 pt-6 border-t border-border">
             {article.tags.map(t => <Badge key={t} variant="outline" className="font-ui text-xs">{t}</Badge>)}
           </div>
         )}
