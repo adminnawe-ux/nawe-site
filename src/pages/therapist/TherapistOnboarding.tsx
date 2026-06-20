@@ -137,7 +137,9 @@ const TherapistOnboarding = () => {
     setData((prev) => ({ ...prev, [key]: value }));
 
   useEffect(() => {
-    if (!loading && !user) {
+    // Don't redirect while Supabase is still processing an invite token from the URL hash
+    const hasInviteToken = window.location.hash.includes('access_token');
+    if (!loading && !user && !hasInviteToken) {
       navigate('/login', { replace: true });
     }
   }, [loading, navigate, user]);
