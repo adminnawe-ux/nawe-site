@@ -12,7 +12,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Search, CheckCircle, XCircle, Eye, Shield, Clock, Pencil, UserPlus } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Eye, Shield, Clock, Pencil } from 'lucide-react';
 
 interface TherapistRow {
   id: string;
@@ -67,45 +67,6 @@ const AdminTherapists = () => {
     languages: '',
   });
   const [saving, setSaving] = useState(false);
-
-  // Invite dialog state
-  const [showInvite, setShowInvite] = useState(false);
-  const [inviteForm, setInviteForm] = useState({ email: '', first_name: '', last_name: '' });
-  const [inviting, setInviting] = useState(false);
-
-  const handleInvite = async () => {
-    setInviting(true);
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
-      const { error } = await supabase.functions.invoke('invite-therapist', {
-        body: inviteForm,
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
-      });
-      if (error) {
-        // functions.invoke wraps non-2xx responses — parse the body from the raw Response
-        let message = error.message;
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const body = await (error as any).context?.json?.();
-          if (body?.error) message = body.error;
-        } catch { /* ignore parse errors */ }
-        throw new Error(message);
-      }
-      toast({ title: 'Invite sent', description: `${inviteForm.email} will receive a setup link.` });
-      setShowInvite(false);
-      setInviteForm({ email: '', first_name: '', last_name: '' });
-      fetchTherapists();
-    } catch (err) {
-      toast({
-        title: 'Invite failed',
-        description: err instanceof Error ? err.message : 'Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setInviting(false);
-    }
-  };
 
   const fetchTherapists = async () => {
     const { data: therapistData, error } = await supabase
@@ -216,9 +177,6 @@ const AdminTherapists = () => {
     <div>
       <div className="flex items-start justify-between mb-2">
         <h1 className="font-display text-3xl text-foreground">Therapist Management</h1>
-        <Button className="font-ui gap-1.5" onClick={() => setShowInvite(true)}>
-          <UserPlus className="h-4 w-4" /> Invite Therapist
-        </Button>
       </div>
       <p className="font-body text-muted-foreground mb-8">Review applications, verify credentials, and manage therapist profiles.</p>
 
@@ -294,67 +252,6 @@ const AdminTherapists = () => {
           </table>
         </div>
       </div>
-
-      {/* Invite Therapist Dialog */}
-      <Dialog open={showInvite} onOpenChange={setShowInvite}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-display">Invite Therapist</DialogTitle>
-            <DialogDescription className="font-body">
-              Send a setup link to a therapist. They will receive an email to set their password
-              and complete their profile. Their account will be pending admin verification.
-            </DialogDescription>
-            <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs font-ui text-amber-800 mt-1">
-              The invite link expires in <strong>1 hour</strong>. Ask the therapist to check their inbox promptly and use the most recent email if re-invited.
-            </div>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label className="font-ui text-xs">Email <span className="text-destructive">*</span></Label>
-              <Input
-                className="font-ui"
-                type="email"
-                placeholder="therapist@example.com"
-                value={inviteForm.email}
-                onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="font-ui text-xs">First Name <span className="text-destructive">*</span></Label>
-                <Input
-                  className="font-ui"
-                  placeholder="Jane"
-                  value={inviteForm.first_name}
-                  onChange={e => setInviteForm(f => ({ ...f, first_name: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="font-ui text-xs">Last Name</Label>
-                <Input
-                  className="font-ui"
-                  placeholder="Doe"
-                  value={inviteForm.last_name}
-                  onChange={e => setInviteForm(f => ({ ...f, last_name: e.target.value }))}
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" className="font-ui" onClick={() => setShowInvite(false)} disabled={inviting}>
-              Cancel
-            </Button>
-            <Button
-              className="font-ui gap-1.5"
-              onClick={handleInvite}
-              disabled={inviting || !inviteForm.email || !inviteForm.first_name}
-            >
-              <UserPlus className="h-4 w-4" />
-              {inviting ? 'Sending…' : 'Send Invite'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Detail / Edit Dialog */}
       <Dialog open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setEditMode(false); } }}>
