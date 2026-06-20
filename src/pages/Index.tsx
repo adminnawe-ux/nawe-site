@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   ArrowRight, Star, Users, Shield, Globe, Laptop, Building2,
   BookOpen, Heart, MapPin, Handshake, GraduationCap, Landmark,
-  Video, DollarSign,
+  Video, DollarSign, Mail,
 } from 'lucide-react';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
@@ -314,7 +314,7 @@ const Index = () => (
         <p className="font-body text-lg text-muted-foreground mb-14 max-w-2xl">
           Nawe works alongside governments, NGOs, research institutions, and private sector partners to extend our reach and deepen our impact.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-14">
           {partners.map((p) => (
             <div key={p.title} className="bg-background border border-border rounded-card p-7 shadow-card">
               <div className="flex items-center gap-3 mb-4">
@@ -326,6 +326,32 @@ const Index = () => (
               <p className="font-body text-base text-muted-foreground leading-relaxed">{p.body}</p>
             </div>
           ))}
+        </div>
+
+        {/* Partnership CTA */}
+        <div className="bg-foreground rounded-card p-10 md:p-14 flex flex-col md:flex-row md:items-center gap-8">
+          <div className="flex-1">
+            <p className="font-ui text-sm text-background/50 uppercase tracking-widest mb-3">Work with us</p>
+            <h3 className="font-display text-3xl md:text-4xl text-background mb-4">
+              Bring mental health support to your organisation
+            </h3>
+            <p className="font-body text-base text-background/70 leading-relaxed max-w-xl">
+              Whether you're a corporation building an employee wellness programme, an NGO serving a community, or a government body shaping mental health policy — we'd love to explore how Nawe can support your goals.
+            </p>
+            <div className="flex flex-wrap gap-3 mt-6">
+              {['Corporate Wellness', 'NGO & Civil Society', 'Government', 'Research & Academic'].map(tag => (
+                <span key={tag} className="font-ui text-xs px-3 py-1.5 rounded-full border border-background/20 text-background/60">{tag}</span>
+              ))}
+            </div>
+          </div>
+          <div className="shrink-0 flex flex-col gap-3 md:items-end">
+            <a href="mailto:connect@nawe.co.ke?subject=Partnership%20Enquiry">
+              <Button size="lg" className="font-ui text-base px-8 py-6 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-soft whitespace-nowrap">
+                <Mail className="mr-2 h-5 w-5" /> Get in Touch
+              </Button>
+            </a>
+            <p className="font-ui text-xs text-background/40 md:text-right">connect@nawe.co.ke</p>
+          </div>
         </div>
       </div>
     </section>
