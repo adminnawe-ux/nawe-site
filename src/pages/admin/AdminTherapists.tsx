@@ -305,7 +305,7 @@ const AdminTherapists = () => {
               and complete their profile. Their account will be pending admin verification.
             </DialogDescription>
             <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs font-ui text-amber-800 mt-1">
-              The invite link expires in <strong>24 hours</strong>. Ask the therapist to check their inbox promptly and use the most recent email if re-invited.
+              The invite link expires in <strong>1 hour</strong>. Ask the therapist to check their inbox promptly and use the most recent email if re-invited.
             </div>
           </DialogHeader>
           <div className="space-y-4">
