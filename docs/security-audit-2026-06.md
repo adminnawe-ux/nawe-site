@@ -134,3 +134,36 @@ Therapist SELECT policy fetches all columns including the client's private pre-s
 | L-4 | Multiple edge functions | In-memory NCBA token cache not shared across instances; multiple instances fetch independently under load |
 | L-5 | sessions availability migration | `therapist_availability` SELECT policy is `TO authenticated` — excludes anonymous users who browse therapist pages without logging in |
 | L-6 | Multiple edge functions | Resend `fetch()` calls have no timeout — slow Resend API blocks payment confirmation response |
+
+---
+
+## Fixes — Second Work Session (20 Jun 2026)
+
+Branch: `feature/admin-therapists-event-sharing` → merged to `main`
+
+| ID | Area | Fix |
+|----|------|-----|
+| FIX-1 | `AdminClients.tsx` | Supabase default row limit (1000) silently truncated the user list. Changed all admin queries to `.limit(5000)` and parallelised with `Promise.all`. |
+| FIX-2 | `AdminTherapists.tsx` | Therapist names were invisible for unverified applicants because the query joined `therapist_public_profiles` VIEW which only returns `verified=true` rows. Switched to direct `profiles` table batch query. |
+| FIX-3 | `AdminTherapists.tsx` | `verification_status = 'approved'` (legacy value) was not recognised by `statusBadge()` or the Verify button guard — both showed "Pending" even for approved therapists. Added `isVerified()` helper treating both `'approved'` and `'verified'` as verified. |
+| FIX-4 | `AuthContext.tsx` | Race condition: `getSession()` resolved with `null` and set `loading = false` before `onAuthStateChange` had a chance to process the invite token from the URL hash, causing `TherapistOnboarding` to redirect to `/login`. Removed the redundant `getSession()` call; `onAuthStateChange` fires `INITIAL_SESSION` and handles both stored sessions and hash tokens. |
+| FIX-5 | `AuthRedirect.tsx` | Invited therapists (account_type = 'therapist' in user_metadata) were not detected by the post-auth router. Added metadata check so they are sent to `/therapist-portal/onboarding` on first login. |
+| FIX-6 | `Matches.tsx` + `therapists` table | Gender matching was silently skipped — no `gender` column on `therapists`. Added column via migration, gender selector to onboarding form, gender dropdown to admin edit panel, and +20 match score when therapist gender matches client preference. |
+| BACK-1 | Migration `20260620100000` | Users with no role entry were invisible in AdminClients. Added backfill migration assigning `client` role to any profile with no role at all. |
+| ADM-1 | `AdminTherapists.tsx` | Admin can now edit therapist profiles (title, license, bio, rate, specialisations, languages, gender) directly from the detail dialog. |
+| EVT-1 | `EventDetail.tsx` | Added Share button: uses Web Share API where available, falls back to clipboard copy with a 2-second "Copied!" confirmation. |
+
+---
+
+## Open — Product / Technical Debt
+
+| ID | Area | Issue |
+|----|------|-------|
+| TD-1 | Therapist self-registration | Supabase invite-by-email flow was attempted but redirect URL matching is unreliable across environments. Reverted to self-registration + admin verify. Invite flow code retained in `supabase/functions/invite-therapist/` for future use if needed. |
+| TD-2 | Gender backfill | Existing therapists have `gender = NULL`. They will not appear in gender-preference matches until they update their profile (`/therapist-portal/profile-edit`) or admin edits them. |
+| TD-3 | Admin users in client list | Users who only have the `admin` role (no `client` role) do not appear in AdminClients. The backfill migration skips them because they already have a role. Decide: add `client` role to admins, or show all non-therapist users regardless of role. |
+| TD-4 | Therapist matching score cap | `computeMatchScore` hard-caps at 100 but gender (+20) can now push the total to 115 in theory. Score cap is cosmetic only (no business logic depends on it being ≤ 100) but worth noting. |
+| TD-5 | Landing page | Redesign not started (LP-1 through LP-8). |
+| TD-6 | Corporate offering | Not started (CORP-1). |
+| TD-7 | Coupon / discount system | Not started (COM-1, COM-2). |
+| TD-8 | Remove dummy/test data | Test therapist and session records exist in the production DB. Needs a data cleanup pass. |
