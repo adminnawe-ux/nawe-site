@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { formatTherapistDisplayName } from '@/lib/therapist';
+import ReviewForm from '@/components/ReviewForm';
 import {
   ArrowLeft, Shield, Star, Globe, Video, Phone, MessageCircle,
   MapPin, Calendar, GraduationCap, Clock, Heart, Users
@@ -318,27 +319,45 @@ const TherapistProfile = () => {
             )}
 
             {/* Reviews */}
-            {reviews.length > 0 && (
-              <div>
-                <h3 className="font-display text-lg text-foreground mb-4">Reviews</h3>
-                <div className="space-y-4">
+            <div>
+              <h3 className="font-display text-lg text-foreground mb-4">
+                Reviews {reviews.length > 0 && <span className="text-muted-foreground text-base font-body">({reviews.length})</span>}
+              </h3>
+              {reviews.length > 0 && (
+                <div className="space-y-3 mb-5">
                   {reviews.map((r) => (
                     <Card key={r.id} className="rounded-card">
                       <CardContent className="p-4">
-                        <div className="flex items-center gap-1 mb-2">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star key={s} className={`h-3.5 w-3.5 ${s <= r.rating ? 'fill-warning text-warning' : 'text-muted'}`} />
+                        <div className="flex items-center gap-1 mb-1">
+                          {[1,2,3,4,5].map((s) => (
+                            <Star key={s} className={`h-3.5 w-3.5 ${s <= r.rating ? 'fill-warning text-warning' : 'text-muted-foreground/30'}`} />
                           ))}
                           {r.verified && (
                             <Badge variant="secondary" className="ml-2 text-[10px] font-ui bg-success/10 text-success border-0">Verified</Badge>
                           )}
+                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                          {(r as any).reviewer_name && (
+                            <span className="ml-auto font-ui text-xs text-muted-foreground">{(r as any).reviewer_name}</span>
+                          )}
                         </div>
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        {(r as any).comment && (
+                          <p className="font-body text-sm text-muted-foreground leading-relaxed mt-2">{(r as any).comment}</p>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+              {/* Submit a review — only for logged-in non-therapist users */}
+              {user && !roles.includes('therapist') && t && (
+                <ReviewForm therapistId={t.id} onSubmitted={() => {
+                  supabase.from('reviews_public').select('*').eq('therapist_id', t.id).order('created_at', { ascending: false }).limit(10)
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    .then(({ data }) => { if (data) setReviews(data as any); });
+                }} />
+              )}
+            </div>
 
             {/* Cancellation policy */}
             {t.cancellation_policy && (

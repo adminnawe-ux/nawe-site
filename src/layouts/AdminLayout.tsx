@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard, Users, UserCheck, CalendarCheck, DollarSign,
-  FileText, BarChart3, Settings, LogOut, Menu, CalendarDays,
+  FileText, BarChart3, Settings, LogOut, Menu, CalendarDays, Star,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ const navItems = [
   { to: '/admin/events', icon: CalendarDays, label: 'Events' },
   { to: '/admin/finance', icon: DollarSign, label: 'Finance' },
   { to: '/admin/content', icon: FileText, label: 'Content' },
+  { to: '/admin/reviews', icon: Star, label: 'Reviews' },
   { to: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
   { to: '/admin/settings', icon: Settings, label: 'Settings' },
 ];

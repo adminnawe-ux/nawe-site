@@ -59,6 +59,7 @@ import AdminContent from "@/pages/admin/AdminContent";
 import AdminAnalytics from "@/pages/admin/AdminAnalytics";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminEvents from "@/pages/admin/AdminEvents";
+import AdminReviews from "@/pages/admin/AdminReviews";
 
 const queryClient = new QueryClient();
 
@@ -140,6 +141,7 @@ const App = () => (
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
               <Route path="/admin/settings" element={<AdminSettings />} />
               <Route path="/admin/events" element={<AdminEvents />} />
+              <Route path="/admin/reviews" element={<AdminReviews />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
