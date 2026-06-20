@@ -101,7 +101,7 @@ const Index = () => (
               </Button>
             </Link>
             <Link to="/how-it-works">
-              <Button variant="outline" size="lg" className="font-ui text-base px-8 py-6 rounded-full border-primary-foreground/40 text-primary-foreground hover:bg-primary-foreground/10">
+              <Button variant="outline" size="lg" className="font-ui text-base px-8 py-6 rounded-full bg-transparent border-primary-foreground/60 text-primary-foreground hover:bg-primary-foreground/10">
                 How It Works
               </Button>
             </Link>
