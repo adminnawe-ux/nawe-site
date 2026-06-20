@@ -104,8 +104,13 @@ function computeMatchScore(therapist: Therapist, intake: IntakeResponse | null):
 
   // Gender preference
   const genderPref = intake.therapist_gender_preference;
-  if (genderPref && genderPref !== 'No preference') {
-    // We don't have therapist gender in the table, so skip scoring but don't penalise
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const therapistGender = (therapist as any).gender as string | undefined;
+  if (genderPref && genderPref !== 'No preference' && therapistGender) {
+    if (therapistGender === genderPref) {
+      score += 20;
+      reasons.push(`${genderPref} therapist`);
+    }
   }
 
   // Budget match

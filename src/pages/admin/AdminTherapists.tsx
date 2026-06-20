@@ -40,6 +40,7 @@ interface EditForm {
   license_number: string;
   issuing_body: string;
   years_experience: string;
+  gender: string;
   bio: string;
   price_per_session: string;
   currency: string;
@@ -60,6 +61,7 @@ const AdminTherapists = () => {
     license_number: '',
     issuing_body: '',
     years_experience: '',
+    gender: '',
     bio: '',
     price_per_session: '',
     currency: 'KES',
@@ -113,6 +115,8 @@ const AdminTherapists = () => {
       license_number: t.license_number ?? '',
       issuing_body: t.issuing_body ?? '',
       years_experience: t.years_experience?.toString() ?? '',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      gender: (t as any).gender ?? '',
       bio: t.bio ?? '',
       price_per_session: t.price_per_session?.toString() ?? '',
       currency: t.currency ?? 'KES',
@@ -132,6 +136,7 @@ const AdminTherapists = () => {
         license_number: editForm.license_number || null,
         issuing_body: editForm.issuing_body || null,
         years_experience: editForm.years_experience ? parseInt(editForm.years_experience) : null,
+        gender: editForm.gender || null,
         bio: editForm.bio || null,
         price_per_session: editForm.price_per_session ? parseInt(editForm.price_per_session) : null,
         currency: editForm.currency || 'KES',
@@ -351,6 +356,17 @@ const AdminTherapists = () => {
                   <div className="space-y-1.5">
                     <Label className="font-ui text-xs">Years Experience</Label>
                     <Input className="font-ui" type="number" min="0" value={editForm.years_experience} onChange={e => setEditForm(f => ({ ...f, years_experience: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="font-ui text-xs">Gender</Label>
+                    <Select value={editForm.gender} onValueChange={v => setEditForm(f => ({ ...f, gender: v }))}>
+                      <SelectTrigger className="font-ui"><SelectValue placeholder="Select gender" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                        <SelectItem value="Non-binary / Other">Non-binary / Other</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-1.5">
                     <Label className="font-ui text-xs">Rate (per session)</Label>
