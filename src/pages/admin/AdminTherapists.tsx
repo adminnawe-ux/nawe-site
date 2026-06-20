@@ -78,11 +78,16 @@ const AdminTherapists = () => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData.session?.access_token;
-      const { error } = await supabase.functions.invoke('invite-therapist', {
+      const { data, error } = await supabase.functions.invoke('invite-therapist', {
         body: inviteForm,
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
       });
-      if (error) throw error;
+      if (error) {
+        // functions.invoke wraps non-2xx in a generic error — read the actual body message
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const bodyMsg = (data as any)?.error ?? (error as any)?.context?.error;
+        throw new Error(bodyMsg || error.message);
+      }
       toast({ title: 'Invite sent', description: `${inviteForm.email} will receive a setup link.` });
       setShowInvite(false);
       setInviteForm({ email: '', first_name: '', last_name: '' });

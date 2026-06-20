@@ -91,7 +91,11 @@ Deno.serve(async (req) => {
 
   if (inviteError) {
     console.error('invite-therapist error:', inviteError.message);
-    return new Response(JSON.stringify({ error: inviteError.message }), {
+    const msg = inviteError.message?.toLowerCase() ?? '';
+    const friendly = msg.includes('already') || msg.includes('registered') || msg.includes('exists')
+      ? 'A user with this email address has already been registered.'
+      : inviteError.message;
+    return new Response(JSON.stringify({ error: friendly }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
