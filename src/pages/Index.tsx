@@ -42,14 +42,6 @@ const regions = [
   { name: 'Online / Diaspora', countries: 'Global reach via platform', status: 'Active',      statusClass: 'bg-primary/10 text-primary' },
 ];
 
-const partners = [
-  { icon: Landmark,      title: 'Government',           body: 'County health departments, Ministry of Health — Kenya & Uganda' },
-  { icon: Globe,         title: 'Health Organizations', body: 'WHO Africa, Africa CDC, APHRC, local mental health boards' },
-  { icon: GraduationCap, title: 'Academic & Research',  body: 'University of Nairobi, Makerere University, KNH Research Unit' },
-  { icon: Handshake,     title: 'NGO & Civil Society',  body: "Mental health advocacy groups, women's rights organisations, refugee support networks" },
-  { icon: Building2,     title: 'Private Sector',       body: 'Corporate wellness programs, health insurance providers, tech partners' },
-  { icon: Heart,         title: 'Funders & Donors',     body: 'Impact investors, development finance institutions, health-focused foundations' },
-];
 
 const resources = [
   { n: '1', title: 'Mental Health Blog',  body: 'Evidence-based articles on anxiety, depression, relationships, grief, and trauma — written by our therapists.' },
@@ -267,17 +259,7 @@ const Index = () => (
       <div className="container mx-auto px-6">
         <div className="inline-block border border-border rounded-full px-4 py-1.5 font-ui text-sm text-muted-foreground uppercase tracking-widest mb-10">Services</div>
         <h2 className="font-display text-5xl md:text-6xl text-foreground mb-14">What We Offer</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {services.map((s) => (
-            <div key={s.title} className="bg-card border border-border rounded-card p-7 shadow-card hover:shadow-soft transition-shadow">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-5">
-                <s.icon className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="font-display text-xl text-foreground mb-3">{s.title}</h3>
-              <p className="font-body text-base text-muted-foreground leading-relaxed">{s.body}</p>
-            </div>
-          ))}
-        </div>
+
 
         {/* HEAL — below What We Offer */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-stretch rounded-card overflow-hidden border border-border shadow-card mt-20">
@@ -299,6 +281,20 @@ const Index = () => (
               </div>
             ))}
           </div>
+        </div>
+        <div>
+          
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {services.map((s) => (
+            <div key={s.title} className="bg-card border border-border rounded-card p-7 shadow-card hover:shadow-soft transition-shadow">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-5">
+                <s.icon className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-display text-xl text-foreground mb-3">{s.title}</h3>
+              <p className="font-body text-base text-muted-foreground leading-relaxed">{s.body}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>
