@@ -387,20 +387,6 @@ const Index = () => (
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-14">
-          {partners.map((p) => (
-            <div key={p.title} className="bg-background border border-border rounded-card p-7 shadow-card">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <p.icon className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="font-display text-xl text-foreground">{p.title}</h3>
-              </div>
-              <p className="font-body text-base text-muted-foreground leading-relaxed">{p.body}</p>
-            </div>
-          ))}
-        </div>
-
         {/* Partnership CTA */}
         <div className="bg-foreground rounded-card p-10 md:p-14 flex flex-col md:flex-row md:items-center gap-8">
           <div className="flex-1">
@@ -423,7 +409,7 @@ const Index = () => (
                 <Mail className="mr-2 h-5 w-5" /> Get in Touch
               </Button>
             </a>
-            <p className="font-ui text-xs text-background/40 md:text-right">connect@nawe.co.ke</p>
+            {/* <p className="font-ui text-xs text-background/40 md:text-right">connect@nawe.co.ke</p> */}
           </div>
         </div>
       </div>
