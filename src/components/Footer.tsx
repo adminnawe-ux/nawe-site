@@ -28,7 +28,7 @@ const Footer = () => (
           <div>
             <img src="/nawe-logo.png" alt={SITE_NAME} className="h-20 w-auto mb-3" />
             <p className="font-body text-sm text-muted-foreground leading-relaxed">
-              Find your calm. Find your person. Accessible mental health support for everyone.
+              With you, every step.
             </p>
           </div>
           <div>
