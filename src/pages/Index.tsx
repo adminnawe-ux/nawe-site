@@ -140,28 +140,41 @@ const Index = () => (
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-3xl animate-fade-in">
           <p className="font-ui text-primary-foreground/70 text-sm uppercase tracking-widest mb-8">
-            Equitable Access to Mental Health Care Across Africa
+            Connect  - Heal - Grow
           </p>
           <h1 className="font-display text-7xl md:text-9xl text-primary-foreground leading-none mb-2">
-            Find Your Calm.
+            With you,
           </h1>
-          <h1 className="font-display text-7xl md:text-9xl text-primary-foreground/80 leading-none mb-10">
-            Find Your Person.
+            <h1 className="font-display text-7xl md:text-9xl text-primary-foreground leading-none mb-2">
+            Every step
           </h1>
           <p className="font-body text-xl md:text-2xl text-primary-foreground/80 mb-12 max-w-2xl leading-relaxed">
-            Connect with licensed, culturally-competent therapists who understand you — wherever you are in Africa.
+            Nawe means 'with you' in Swahili. 
           </p>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Link to="/questionnaire">
-              <Button size="lg" className="font-ui text-lg px-10 py-7 rounded-full bg-primary-foreground text-primary hover:bg-primary-foreground/90 shadow-soft">
-                Find a Therapist <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-            <Link to="/how-it-works">
-              <Button variant="outline" size="lg" className="font-ui text-lg px-10 py-7 rounded-full bg-transparent border-primary-foreground/60 text-primary-foreground hover:bg-primary-foreground/10">
-                How It Works
-              </Button>
-            </Link>
+          <div>
+            <p className="font-ui text-sm text-primary-foreground/60 uppercase tracking-widest mb-4">I'm here as a...</p>
+            <div className="flex flex-wrap gap-3">
+              <Link to="/questionnaire">
+                <button className="font-ui text-base px-6 py-3 rounded-full border border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/15 transition-colors">
+                  Individual / Family
+                </button>
+              </Link>
+              <Link to="/for-therapists">
+                <button className="font-ui text-base px-6 py-3 rounded-full border border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/15 transition-colors">
+                  Therapist / Counselor
+                </button>
+              </Link>
+              <Link to="/how-it-works">
+                <button className="font-ui text-base px-6 py-3 rounded-full border border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/15 transition-colors">
+                  Employer / HR Lead
+                </button>
+              </Link>
+              <a href="/#partnerships">
+                <button className="font-ui text-base px-6 py-3 rounded-full border border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/15 transition-colors">
+                  NGO / School / Partner
+                </button>
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -173,7 +186,7 @@ const Index = () => (
         <div className="inline-block border border-border rounded-full px-4 py-1.5 font-ui text-sm text-muted-foreground uppercase tracking-widest mb-10">Overview</div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div>
-            <h2 className="font-display text-5xl md:text-6xl text-foreground mb-8">What is Nawe?</h2>
+            <h2 className="font-display text-5xl md:text-6xl text-foreground mb-8">Who we Are</h2>
             <p className="font-body text-xl text-foreground mb-5 leading-relaxed">
               <span className="text-primary font-semibold">Nawe</span> is a social enterprise and digital platform that increases equitable access to quality mental health care by matching people to therapists of choice — with <span className="text-primary font-semibold">standardized, transparent pricing.</span>
             </p>
@@ -307,7 +320,7 @@ const Index = () => (
     </section>
 
     {/* 7 · PARTNERSHIPS ─────────────────────────────────────────────────── */}
-    <section className="py-28 bg-card border-y border-border">
+    <section id="partnerships" className="py-28 bg-card border-y border-border">
       <div className="container mx-auto px-6">
         <div className="inline-block border border-border rounded-full px-4 py-1.5 font-ui text-sm text-muted-foreground uppercase tracking-widest mb-10">Partnerships</div>
         <h2 className="font-display text-5xl md:text-6xl text-foreground mb-4">Partnerships & Collaborations</h2>
