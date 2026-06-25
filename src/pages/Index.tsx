@@ -119,7 +119,7 @@ const Index = () => (
   <div>
 
     {/* 1 · HERO ─────────────────────────────────────────────────────────── */}
-    <section className="relative min-h-screen flex items-center overflow-hidden bg-[#D6EEF8]">
+    <section className="relative min-h-screen flex items-center overflow-hidden bg-[#B8DFF0]">
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-3xl animate-fade-in">
           <p className="font-ui text-foreground/50 text-sm uppercase tracking-widest mb-8">
