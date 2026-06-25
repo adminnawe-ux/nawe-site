@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  ArrowRight, Star, Users, Shield, Globe, Laptop, Building2,
+  ArrowRight, Star, Users, Globe, Building2,
   BookOpen, Heart, MapPin, Handshake, GraduationCap, Landmark,
   Video, DollarSign, Mail,
 } from 'lucide-react';
@@ -229,7 +229,7 @@ const Index = () => (
     <section className="py-28 bg-card border-y border-border">
       <div className="container mx-auto px-6">
         <div className="inline-block border border-border rounded-full px-4 py-1.5 font-ui text-sm text-muted-foreground uppercase tracking-widest mb-10">About Us</div>
-        <h2 className="font-display text-5xl md:text-6xl text-foreground mb-10">Our Story & Mission</h2>
+        <h2 className="font-display text-5xl md:text-6xl text-foreground mb-10">Our Story </h2>
         <blockquote className="border-l-4 border-primary bg-background rounded-card p-8 mb-10">
           <p className="font-body text-xl text-foreground italic leading-relaxed">
             "To eliminate barriers to mental health care by making quality, affordable, and culturally-sensitive therapy accessible to every person across Africa."
@@ -237,7 +237,7 @@ const Index = () => (
         </blockquote>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { label: 'Who We Are',   body: 'Nawe is a Kenyan-based social enterprise founded to address the critical gap in mental health care access across Sub-Saharan Africa. We combine technology, public health expertise, and a deep commitment to equity.' },
+            { label: 'Mission',   body: 'Nawe is a Kenyan-based social enterprise founded to address the critical gap in mental health care access across Sub-Saharan Africa. We combine technology, public health expertise, and a deep commitment to equity.' },
             { label: 'The Problem',  body: 'Over 75% of people with mental health conditions in Africa receive no treatment. High costs, limited providers, stigma, and geographic barriers leave millions without support.' },
             { label: 'Our Solution', body: 'A digital matching platform that connects clients to therapists of their choice with standardized pricing, flexible scheduling, and multilingual support — bridging the access gap at scale.' },
           ].map((c) => (
