@@ -125,19 +125,16 @@ const Index = () => (
       <div className="absolute bottom-0 left-0 w-[420px] h-[420px] rounded-full bg-[#f0e8d8] -translate-x-1/4 translate-y-1/4 pointer-events-none" />
 
       <div className="container mx-auto px-6 relative z-10">
-        <div className="max-w-3xl animate-fade-in">
+        <div className="max-w-3xl mx-auto text-center animate-fade-in">
           <p className="font-ui text-[#000b3d]/50 text-sm uppercase tracking-widest mb-8">
             Connect  - Heal - Grow
           </p>
           <h1 className="font-display text-7xl md:text-9xl text-[#000b3d] leading-none mb-2">
-            With you,
-          </h1>
-          <h1 className="font-display text-7xl md:text-9xl text-[#000b3d] leading-none mb-2">
-            Every step.
+            With you, Every step.
           </h1>
           <div className="mt-10">
             <p className="font-ui text-sm text-[#000b3d]/50 uppercase tracking-widest mb-4">I'm here as a...</p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3 justify-center">
               <Link to="/questionnaire">
                 <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/30 text-[#000b3d] hover:bg-[#000b3d]/8 transition-colors">
                   Individual
