@@ -26,7 +26,7 @@ const Footer = () => (
       <div className="container mx-auto px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
           <div>
-            <img src="/nawe-logo.png" alt={SITE_NAME} className="h-20 w-auto mb-3" />
+            <img src="/nawe-logo.png" alt={SITE_NAME} className="h-32 w-auto mb-3" />
             <p className="font-body text-sm text-muted-foreground leading-relaxed">
               With you, every step.
             </p>
