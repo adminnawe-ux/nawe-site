@@ -324,29 +324,6 @@ const Index = () => (
       </div>
     </section>
 
-    {/* 6 · WHERE WE WORK ────────────────────────────────────────────────── */}
-    <section className="py-28 bg-background">
-      <div className="container mx-auto px-6">
-        <div className="inline-block border border-border rounded-full px-4 py-1.5 font-ui text-sm text-muted-foreground uppercase tracking-widest mb-10">Where We Work</div>
-        <h2 className="font-display text-5xl md:text-6xl text-foreground mb-4">Our Reach Across Africa</h2>
-        <p className="font-body text-lg text-muted-foreground mb-14">Headquartered in Nairobi, Kenya · Licensed therapists operating in 3+ countries · Expanding continuously</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {regions.map((r) => (
-            <div key={r.name} className="bg-card border border-border rounded-card p-7 shadow-card">
-              <div className="flex items-start justify-between mb-4">
-                <h3 className="font-display text-xl text-foreground">{r.name}</h3>
-                <span className={`font-ui text-sm px-3 py-1 rounded-full ${r.statusClass}`}>{r.status}</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="h-4 w-4 shrink-0" />
-                <p className="font-body text-base">{r.countries}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-
     {/* 7 · PARTNERSHIPS ─────────────────────────────────────────────────── */}
     <section id="partnerships" className="py-28 bg-card border-y border-border">
       <div className="container mx-auto px-6">
@@ -425,6 +402,29 @@ const Index = () => (
             ))}
           </div>
           <NewsletterPanel />
+        </div>
+      </div>
+    </section>
+
+    {/* 6 · WHERE WE WORK ────────────────────────────────────────────────── */}
+    <section className="py-28 bg-background">
+      <div className="container mx-auto px-6">
+        <div className="inline-block border border-border rounded-full px-4 py-1.5 font-ui text-sm text-muted-foreground uppercase tracking-widest mb-10">Where We Work</div>
+        <h2 className="font-display text-5xl md:text-6xl text-foreground mb-4">Our Reach Across Africa</h2>
+        <p className="font-body text-lg text-muted-foreground mb-14">Headquartered in Nairobi, Kenya · Licensed therapists operating in 3+ countries · Expanding continuously</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {regions.map((r) => (
+            <div key={r.name} className="bg-card border border-border rounded-card p-7 shadow-card">
+              <div className="flex items-start justify-between mb-4">
+                <h3 className="font-display text-xl text-foreground">{r.name}</h3>
+                <span className={`font-ui text-sm px-3 py-1 rounded-full ${r.statusClass}`}>{r.status}</span>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <MapPin className="h-4 w-4 shrink-0" />
+                <p className="font-body text-base">{r.countries}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
