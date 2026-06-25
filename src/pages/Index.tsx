@@ -232,15 +232,14 @@ const Index = () => (
         <h2 className="font-display text-5xl md:text-6xl text-foreground mb-10">Our Mission </h2>
         <blockquote className="border-l-4 border-primary bg-background rounded-card p-8 mb-10">
           <p className="font-body text-xl text-foreground italic leading-relaxed">
-            "To provide equitable access to quality and culturally grounded mental healthcare across Africa through scalable systems, community-centered support, and digital innovation, leading to healthier individuals, stronger institutions, and more resilient communities."
-          </p>
+            "To provide equitable access to quality and culturally grounded mental healthcare across Africa through scalable systems, community-centered support, and digital innovation, leading to healthier individuals, stronger institutions, and more resilient communities.</p>
         </blockquote>
         <div className="space-y-16 mt-2">
 
           {/* CONNECT */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
             <div>
-              <h3 className="font-display text-4xl md:text-5xl text-foreground mb-6">Connect</h3>
+              <span className="inline-block bg-foreground text-background font-ui text-sm px-4 py-1.5 rounded-full mb-5">Connect</span>
               <p className="font-body text-lg text-muted-foreground leading-relaxed">Mental health care does not start in a clinic. It starts in the places people already gather: offices, schools, places of worship, WhatsApp groups. CONNECT brings facilitated workshops, public events and corporate wellness sessions into those everyday spaces, so asking for help becomes normal long before someone is in crisis.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -259,32 +258,10 @@ const Index = () => (
             </div>
           </div>
 
-          {/* HEAL */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-            <div>
-              <h3 className="font-display text-4xl md:text-5xl text-foreground mb-6">Heal</h3>
-              <p className="font-body text-lg text-muted-foreground leading-relaxed">We help individuals, families and communities heal from life's challenges through evidence-based psychological care. We provide compassionate support to help you heal, cope, and move forward. Healing minds strengthens lives. We are here to support your healing journey, one step at a time.</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {[
-                { icon: Heart,    title: 'Therapist Matching',  body: 'Smart matching to licensed therapists by specialty, language, and price.' },
-                { icon: Video,    title: 'Online Sessions',     body: 'Secure video or phone therapy from anywhere. No commute, no waiting room.' },
-                { icon: MapPin,   title: 'In-Person Therapy',   body: 'Face-to-face sessions with local therapists in Nairobi, Kampala, Lagos.' },
-                { icon: BookOpen, title: 'Self-Help Resources', body: 'Curated articles, mood trackers, and guided exercises between sessions.' },
-              ].map((c) => (
-                <div key={c.title} className="bg-card border border-border rounded-card p-5 flex flex-col gap-3">
-                  <c.icon className="h-5 w-5 text-muted-foreground" />
-                  <p className="font-display text-base text-foreground">{c.title}</p>
-                  <p className="font-body text-sm text-muted-foreground leading-relaxed">{c.body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* GROW */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
             <div>
-              <h3 className="font-display text-4xl md:text-5xl text-foreground mb-6">Grow</h3>
+              <span className="inline-block bg-foreground text-background font-ui text-sm px-4 py-1.5 rounded-full mb-5">Grow</span>
               <p className="font-body text-lg text-muted-foreground leading-relaxed">GROW moves beyond a single session or workshop. It is one-on-one coaching, leadership development and organisational wellness systems for people and teams who want lasting change.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -322,6 +299,28 @@ const Index = () => (
               <p className="font-body text-base text-muted-foreground leading-relaxed">{s.body}</p>
             </div>
           ))}
+        </div>
+
+        {/* HEAL — below What We Offer */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start mt-20 pt-16 border-t border-border">
+          <div>
+            <span className="inline-block bg-foreground text-background font-ui text-sm px-4 py-1.5 rounded-full mb-5">Heal</span>
+            <p className="font-body text-lg text-muted-foreground leading-relaxed">We help individuals, families and communities heal from life's challenges through evidence-based psychological care. We provide compassionate support to help you heal, cope, and move forward. Healing minds strengthens lives. We are here to support your healing journey, one step at a time.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              { icon: Heart,    title: 'Therapist Matching',  body: 'Smart matching to licensed therapists by specialty, language, and price.' },
+              { icon: Video,    title: 'Online Sessions',     body: 'Secure video or phone therapy from anywhere. No commute, no waiting room.' },
+              { icon: MapPin,   title: 'In-Person Therapy',   body: 'Face-to-face sessions with local therapists in Nairobi, Kampala, Lagos.' },
+              { icon: BookOpen, title: 'Self-Help Resources', body: 'Curated articles, mood trackers, and guided exercises between sessions.' },
+            ].map((c) => (
+              <div key={c.title} className="bg-card border border-border rounded-card p-5 flex flex-col gap-3">
+                <c.icon className="h-5 w-5 text-muted-foreground" />
+                <p className="font-display text-base text-foreground">{c.title}</p>
+                <p className="font-body text-sm text-muted-foreground leading-relaxed">{c.body}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
