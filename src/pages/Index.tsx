@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import {
   ArrowRight, Star, Users, Globe, Building2,
-  BookOpen, Heart, MapPin, Handshake, GraduationCap, Landmark,
+  BookOpen, Heart, MapPin, GraduationCap,
   Video, DollarSign, Mail,
 } from 'lucide-react';
 
@@ -19,12 +19,12 @@ const stats = [
 ];
 
 const services = [
-  { icon: Users,      title: 'Therapist Matching',      body: 'Smart matching connects you to the right licensed therapist based on specialisation, language, and personal preference.' },
-  { icon: Video,      title: 'Online & In-Person',      body: 'Flexible session formats — video, phone, or in-person — to meet clients where they are. No commute, no barriers.' },
-  { icon: DollarSign, title: 'Standardized Pricing',    body: 'Transparent, equitable pricing so quality mental health support is affordable. No hidden fees, no guesswork.' },
-  { icon: Globe,      title: 'Cultural Competence',     body: "Our therapists provide culturally sensitive care, reflecting Africa's diverse languages, identities, and lived experiences." },
-  { icon: BookOpen,   title: 'Mental Health Resources', body: 'Curated articles, tools, and self-help resources to support wellbeing between therapy sessions.' },
-  { icon: Building2,  title: 'Corporate Wellness',      body: 'Employee mental health packages for organisations, helping companies build healthier, more resilient workforces.' },
+  // { icon: Users,      title: 'Therapist Matching',      body: 'Smart matching connects you to the right licensed therapist based on specialisation, language, and personal preference.' },
+  // { icon: Video,      title: 'Online & In-Person',      body: 'Flexible session formats — video, phone, or in-person — to meet clients where they are. No commute, no barriers.' },
+  // { icon: DollarSign, title: 'Standardized Pricing',    body: 'Transparent, equitable pricing so quality mental health support is affordable. No hidden fees, no guesswork.' },
+  // { icon: Globe,      title: 'Cultural Competence',     body: "Our therapists provide culturally sensitive care, reflecting Africa's diverse languages, identities, and lived experiences." },
+  // { icon: BookOpen,   title: 'Mental Health Resources', body: 'Curated articles, tools, and self-help resources to support wellbeing between therapy sessions.' },
+  // { icon: Building2,  title: 'Corporate Wellness',      body: 'Employee mental health packages for organisations, helping companies build healthier, more resilient workforces.' },
 ];
 
 const steps = [
@@ -282,10 +282,7 @@ const Index = () => (
             ))}
           </div>
         </div>
-        <div>
-          
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-16">
           {services.map((s) => (
             <div key={s.title} className="bg-card border border-border rounded-card p-7 shadow-card hover:shadow-soft transition-shadow">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-5">
@@ -335,7 +332,7 @@ const Index = () => (
       <div className="container mx-auto px-6">
         <div className="inline-block border border-border rounded-full px-4 py-1.5 font-ui text-sm text-muted-foreground uppercase tracking-widest mb-10">Where We Work</div>
         <h2 className="font-display text-5xl md:text-6xl text-foreground mb-4">Our Reach Across Africa</h2>
-        <p className="font-body text-lg text-muted-foreground mb-14">Headquartered in Nairobi, Kenya · Licensed therapists operating in 6+ countries · Expanding continuously</p>
+        <p className="font-body text-lg text-muted-foreground mb-14">Headquartered in Nairobi, Kenya · Licensed therapists operating in 3+ countries · Expanding continuously</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {regions.map((r) => (
             <div key={r.name} className="bg-card border border-border rounded-card p-7 shadow-card">
