@@ -65,7 +65,7 @@ const AdminLayout = () => {
       {/* Desktop sidebar */}
       <aside className="hidden md:flex w-64 bg-foreground text-primary-foreground flex-col">
         <div className="p-6">
-          <Link to="/" className="font-display text-xl text-primary-foreground">Nawe Admin</Link>
+          <Link to="/"><img src="/nawe-logo.png" alt="Nawe" className="h-10 w-auto" /></Link>
           <p className="font-ui text-xs text-primary-foreground/60 mt-1">Platform Management</p>
         </div>
         <NavItems />
@@ -81,15 +81,15 @@ const AdminLayout = () => {
           </SheetTrigger>
           <SheetContent side="left" className="w-64 p-0 flex flex-col bg-foreground text-primary-foreground border-primary-foreground/10">
             <div className="p-6">
-              <Link to="/" onClick={() => setMobileOpen(false)} className="font-display text-xl text-primary-foreground">
-                Nawe Admin
+              <Link to="/" onClick={() => setMobileOpen(false)}>
+                <img src="/nawe-logo.png" alt="Nawe" className="h-10 w-auto" />
               </Link>
               <p className="font-ui text-xs text-primary-foreground/60 mt-1">Platform Management</p>
             </div>
             <NavItems onNavigate={() => setMobileOpen(false)} />
           </SheetContent>
         </Sheet>
-        <span className="font-display text-base text-primary-foreground">Nawe Admin</span>
+        <img src="/nawe-logo.png" alt="Nawe" className="h-8 w-auto" />
       </div>
 
       {/* Main content */}

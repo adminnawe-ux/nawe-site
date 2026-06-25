@@ -133,7 +133,7 @@ const TherapistLayout = () => {
       <aside className="hidden md:flex w-64 bg-card border-r border-border flex-col">
         <div className="p-6">
           <Link to="/" className="flex items-center">
-            <img src="/logo.png" alt={SITE_NAME} className="h-9" />
+            <img src="/nawe-logo.png" alt={SITE_NAME} className="h-9" />
           </Link>
           <p className="font-ui text-xs text-muted-foreground mt-1">Therapist Portal</p>
         </div>
@@ -151,7 +151,7 @@ const TherapistLayout = () => {
           <SheetContent side="left" className="w-64 p-0 flex flex-col">
             <div className="p-6">
               <Link to="/" onClick={() => setMobileOpen(false)} className="flex items-center">
-                <img src="/logo.png" alt={SITE_NAME} className="h-9" />
+                <img src="/nawe-logo.png" alt={SITE_NAME} className="h-9" />
               </Link>
               <p className="font-ui text-xs text-muted-foreground mt-1">Therapist Portal</p>
             </div>
@@ -159,7 +159,7 @@ const TherapistLayout = () => {
           </SheetContent>
         </Sheet>
         <Link to="/" className="flex items-center">
-          <img src="/logo.png" alt={SITE_NAME} className="h-8" />
+          <img src="/nawe-logo.png" alt={SITE_NAME} className="h-8" />
         </Link>
       </div>
 
