@@ -146,32 +146,32 @@ const Index = () => (
             With you,
           </h1>
             <h1 className="font-display text-7xl md:text-9xl text-primary-foreground leading-none mb-2">
-            Every step
+            Every step.
           </h1>
-          <p className="font-body text-xl md:text-2xl text-primary-foreground/80 mb-12 max-w-2xl leading-relaxed">
+          {/* <p className="font-body text-xl md:text-2xl text-primary-foreground/80 mb-12 max-w-2xl leading-relaxed">
             Nawe means 'with you' in Swahili. 
-          </p>
+          </p> */}
           <div>
             <p className="font-ui text-sm text-primary-foreground/60 uppercase tracking-widest mb-4">I'm here as a...</p>
             <div className="flex flex-wrap gap-3">
               <Link to="/questionnaire">
                 <button className="font-ui text-base px-6 py-3 rounded-full border border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/15 transition-colors">
-                  Individual / Family
+                  Individual 
                 </button>
               </Link>
               <Link to="/for-therapists">
                 <button className="font-ui text-base px-6 py-3 rounded-full border border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/15 transition-colors">
-                  Therapist / Counselor
+                  Therapist 
                 </button>
               </Link>
               <Link to="/how-it-works">
                 <button className="font-ui text-base px-6 py-3 rounded-full border border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/15 transition-colors">
-                  Employer / HR Lead
+                  Corporate 
                 </button>
               </Link>
               <a href="/#partnerships">
                 <button className="font-ui text-base px-6 py-3 rounded-full border border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/15 transition-colors">
-                  NGO / School / Partner
+                  Partner
                 </button>
               </a>
             </div>
@@ -188,24 +188,33 @@ const Index = () => (
           <div>
             <h2 className="font-display text-5xl md:text-6xl text-foreground mb-8">Who we Are</h2>
             <p className="font-body text-xl text-foreground mb-5 leading-relaxed">
-              <span className="text-primary font-semibold">Nawe</span> is a social enterprise and digital platform that increases equitable access to quality mental health care by matching people to therapists of choice — with <span className="text-primary font-semibold">standardized, transparent pricing.</span>
+              <span className="text-primary font-semibold">Nawe</span> a social enterprise making mental wellbeing accessible to every African through  <span className="text-primary font-semibold">trusted, community-centered, and technology-enabled care.</span>
             </p>
             <p className="font-body text-lg text-muted-foreground leading-relaxed italic">
-              We believe that mental health is a right, not a privilege. Nawe removes the barriers of cost, stigma, and access — connecting individuals across Africa with licensed, culturally-competent therapists through a seamless digital experience.
+            We walk with individuals, organizations, and communities to build healthier lives, stronger institutions, and more resilient societies.
             </p>
           </div>
           <div className="space-y-4">
-            {pillars.map((p) => (
-              <div key={p.title} className="flex items-center gap-5 bg-card border border-border rounded-card p-6 shadow-card">
-                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <p.icon className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <p className="font-display text-xl text-foreground">{p.title}</p>
-                  <p className="font-body text-base text-muted-foreground">{p.sub}</p>
-                </div>
-              </div>
-            ))}
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-6 h-px bg-primary" />
+              <span className="font-ui text-xs text-primary uppercase tracking-widest">Start Here</span>
+            </div>
+            <p className="font-display text-2xl text-foreground leading-snug mb-6">Wherever you're starting from, there's a path for you.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                { icon: Heart,      title: 'Individuals & Families ',   body: 'Book a confidential session with a licensed therapist.',           cta: 'Find a therapist',  href: '/questionnaire' },
+                { icon: Building2,  title: 'Corporate',     body: 'Give your teams structured, confidential wellbeing support.',     cta: 'See pricing tiers', href: '/how-it-works' },
+                { icon: Users,      title: 'Licensed therapists',      body: 'Build your practice and get matched with clients.',                cta: 'Apply to join',     href: '/for-therapists' },
+                { icon: Globe,      title: 'Partners', body: 'Bring resilience programmes into your community.',                 cta: 'Partner with us',   href: '/#partnerships' },
+              ].map((card) => (
+                <a key={card.title} href={card.href} className="group flex flex-col gap-3 bg-card border border-border rounded-card p-5 hover:border-primary/40 hover:shadow-card transition-all">
+                  <card.icon className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <p className="font-display text-base text-foreground">{card.title}</p>
+                  <p className="font-body text-sm text-muted-foreground leading-relaxed flex-1">{card.body}</p>
+                  <span className="font-ui text-sm text-primary">{card.cta} →</span>
+                </a>
+              ))}
+            </div>
           </div>
         </div>
 

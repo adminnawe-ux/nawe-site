@@ -19,7 +19,7 @@ const Navbar = () => {
     <nav className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border">
       <div className="container mx-auto px-6 flex items-center justify-between h-16">
         <Link to="/" className="flex items-center">
-          <img src="/nawe-logo.png" alt={SITE_NAME} className="h-40 w-auto" />
+          <img src="/nawe-logo.png" alt={SITE_NAME} className="h-48 w-auto" />
         </Link>
 
         {/* Desktop nav */}
