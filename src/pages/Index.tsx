@@ -119,42 +119,38 @@ const Index = () => (
   <div>
 
     {/* 1 · HERO ─────────────────────────────────────────────────────────── */}
-    <section className="relative min-h-screen flex items-center overflow-hidden bg-primary">
-      <div className="absolute inset-0 -z-0 pointer-events-none">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-primary-foreground/5 translate-x-1/3 -translate-y-1/4" />
-        <div className="absolute bottom-0 right-20 w-[280px] h-[280px] rounded-full bg-primary-foreground/10 translate-y-1/4" />
-      </div>
+    <section className="relative min-h-screen flex items-center overflow-hidden bg-[#eaccac]">
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-3xl animate-fade-in">
-          <p className="font-ui text-primary-foreground/70 text-sm uppercase tracking-widest mb-8">
+          <p className="font-ui text-[#000b3d]/70 text-sm uppercase tracking-widest mb-8">
             Connect  - Heal - Grow
           </p>
-          <h1 className="font-display text-7xl md:text-9xl text-primary-foreground leading-none mb-2">
+          <h1 className="font-display text-7xl md:text-9xl text-[#000b3d] leading-none mb-2">
             With you,
           </h1>
-          <h1 className="font-display text-7xl md:text-9xl text-primary-foreground leading-none mb-2">
+          <h1 className="font-display text-7xl md:text-9xl text-[#000b3d] leading-none mb-2">
             Every step.
           </h1>
           <div className="mt-10">
-            <p className="font-ui text-sm text-primary-foreground/60 uppercase tracking-widest mb-4">I'm here as a...</p>
+            <p className="font-ui text-sm text-[#000b3d]/60 uppercase tracking-widest mb-4">I'm here as a...</p>
             <div className="flex flex-wrap gap-3">
               <Link to="/questionnaire">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/15 transition-colors">
+                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/40 text-[#000b3d] hover:bg-[#000b3d]/10 transition-colors">
                   Individual
                 </button>
               </Link>
               <Link to="/for-therapists">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/15 transition-colors">
+                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/40 text-[#000b3d] hover:bg-[#000b3d]/10 transition-colors">
                   Therapist
                 </button>
               </Link>
               <Link to="/how-it-works">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/15 transition-colors">
+                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/40 text-[#000b3d] hover:bg-[#000b3d]/10 transition-colors">
                   Corporate
                 </button>
               </Link>
               <a href="/#partnerships">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/15 transition-colors">
+                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/40 text-[#000b3d] hover:bg-[#000b3d]/10 transition-colors">
                   Partner
                 </button>
               </a>
@@ -224,8 +220,18 @@ const Index = () => (
             "To provide equitable access to quality and culturally grounded mental healthcare across Africa through scalable systems, community-centered support, and digital innovation, leading to healthier individuals, stronger institutions, and more resilient communities.</p>
         </blockquote>
         <div className="space-y-16 mt-2">
+        </div>
+      </div>
+    </section>
 
-          {/* CONNECT */}
+    {/* 4 · SERVICES ─────────────────────────────────────────────────────── */}
+    <section className="py-28 bg-background">
+      <div className="container mx-auto px-6">
+        <div className="inline-block border border-border rounded-full px-4 py-1.5 font-ui text-sm text-muted-foreground uppercase tracking-widest mb-10">Services</div>
+        <h2 className="font-display text-5xl md:text-6xl text-foreground mb-14">What We Offer</h2>
+
+
+                  {/* CONNECT */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-stretch rounded-card overflow-hidden border border-border shadow-card">
             <div className="bg-foreground p-10 flex flex-col justify-between">
               <h3 className="font-display text-5xl md:text-6xl text-background mb-6">Connect</h3>
@@ -246,16 +252,6 @@ const Index = () => (
               ))}
             </div>
           </div>
-
-        </div>
-      </div>
-    </section>
-
-    {/* 4 · SERVICES ─────────────────────────────────────────────────────── */}
-    <section className="py-28 bg-background">
-      <div className="container mx-auto px-6">
-        <div className="inline-block border border-border rounded-full px-4 py-1.5 font-ui text-sm text-muted-foreground uppercase tracking-widest mb-10">Services</div>
-        <h2 className="font-display text-5xl md:text-6xl text-foreground mb-14">What We Offer</h2>
 
 
         {/* HEAL — below What We Offer */}
