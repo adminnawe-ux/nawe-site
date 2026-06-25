@@ -129,7 +129,7 @@ const Index = () => (
           <p className="font-ui text-[#000b3d]/50 text-sm uppercase tracking-widest mb-8">
             Connect  - Heal - Grow
           </p>
-          <h1 className="font-display text-7xl md:text-9xl text-[#000b3d] leading-none mb-2">
+          <h1 className="font-display text-5xl md:text-7xl text-[#000b3d] leading-none mb-2">
             With you, Every step.
           </h1>
           <div className="mt-10">
