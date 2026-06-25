@@ -258,28 +258,6 @@ const Index = () => (
             </div>
           </div>
 
-          {/* GROW */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-stretch rounded-card overflow-hidden border border-border shadow-card">
-            <div className="bg-foreground p-10 flex flex-col justify-between">
-              <h3 className="font-display text-5xl md:text-6xl text-background mb-6">Grow</h3>
-              <p className="font-body text-base text-background/70 leading-relaxed">GROW moves beyond a single session or workshop. It is one-on-one coaching, leadership development and organisational wellness systems for people and teams who want lasting change.</p>
-            </div>
-            <div className="grid grid-cols-2 gap-px bg-border">
-              {[
-                { icon: DollarSign,    title: 'PEM Integration',          body: 'Performance & Engagement Management wired into HR workflows with real-time wellbeing signals.' },
-                { icon: Star,          title: 'C-Suite Wellness',          body: 'Bespoke executive coaching and confidential mental health support for senior leaders.' },
-                { icon: Users,         title: 'Corporate Coaching',        body: 'Team coaching, leadership development, and resilience programs by certified coaches.' },
-                { icon: GraduationCap, title: 'Therapist Training & CPD',  body: 'Continuous Professional Development, clinical supervision, and platform certification.' },
-              ].map((c) => (
-                <div key={c.title} className="bg-card p-6 flex flex-col gap-3">
-                  <c.icon className="h-5 w-5 text-muted-foreground" />
-                  <p className="font-display text-base text-foreground">{c.title}</p>
-                  <p className="font-body text-sm text-muted-foreground leading-relaxed">{c.body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
         </div>
       </div>
     </section>
@@ -384,9 +362,31 @@ const Index = () => (
       <div className="container mx-auto px-6">
         <div className="inline-block border border-border rounded-full px-4 py-1.5 font-ui text-sm text-muted-foreground uppercase tracking-widest mb-10">Partnerships</div>
         <h2 className="font-display text-5xl md:text-6xl text-foreground mb-4">Partnerships & Collaborations</h2>
-        <p className="font-body text-lg text-muted-foreground mb-14 max-w-2xl">
-          Nawe works alongside governments, NGOs, research institutions, and private sector partners to extend our reach and deepen our impact.
-        </p>
+
+        {/* GROW */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-stretch rounded-card overflow-hidden border border-border shadow-card mb-16 mt-10">
+          <div className="bg-foreground p-10 flex flex-col justify-between">
+            <h3 className="font-display text-5xl md:text-6xl text-background mb-6">Grow</h3>
+            <p className="font-body text-lg text-muted-foreground mb-14 max-w-2xl"> Nawe works alongside governments, NGOs, research institutions, and private sector partners to extend our reach and deepen our impact.</p>
+            <p className="font-body text-base text-background/70 leading-relaxed">GROW moves beyond a single session or workshop. It is one-on-one coaching, leadership development and organisational wellness systems for people and teams who want lasting change.</p>
+            <p className="font-body text-base text-background/70 leading-relaxed">Nawe works alongside governments, NGOs, research institutions, and private sector partners to extend our reach and deepen our impact.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-px bg-border">
+            {[
+              { icon: DollarSign,    title: 'PEM Integration',          body: 'Performance & Engagement Management wired into HR workflows with real-time wellbeing signals.' },
+              { icon: Star,          title: 'C-Suite Wellness',          body: 'Bespoke executive coaching and confidential mental health support for senior leaders.' },
+              { icon: Users,         title: 'Corporate Coaching',        body: 'Team coaching, leadership development, and resilience programs by certified coaches.' },
+              { icon: GraduationCap, title: 'Therapist Training & CPD',  body: 'Continuous Professional Development, clinical supervision, and platform certification.' },
+            ].map((c) => (
+              <div key={c.title} className="bg-card p-6 flex flex-col gap-3">
+                <c.icon className="h-5 w-5 text-muted-foreground" />
+                <p className="font-display text-base text-foreground">{c.title}</p>
+                <p className="font-body text-sm text-muted-foreground leading-relaxed">{c.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-14">
           {partners.map((p) => (
             <div key={p.title} className="bg-background border border-border rounded-card p-7 shadow-card">
