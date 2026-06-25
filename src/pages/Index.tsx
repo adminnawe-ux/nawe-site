@@ -237,19 +237,19 @@ const Index = () => (
         <div className="space-y-16 mt-2">
 
           {/* CONNECT */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-            <div>
-              <span className="inline-block bg-foreground text-background font-ui text-sm px-4 py-1.5 rounded-full mb-5">Connect</span>
-              <p className="font-body text-lg text-muted-foreground leading-relaxed">Mental health care does not start in a clinic. It starts in the places people already gather: offices, schools, places of worship, WhatsApp groups. CONNECT brings facilitated workshops, public events and corporate wellness sessions into those everyday spaces, so asking for help becomes normal long before someone is in crisis.</p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-stretch rounded-card overflow-hidden border border-border shadow-card">
+            <div className="bg-foreground p-10 flex flex-col justify-between">
+              <h3 className="font-display text-5xl md:text-6xl text-background mb-6">Connect</h3>
+              <p className="font-body text-base text-background/70 leading-relaxed">Mental health care does not start in a clinic. It starts in the places people already gather: offices, schools, places of worship, WhatsApp groups. CONNECT brings facilitated workshops, public events and corporate wellness sessions into those everyday spaces, so asking for help becomes normal long before someone is in crisis.</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-px bg-border">
               {[
                 { icon: Users,     title: 'Community Workshops',      body: 'Facilitated mental health sessions in workplaces, schools, and community spaces.' },
                 { icon: Building2, title: 'Corporate Wellness Events', body: 'Structured wellbeing days, awareness campaigns, and manager training.' },
                 { icon: Globe,     title: 'Public Events',             body: 'Mental health talks, panel discussions, and awareness drives open to all.' },
                 { icon: Heart,     title: 'Peer Support Groups',       body: 'Moderated peer communities for ongoing connection and shared experience.' },
               ].map((c) => (
-                <div key={c.title} className="bg-card border border-border rounded-card p-5 flex flex-col gap-3">
+                <div key={c.title} className="bg-card p-6 flex flex-col gap-3">
                   <c.icon className="h-5 w-5 text-muted-foreground" />
                   <p className="font-display text-base text-foreground">{c.title}</p>
                   <p className="font-body text-sm text-muted-foreground leading-relaxed">{c.body}</p>
@@ -259,19 +259,19 @@ const Index = () => (
           </div>
 
           {/* GROW */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-            <div>
-              <span className="inline-block bg-foreground text-background font-ui text-sm px-4 py-1.5 rounded-full mb-5">Grow</span>
-              <p className="font-body text-lg text-muted-foreground leading-relaxed">GROW moves beyond a single session or workshop. It is one-on-one coaching, leadership development and organisational wellness systems for people and teams who want lasting change.</p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-stretch rounded-card overflow-hidden border border-border shadow-card">
+            <div className="bg-foreground p-10 flex flex-col justify-between">
+              <h3 className="font-display text-5xl md:text-6xl text-background mb-6">Grow</h3>
+              <p className="font-body text-base text-background/70 leading-relaxed">GROW moves beyond a single session or workshop. It is one-on-one coaching, leadership development and organisational wellness systems for people and teams who want lasting change.</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-px bg-border">
               {[
                 { icon: DollarSign,    title: 'PEM Integration',          body: 'Performance & Engagement Management wired into HR workflows with real-time wellbeing signals.' },
                 { icon: Star,          title: 'C-Suite Wellness',          body: 'Bespoke executive coaching and confidential mental health support for senior leaders.' },
                 { icon: Users,         title: 'Corporate Coaching',        body: 'Team coaching, leadership development, and resilience programs by certified coaches.' },
                 { icon: GraduationCap, title: 'Therapist Training & CPD',  body: 'Continuous Professional Development, clinical supervision, and platform certification.' },
               ].map((c) => (
-                <div key={c.title} className="bg-card border border-border rounded-card p-5 flex flex-col gap-3">
+                <div key={c.title} className="bg-card p-6 flex flex-col gap-3">
                   <c.icon className="h-5 w-5 text-muted-foreground" />
                   <p className="font-display text-base text-foreground">{c.title}</p>
                   <p className="font-body text-sm text-muted-foreground leading-relaxed">{c.body}</p>
@@ -302,19 +302,19 @@ const Index = () => (
         </div>
 
         {/* HEAL — below What We Offer */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start mt-20 pt-16 border-t border-border">
-          <div>
-            <span className="inline-block bg-foreground text-background font-ui text-sm px-4 py-1.5 rounded-full mb-5">Heal</span>
-            <p className="font-body text-lg text-muted-foreground leading-relaxed">We help individuals, families and communities heal from life's challenges through evidence-based psychological care. We provide compassionate support to help you heal, cope, and move forward. Healing minds strengthens lives. We are here to support your healing journey, one step at a time.</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-stretch rounded-card overflow-hidden border border-border shadow-card mt-20">
+          <div className="bg-foreground p-10 flex flex-col justify-between">
+            <h3 className="font-display text-5xl md:text-6xl text-background mb-6">Heal</h3>
+            <p className="font-body text-base text-background/70 leading-relaxed">We help individuals, families and communities heal from life's challenges through evidence-based psychological care. We provide compassionate support to help you heal, cope, and move forward. Healing minds strengthens lives. We are here to support your healing journey, one step at a time.</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-px bg-border">
             {[
               { icon: Heart,    title: 'Therapist Matching',  body: 'Smart matching to licensed therapists by specialty, language, and price.' },
               { icon: Video,    title: 'Online Sessions',     body: 'Secure video or phone therapy from anywhere. No commute, no waiting room.' },
               { icon: MapPin,   title: 'In-Person Therapy',   body: 'Face-to-face sessions with local therapists in Nairobi, Kampala, Lagos.' },
               { icon: BookOpen, title: 'Self-Help Resources', body: 'Curated articles, mood trackers, and guided exercises between sessions.' },
             ].map((c) => (
-              <div key={c.title} className="bg-card border border-border rounded-card p-5 flex flex-col gap-3">
+              <div key={c.title} className="bg-card p-6 flex flex-col gap-3">
                 <c.icon className="h-5 w-5 text-muted-foreground" />
                 <p className="font-display text-base text-foreground">{c.title}</p>
                 <p className="font-body text-sm text-muted-foreground leading-relaxed">{c.body}</p>
