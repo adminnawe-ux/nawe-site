@@ -119,10 +119,14 @@ const Index = () => (
   <div>
 
     {/* 1 · HERO ─────────────────────────────────────────────────────────── */}
-    <section className="relative min-h-screen flex items-center overflow-hidden bg-[#eaccac]">
+    <section className="relative min-h-screen flex items-center overflow-hidden bg-white">
+      {/* Decorative circles */}
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-[#c8e6f7] translate-x-1/4 -translate-y-1/4 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[420px] h-[420px] rounded-full bg-[#f0e8d8] -translate-x-1/4 translate-y-1/4 pointer-events-none" />
+
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-3xl animate-fade-in">
-          <p className="font-ui text-[#000b3d]/70 text-sm uppercase tracking-widest mb-8">
+          <p className="font-ui text-[#000b3d]/50 text-sm uppercase tracking-widest mb-8">
             Connect  - Heal - Grow
           </p>
           <h1 className="font-display text-7xl md:text-9xl text-[#000b3d] leading-none mb-2">
@@ -132,25 +136,25 @@ const Index = () => (
             Every step.
           </h1>
           <div className="mt-10">
-            <p className="font-ui text-sm text-[#000b3d]/60 uppercase tracking-widest mb-4">I'm here as a...</p>
+            <p className="font-ui text-sm text-[#000b3d]/50 uppercase tracking-widest mb-4">I'm here as a...</p>
             <div className="flex flex-wrap gap-3">
               <Link to="/questionnaire">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/40 text-[#000b3d] hover:bg-[#000b3d]/10 transition-colors">
+                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/30 text-[#000b3d] hover:bg-[#000b3d]/8 transition-colors">
                   Individual
                 </button>
               </Link>
               <Link to="/for-therapists">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/40 text-[#000b3d] hover:bg-[#000b3d]/10 transition-colors">
+                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/30 text-[#000b3d] hover:bg-[#000b3d]/8 transition-colors">
                   Therapist
                 </button>
               </Link>
               <Link to="/how-it-works">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/40 text-[#000b3d] hover:bg-[#000b3d]/10 transition-colors">
+                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/30 text-[#000b3d] hover:bg-[#000b3d]/8 transition-colors">
                   Corporate
                 </button>
               </Link>
               <a href="/#partnerships">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/40 text-[#000b3d] hover:bg-[#000b3d]/10 transition-colors">
+                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/30 text-[#000b3d] hover:bg-[#000b3d]/8 transition-colors">
                   Partner
                 </button>
               </a>
