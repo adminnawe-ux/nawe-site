@@ -10,16 +10,11 @@ import {
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
-const pillars = [
-  { icon: DollarSign, title: 'Standardized', sub: 'Transparent Pricing' },
-  { icon: Shield,     title: 'Vetted',        sub: 'Licensed Therapists' },
-  { icon: Laptop,     title: 'Digital',       sub: 'Accessible Platform' },
-];
 
 const stats = [
   { value: '20+',    label: 'Licensed Therapists' },
   { value: '1,000+', label: 'Sessions Completed' },
-  { value: '6+',     label: 'Countries' },
+  { value: '3+',     label: 'Countries' },
   { value: '4.8/5',  label: 'Average Rating' },
 ];
 
