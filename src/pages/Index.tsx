@@ -234,9 +234,9 @@ const Index = () => (
 
                   {/* CONNECT */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-stretch rounded-card overflow-hidden border border-border shadow-card">
-            <div className="bg-foreground p-10 flex flex-col justify-between">
-              <h3 className="font-display text-5xl md:text-6xl text-background mb-6">Connect</h3>
-              <p className="font-body text-base text-background/70 leading-relaxed">Mental health care does not start in a clinic. It starts in the places people already gather: offices, schools, places of worship, WhatsApp groups. CONNECT brings facilitated workshops, public events and corporate wellness sessions into those everyday spaces, so asking for help becomes normal long before someone is in crisis.</p>
+            <div className="bg-[#c8e6f7] p-10 flex flex-col justify-between">
+              <h3 className="font-display text-5xl md:text-6xl text-[#000b3d] mb-6">Connect</h3>
+              <p className="font-body text-base text-[#000b3d]/70 leading-relaxed">Mental health care does not start in a clinic. It starts in the places people already gather: offices, schools, places of worship, WhatsApp groups. CONNECT brings facilitated workshops, public events and corporate wellness sessions into those everyday spaces, so asking for help becomes normal long before someone is in crisis.</p>
             </div>
             <div className="grid grid-cols-2 gap-px bg-border">
               {[
