@@ -257,9 +257,9 @@ const Index = () => (
 
         {/* HEAL — below What We Offer */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-stretch rounded-card overflow-hidden border border-border shadow-card mt-20">
-          <div className="bg-foreground p-10 flex flex-col justify-between">
-            <h3 className="font-display text-5xl md:text-6xl text-background mb-6">Heal</h3>
-            <p className="font-body text-base text-background/70 leading-relaxed">We help individuals, families and communities heal from life's challenges through evidence-based psychological care. We provide compassionate support to help you heal, cope, and move forward. Healing minds strengthens lives. We are here to support your healing journey, one step at a time.</p>
+          <div className="bg-[#c8e6f7] p-10 flex flex-col justify-between">
+            <h3 className="font-display text-5xl md:text-6xl text-[#000b3d] mb-6">Heal</h3>
+            <p className="font-body text-base text-[#000b3d]/70 leading-relaxed">We help individuals, families and communities heal from life's challenges through evidence-based psychological care. We provide compassionate support to help you heal, cope, and move forward. Healing minds strengthens lives. We are here to support your healing journey, one step at a time.</p>
           </div>
           <div className="grid grid-cols-2 gap-px bg-border">
             {[
@@ -329,11 +329,11 @@ const Index = () => (
 
         {/* GROW */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-stretch rounded-card overflow-hidden border border-border shadow-card mb-16 mt-10">
-          <div className="bg-foreground p-10 flex flex-col justify-between">
-            <h3 className="font-display text-5xl md:text-6xl text-background mb-6">Grow</h3>
-            <p className="font-body text-lg text-muted-foreground mb-14 max-w-2xl"> Nawe works alongside governments, NGOs, research institutions, and private sector partners to extend our reach and deepen our impact.</p>
-            <p className="font-body text-base text-background/70 leading-relaxed">GROW moves beyond a single session or workshop. It is one-on-one coaching, leadership development and organisational wellness systems for people and teams who want lasting change.</p>
-            <p className="font-body text-base text-background/70 leading-relaxed">Nawe works alongside governments, NGOs, research institutions, and private sector partners to extend our reach and deepen our impact.</p>
+          <div className="bg-[#c8e6f7] p-10 flex flex-col justify-between">
+            <h3 className="font-display text-5xl md:text-6xl text-[#000b3d] mb-6">Grow</h3>
+            <p className="font-body text-lg text-[#000b3d]/70 mb-14 max-w-2xl">Nawe works alongside governments, NGOs, research institutions, and private sector partners to extend our reach and deepen our impact.</p>
+            <p className="font-body text-base text-[#000b3d]/70 leading-relaxed">GROW moves beyond a single session or workshop. It is one-on-one coaching, leadership development and organisational wellness systems for people and teams who want lasting change.</p>
+            <p className="font-body text-base text-[#000b3d]/70 leading-relaxed">Nawe works alongside governments, NGOs, research institutions, and private sector partners to extend our reach and deepen our impact.</p>
           </div>
           <div className="grid grid-cols-2 gap-px bg-border">
             {[
