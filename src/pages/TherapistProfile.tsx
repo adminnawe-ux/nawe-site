@@ -335,14 +335,12 @@ const TherapistProfile = () => {
                           {r.verified && (
                             <Badge variant="secondary" className="ml-2 text-[10px] font-ui bg-success/10 text-success border-0">Verified</Badge>
                           )}
-                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                          {(r as any).reviewer_name && (
-                            <span className="ml-auto font-ui text-xs text-muted-foreground">{(r as any).reviewer_name}</span>
+                          {(r as { reviewer_name?: string }).reviewer_name && (
+                            <span className="ml-auto font-ui text-xs text-muted-foreground">{(r as { reviewer_name?: string }).reviewer_name}</span>
                           )}
                         </div>
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                        {(r as any).comment && (
-                          <p className="font-body text-sm text-muted-foreground leading-relaxed mt-2">{(r as any).comment}</p>
+                        {(r as { comment?: string }).comment && (
+                          <p className="font-body text-sm text-muted-foreground leading-relaxed mt-2">{(r as { comment?: string }).comment}</p>
                         )}
                       </CardContent>
                     </Card>
