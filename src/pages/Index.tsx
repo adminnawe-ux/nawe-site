@@ -78,15 +78,15 @@ const NewsletterPanel = () => {
   };
 
   return (
-    <div className="bg-foreground rounded-card p-8 flex flex-col gap-6">
+    <div className="bg-[#c8e6f7] rounded-card p-8 flex flex-col gap-6">
       <div>
-        <h3 className="font-display text-2xl text-background mb-3">Stay Informed</h3>
-        <p className="font-body text-base text-background/70 leading-relaxed">
+        <h3 className="font-display text-2xl text-[#000b3d] mb-3">Stay Informed</h3>
+        <p className="font-body text-base text-[#000b3d]/70 leading-relaxed">
           Subscribe to our newsletter for the latest mental health research, therapist insights, and community stories from across Africa.
         </p>
       </div>
       {state === 'done' ? (
-        <p className="font-ui text-base text-primary text-center py-4">You're subscribed! We'll be in touch.</p>
+        <p className="font-ui text-base text-[#000b3d] text-center py-4">You're subscribed! We'll be in touch.</p>
       ) : (
         <div className="space-y-3">
           <input
@@ -95,7 +95,7 @@ const NewsletterPanel = () => {
             onChange={(e) => { setEmail(e.target.value); if (state === 'error') setState('idle'); }}
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             placeholder="Your email address"
-            className="w-full rounded-full px-4 py-3 font-ui text-sm bg-background/10 border border-background/20 text-background placeholder:text-background/50 outline-none focus:border-background/60"
+            className="w-full rounded-full px-4 py-3 font-ui text-sm bg-[#000b3d]/10 border border-[#000b3d]/20 text-[#000b3d] placeholder:text-[#000b3d]/50 outline-none focus:border-[#000b3d]/60"
           />
           {state === 'error' && (
             <p className="font-ui text-sm text-destructive text-center">{errorMsg}</p>
@@ -352,18 +352,18 @@ const Index = () => (
         </div>
 
         {/* Partnership CTA */}
-        <div className="bg-foreground rounded-card p-10 md:p-14 flex flex-col md:flex-row md:items-center gap-8">
+        <div className="bg-[#c8e6f7] rounded-card p-10 md:p-14 flex flex-col md:flex-row md:items-center gap-8">
           <div className="flex-1">
-            <p className="font-ui text-sm text-background/50 uppercase tracking-widest mb-3">Work with us</p>
-            <h3 className="font-display text-3xl md:text-4xl text-background mb-4">
+            <p className="font-ui text-sm text-[#000b3d]/50 uppercase tracking-widest mb-3">Work with us</p>
+            <h3 className="font-display text-3xl md:text-4xl text-[#000b3d] mb-4">
               Bring mental health support to your organisation
             </h3>
-            <p className="font-body text-base text-background/70 leading-relaxed max-w-xl">
+            <p className="font-body text-base text-[#000b3d]/70 leading-relaxed max-w-xl">
               Whether you're a corporation building an employee wellness programme, an NGO serving a community, or a government body shaping mental health policy — we'd love to explore how Nawe can support your goals.
             </p>
             <div className="flex flex-wrap gap-3 mt-6">
               {['Corporate Wellness', 'NGO & Civil Society', 'Government', 'Research & Academic'].map(tag => (
-                <span key={tag} className="font-ui text-xs px-3 py-1.5 rounded-full border border-background/20 text-background/60">{tag}</span>
+                <span key={tag} className="font-ui text-xs px-3 py-1.5 rounded-full border border-[#000b3d]/20 text-[#000b3d]/60">{tag}</span>
               ))}
             </div>
           </div>
@@ -450,14 +450,14 @@ const Index = () => (
     </section>
 
     {/* 10 · FINAL CTA ───────────────────────────────────────────────────── */}
-    <section className="py-28 bg-foreground">
+    <section className="py-28 bg-[#c8e6f7]">
       <div className="container mx-auto px-6">
         <div className="max-w-2xl mx-auto text-center">
-          <Heart className="h-12 w-12 text-primary mx-auto mb-8" />
-          <h2 className="font-display text-5xl md:text-6xl text-background mb-6">
+          <Heart className="h-12 w-12 text-[#000b3d]/40 mx-auto mb-8" />
+          <h2 className="font-display text-5xl md:text-6xl text-[#000b3d] mb-6">
             Your journey starts with one step
           </h2>
-          <p className="font-body text-xl text-background/70 mb-10 max-w-lg mx-auto leading-relaxed">
+          <p className="font-body text-xl text-[#000b3d]/70 mb-10 max-w-lg mx-auto leading-relaxed">
             You don't have to figure this out alone. Let us help you find a therapist who understands.
           </p>
           <Link to="/questionnaire">
