@@ -12,7 +12,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Search, CheckCircle, XCircle, Eye, Shield, Clock, Pencil } from 'lucide-react';
+import { Search, CheckCircle, XCircle, Eye, Shield, Clock, Pencil, FileText } from 'lucide-react';
 
 interface TherapistRow {
   id: string;
@@ -31,6 +31,7 @@ interface TherapistRow {
   verification_status: string | null;
   price_per_session: number | null;
   currency: string | null;
+  cv_url: string | null;
   created_at: string;
   profile?: { first_name: string | null; last_name: string | null } | null;
 }
@@ -158,6 +159,17 @@ const AdminTherapists = () => {
       fetchTherapists();
       setSelected(null);
     }
+  };
+
+  const viewCv = async (cvPath: string) => {
+    const { data, error } = await supabase.storage
+      .from('therapist-cvs')
+      .createSignedUrl(cvPath, 60);
+    if (error || !data?.signedUrl) {
+      toast({ title: 'Could not open CV', description: error?.message ?? 'Try again.', variant: 'destructive' });
+      return;
+    }
+    window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
   };
 
   // 'approved' was saved by a previous version of this page; treat it as 'verified'
@@ -323,6 +335,11 @@ const AdminTherapists = () => {
                 <Button variant="outline" size="sm" className="font-ui gap-1.5" onClick={() => openEdit(selected)}>
                   <Pencil className="h-3.5 w-3.5" /> Edit Profile
                 </Button>
+                {selected.cv_url && (
+                  <Button variant="outline" size="sm" className="font-ui gap-1.5" onClick={() => viewCv(selected.cv_url!)}>
+                    <FileText className="h-3.5 w-3.5" /> View CV
+                  </Button>
+                )}
                 {!isVerified(selected.verification_status) && (
                   <Button className="font-ui gap-1.5" onClick={() => updateStatus(selected.id, 'verified', true)}>
                     <CheckCircle className="h-4 w-4" /> Verify
