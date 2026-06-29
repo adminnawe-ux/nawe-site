@@ -549,6 +549,7 @@ export type Database = {
           created_at: string
           cultural_competencies: string[] | null
           currency: string | null
+          cv_url: string | null
           education: string | null
           id: string
           insurance_accepted: string[] | null
@@ -580,6 +581,7 @@ export type Database = {
           created_at?: string
           cultural_competencies?: string[] | null
           currency?: string | null
+          cv_url?: string | null
           education?: string | null
           id?: string
           insurance_accepted?: string[] | null
@@ -611,6 +613,7 @@ export type Database = {
           created_at?: string
           cultural_competencies?: string[] | null
           currency?: string | null
+          cv_url?: string | null
           education?: string | null
           id?: string
           insurance_accepted?: string[] | null

@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/use-toast';
 import {
   ArrowLeft, ArrowRight, Check, User, Stethoscope, Globe, DollarSign, Settings,
-  X, Plus, Loader2
+  X, Plus, Loader2, FileText, UploadCloud,
 } from 'lucide-react';
 
 const STEPS = [
@@ -22,6 +22,7 @@ const STEPS = [
   { icon: Globe, label: 'Session Setup', description: 'Formats, languages & populations' },
   { icon: DollarSign, label: 'Pricing', description: 'Fees & financial policies' },
   { icon: Settings, label: 'Preferences', description: 'Scheduling & final details' },
+  { icon: FileText, label: 'Documents', description: 'CV & cover letter' },
 ];
 
 const SPECIALISATIONS = [
@@ -127,6 +128,9 @@ const ChipSelect = ({
   </div>
 );
 
+const ACCEPTED_CV_TYPES = '.pdf,.doc,.docx';
+const MAX_CV_BYTES = 5 * 1024 * 1024;
+
 const TherapistOnboarding = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -134,6 +138,10 @@ const TherapistOnboarding = () => {
   const [data, setData] = useState<OnboardingData>(defaultData);
   const [saving, setSaving] = useState(false);
   const [customCompetency, setCustomCompetency] = useState('');
+  const [cvFile, setCvFile] = useState<File | null>(null);
+  const [cvUrl, setCvUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const update = <K extends keyof OnboardingData>(key: K, value: OnboardingData[K]) =>
     setData((prev) => ({ ...prev, [key]: value }));
@@ -149,6 +157,48 @@ const TherapistOnboarding = () => {
     if (trimmed && !data.cultural_competencies.includes(trimmed)) {
       update('cultural_competencies', [...data.cultural_competencies, trimmed]);
       setCustomCompetency('');
+    }
+  };
+
+  const handleCvSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_CV_BYTES) {
+      toast({ title: 'File too large', description: 'Maximum size is 5 MB.', variant: 'destructive' });
+      return;
+    }
+    setCvFile(file);
+    setCvUrl(null);
+  };
+
+  const handleCvUpload = async () => {
+    if (!cvFile || !user) return;
+    setUploading(true);
+    setUploadProgress(0);
+    try {
+      const ext = cvFile.name.split('.').pop()?.toLowerCase() ?? 'pdf';
+      const timestamp = Date.now();
+      const path = `${user.id}/${timestamp}_cv.${ext}`;
+
+      // Simulate progress (Supabase JS v2 doesn't stream upload progress)
+      const ticker = setInterval(() => setUploadProgress((p) => Math.min(p + 15, 85)), 200);
+
+      const { error: uploadError } = await supabase.storage
+        .from('therapist-cvs')
+        .upload(path, cvFile);
+
+      clearInterval(ticker);
+
+      if (uploadError) throw uploadError;
+
+      setUploadProgress(100);
+      setCvUrl(path);
+      toast({ title: 'CV uploaded', description: cvFile.name });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Upload failed.';
+      toast({ title: 'Upload failed', description: message, variant: 'destructive' });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -178,11 +228,28 @@ const TherapistOnboarding = () => {
         if (roleError) throw roleError;
       }
 
+      // If therapist already has a cv_url, archive it to history before overwriting
+      if (cvUrl) {
+        const { data: existing } = await supabase
+          .from('therapists')
+          .select('id, cv_url')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (existing?.cv_url && existing.cv_url !== cvUrl) {
+          await supabase.from('therapist_cv_history').insert({
+            therapist_id: existing.id,
+            cv_url: existing.cv_url,
+          });
+        }
+      }
+
       // Upsert therapist record after the role exists so the DB trigger allows it.
       const { error: tError } = await supabase.from('therapists').upsert(
         {
           user_id: user.id,
           ...data,
+          cv_url: cvUrl,
           verification_status: 'pending',
           verified: false,
         },
@@ -469,6 +536,60 @@ const TherapistOnboarding = () => {
               </>
             )}
 
+            {step === 5 && (
+              <>
+                <div className="space-y-3">
+                  <Label className="font-ui text-sm">CV & Cover Letter <span className="text-destructive">*</span></Label>
+                  <p className="font-body text-xs text-muted-foreground">
+                    Upload a single PDF, DOC, or DOCX file (max 5 MB) combining your CV and cover letter.
+                    Previous versions are kept on file for reference.
+                  </p>
+                  <label className={`flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-[var(--radius-card)] p-8 cursor-pointer transition-colors ${cvUrl ? 'border-success/40 bg-success/5' : 'border-border hover:border-primary/40'}`}>
+                    <input
+                      type="file"
+                      accept={ACCEPTED_CV_TYPES}
+                      className="sr-only"
+                      onChange={handleCvSelect}
+                    />
+                    {cvUrl ? (
+                      <>
+                        <FileText className="h-8 w-8 text-success" />
+                        <p className="font-ui text-sm text-success">Uploaded: {cvFile?.name}</p>
+                        <p className="font-ui text-xs text-muted-foreground">Click to replace</p>
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloud className="h-8 w-8 text-muted-foreground" />
+                        <p className="font-ui text-sm text-foreground">{cvFile ? cvFile.name : 'Click to choose file'}</p>
+                        <p className="font-ui text-xs text-muted-foreground">PDF, DOC, DOCX — max 5 MB</p>
+                      </>
+                    )}
+                  </label>
+
+                  {cvFile && !cvUrl && (
+                    <div className="space-y-2">
+                      {uploading && (
+                        <div className="h-1.5 w-full rounded-full bg-border overflow-hidden">
+                          <div
+                            className="h-full bg-primary transition-all duration-200"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                      )}
+                      <Button
+                        type="button"
+                        onClick={handleCvUpload}
+                        disabled={uploading}
+                        className="font-ui rounded-full w-full"
+                      >
+                        {uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading…</> : <><UploadCloud className="mr-2 h-4 w-4" /> Upload CV</>}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
             {step === 4 && (
               <>
                 <div className="space-y-2">
@@ -527,7 +648,7 @@ const TherapistOnboarding = () => {
                 Continue <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
-              <Button onClick={handleSubmit} disabled={saving} className="font-ui rounded-full">
+              <Button onClick={handleSubmit} disabled={saving || !cvUrl} className="font-ui rounded-full">
                 {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting…</> : <>Submit Profile <Check className="ml-2 h-4 w-4" /></>}
               </Button>
             )}
