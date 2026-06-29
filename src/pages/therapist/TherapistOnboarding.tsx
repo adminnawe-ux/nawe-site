@@ -214,54 +214,20 @@ const TherapistOnboarding = () => {
     if (!user) return;
     setSaving(true);
     try {
-      // Add therapist role if not present
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'therapist');
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
 
-      if (!roles || roles.length === 0) {
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({ user_id: user.id, role: 'therapist' as const });
-        if (roleError) throw roleError;
-      }
-
-      // If therapist already has a cv_url, archive it to history before overwriting
-      if (cvUrl) {
-        const { data: existing } = await supabase
-          .from('therapists')
-          .select('id, cv_url')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (existing?.cv_url && existing.cv_url !== cvUrl) {
-          await supabase.from('therapist_cv_history').insert({
-            therapist_id: existing.id,
-            cv_url: existing.cv_url,
-          });
-        }
-      }
-
-      // Upsert therapist record after the role exists so the DB trigger allows it.
-      const { error: tError } = await supabase.from('therapists').upsert(
-        {
-          user_id: user.id,
-          ...data,
-          cv_url: cvUrl,
-          verification_status: 'pending',
-          verified: false,
-        },
-        { onConflict: 'user_id' }
-      );
-      if (tError) throw tError;
+      // Role insert + therapist upsert + cv history done server-side via edge function
+      // (direct user_roles insert is blocked by RLS on the client)
+      const { error: submitError } = await supabase.functions.invoke('submit-therapist-onboarding', {
+        body: { ...data, cv_url: cvUrl },
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      });
+      if (submitError) throw submitError;
 
       localStorage.removeItem(THERAPIST_ONBOARDING_FLAG);
 
       // Notify admin of new application (best-effort)
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
       supabase.functions.invoke('therapist-application-notify', {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
       }).catch((err) => console.error('Admin notification failed:', err));
