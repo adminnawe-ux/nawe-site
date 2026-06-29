@@ -235,8 +235,12 @@ const TherapistOnboarding = () => {
       toast({ title: 'Application submitted!', description: 'Your profile is under review. We will notify you once approved.' });
       navigate('/therapist-portal');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Please try again.';
-      toast({ title: 'Error', description: message, variant: 'destructive' });
+      console.error('Therapist onboarding submit error:', err);
+      toast({
+        title: 'Submission failed',
+        description: 'Something went wrong submitting your application. Please check your connection and try again.',
+        variant: 'destructive',
+      });
     } finally {
       setSaving(false);
     }
