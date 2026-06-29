@@ -28,6 +28,7 @@ import Terms from "@/pages/Terms";
 import AboutUs from "@/pages/AboutUs";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import Resources from "@/pages/Resources";
+import Grow from "@/pages/Grow";
 import Events from "@/pages/Events";
 import EventDetail from "@/pages/EventDetail";
 import EventTicket from "@/pages/EventTicket";
@@ -80,6 +81,7 @@ const App = () => (
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/about" element={<AboutUs />} />
               <Route path="/resources" element={<Resources />} />
+              <Route path="/grow" element={<Grow />} />
               {/* Browsing therapists is open to guests */}
               <Route path="/matches" element={<Matches />} />
               <Route path="/therapist/:id" element={<TherapistProfile />} />
