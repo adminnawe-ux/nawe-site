@@ -14,6 +14,7 @@ vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     auth: {
       signInWithPassword: vi.fn(),
+      signInWithOAuth: vi.fn(),
     },
   },
 }));
@@ -74,6 +75,24 @@ describe('Login', () => {
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/auth-redirect');
+    });
+  });
+
+  it('renders Google sign-in button', () => {
+    renderLogin();
+    expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument();
+  });
+
+  it('calls signInWithOAuth with google provider on Google button click', async () => {
+    vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({ data: { provider: 'google', url: '' }, error: null });
+
+    renderLogin();
+    fireEvent.click(screen.getByRole('button', { name: /continue with google/i }));
+
+    await waitFor(() => {
+      expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith(
+        expect.objectContaining({ provider: 'google' })
+      );
     });
   });
 
