@@ -197,7 +197,7 @@ const TherapistOnboarding = () => {
       const accessToken = sessionData.session?.access_token;
       supabase.functions.invoke('therapist-application-notify', {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
-      }).catch((err) => console.error('Admin notification failed:', err));
+      }).catch(() => {});
 
       toast({ title: 'Application submitted!', description: 'Your profile is under review. We will notify you once approved.' });
       navigate('/therapist-portal');

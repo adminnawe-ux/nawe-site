@@ -41,7 +41,7 @@ export function usePlacesAutocomplete(
     if (!apiKey) return;
     loadGoogleMapsScript(apiKey)
       .then(() => setReady(true))
-      .catch((e) => console.error('Google Maps failed to load:', e));
+      .catch(() => {});
   }, [apiKey]);
 
   // Attach autocomplete whenever the dialog opens and the input is mounted

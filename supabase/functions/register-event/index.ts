@@ -221,6 +221,16 @@ Deno.serve(async (req) => {
   const { event_id, tier_id, attendee_name, attendee_email, phone, group_members } = body;
   const quantity = Math.max(1, Math.min(10, Math.floor(body.quantity ?? 1)));
   console.log('[register-event] body:', JSON.stringify({ event_id, tier_id, attendee_name, attendee_email, phone: phone ? '***' : undefined, quantity, group_members_count: group_members?.length }));
+  if (attendee_name && attendee_name.trim().length > 200) {
+    return new Response(JSON.stringify({ error: 'Name is too long.' }), {
+      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  if (attendee_email && attendee_email.trim().length > 254) {
+    return new Response(JSON.stringify({ error: 'Email address is too long.' }), {
+      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
   if (!event_id || !attendee_name?.trim() || !attendee_email?.trim()) {
     console.error('[register-event] 400: missing required fields', { event_id: !!event_id, attendee_name: !!attendee_name?.trim(), attendee_email: !!attendee_email?.trim() });
     return new Response(JSON.stringify({ error: 'event_id, attendee_name, and attendee_email are required' }), {

@@ -106,9 +106,7 @@ const TherapistCalendar = () => {
         body: { session_id: sessionId, status },
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
       });
-      if (notifyError) {
-        console.error('Session status notification failed:', notifyError);
-      }
+      if (notifyError) { /* notification is non-critical */ }
       toast({ title: 'Session updated', description: `Session marked as ${status}.` });
     }
     setUpdatingId(null);

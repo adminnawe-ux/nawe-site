@@ -46,6 +46,12 @@ Deno.serve(async (req) => {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
+  if (company_name.trim().length > 200 || contact_name.trim().length > 200 || email.trim().length > 254 ||
+      (phone && phone.trim().length > 20) || (message && message.trim().length > 2000)) {
+    return new Response(JSON.stringify({ error: 'One or more fields exceed the maximum allowed length.' }), {
+      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 
   const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
