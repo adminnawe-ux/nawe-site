@@ -116,6 +116,11 @@ Deno.serve(async (req) => {
   const contactEmail = payload.contact_email?.trim() ?? '';
   const contactPhone = payload.contact_phone?.trim() ?? '';
   const intake = payload.intake_payload ?? {};
+  if (contactEmail.length > 254 || contactPhone.length > 20) {
+    return new Response(JSON.stringify({ error: 'One or more fields exceed the maximum allowed length.' }), {
+      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
   const alertRecipients = getAlertRecipients();
 
   // Rate limit by email
@@ -185,7 +190,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unexpected error' }), {
+    return new Response(JSON.stringify({ error: 'An unexpected error occurred. Please try again.' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

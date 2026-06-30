@@ -51,6 +51,7 @@ async function getNcbaToken(): Promise<string> {
   });
   if (!resp.ok) {
     const text = await resp.text();
+    if (resp.status >= 500) throw new Error('NCBA_UNAVAILABLE');
     throw new Error(`NCBA token error (${resp.status}): ${text}`);
   }
   const json = await resp.json();
@@ -255,8 +256,15 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error('initiate-stk-push error:', err);
+    const msg = err instanceof Error ? err.message : 'Unexpected error';
+    if (msg === 'NCBA_UNAVAILABLE') {
+      return new Response(
+        JSON.stringify({ error: 'M-Pesa payments are temporarily unavailable. Please try again shortly.' }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : 'Unexpected error' }),
+      JSON.stringify({ error: msg }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }

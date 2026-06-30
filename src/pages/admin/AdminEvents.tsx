@@ -434,7 +434,6 @@ const AttendeesPanel = ({ event, tiers, registrations, loading, onToggleCheckIn,
       }
     } catch (err) {
       alert('Approval failed. Please try again.');
-      console.error(err);
     } finally {
       setApproving(false);
     }
@@ -804,7 +803,7 @@ const AdminEvents = () => {
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
           body: JSON.stringify({ event_id: newEvent.id, title: formData.title, location: formData.location || null, starts_at: new Date(formData.starts_at).toISOString(), ends_at: formData.ends_at ? new Date(formData.ends_at).toISOString() : null }),
         });
-      } catch (e) { console.error('Calendar creation failed:', e); }
+      } catch { /* calendar creation is non-critical */ }
       setEvents(prev => [newEvent as Event, ...prev]);
       setCreateOpen(false);
       setFormData(EMPTY_FORM);

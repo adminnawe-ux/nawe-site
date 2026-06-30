@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
     .in('id', registration_ids)
     .eq('payment_status', 'waitlisted');
 
-  if (fetchErr) return new Response(JSON.stringify({ error: fetchErr.message }), {
+  if (fetchErr) return new Response(JSON.stringify({ error: 'An unexpected error occurred. Please try again.' }), {
     status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 

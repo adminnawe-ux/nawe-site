@@ -77,7 +77,7 @@ const AdminTherapists = () => {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) { console.error(error); setLoading(false); return; }
+    if (error) { setLoading(false); return; }
 
     // Batch-fetch all profiles in one query (avoids N+1)
     const userIds = (therapistData || []).map(t => t.user_id);

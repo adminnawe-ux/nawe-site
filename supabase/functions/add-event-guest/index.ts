@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error('add-event-guest error:', err);
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Unexpected error' }), {
+    return new Response(JSON.stringify({ error: 'An unexpected error occurred. Please try again.' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

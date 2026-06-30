@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
     session_id = body.session_id;
     if (!session_id) throw new Error('session_id is required');
   } catch (e) {
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : 'Invalid JSON body' }), {
+    return new Response(JSON.stringify({ error: 'Invalid request body.' }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
@@ -392,7 +392,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error('confirm-payment error:', err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : 'Unexpected error' }),
+      JSON.stringify({ error: 'An unexpected error occurred. Please try again.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }

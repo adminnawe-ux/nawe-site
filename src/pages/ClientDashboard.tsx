@@ -114,7 +114,6 @@ const ClientDashboard = () => {
       .order('scheduled_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching sessions:', error);
       setLoading(false);
       return;
     }

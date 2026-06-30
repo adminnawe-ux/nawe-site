@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': (Deno.env.get('APP_URL') ?? 'https://nawe.co.ke').replace(/\/+$/, ''),
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
     session_id = body.session_id;
     if (!session_id) throw new Error('session_id is required');
   } catch (e) {
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : 'Invalid body' }), {
+    return new Response(JSON.stringify({ error: 'Invalid request body.' }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
@@ -232,7 +232,7 @@ ${contextLines}`;
   } catch (err) {
     console.error('gemma-session-notes error:', err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : 'Unexpected error' }),
+      JSON.stringify({ error: 'An unexpected error occurred. Please try again.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
