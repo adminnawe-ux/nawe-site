@@ -145,7 +145,7 @@ const Index = () => (
                   Therapist
                 </button>
               </Link>
-              <Link to="/how-it-works">
+              <Link to="/grow">
                 <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/30 text-[#000b3d] hover:bg-[#000b3d]/8 transition-colors">
                   Corporate
                 </button>
