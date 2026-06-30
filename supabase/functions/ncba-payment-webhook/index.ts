@@ -50,10 +50,13 @@
       return normalised;
     }
 
-    // Hash verification per NCBA spec:
-    // SHA256(secretKey + TransType + TransID + TransTime + TransAmount + BusinessShortCode + BillRefNumber + Mobile + name + "1")
-    // → hex string → Base64 encode the hex bytes
-    // IMPORTANT: hash uses the raw mobile value exactly as sent by NCBA — do not normalise before hashing
+    // Hash verification per NCBA spec (confirmed 2026-06-30 via scripts/debug-ncba-hash.mjs):
+    // SHA256(secretKey + TransType + TransID + TransTime + TransAmount + CreditAccount + BillRefNumber + Mobile + name + "1")
+    // → lowercase hex string → Base64 encode the hex bytes (not the raw SHA-256 bytes)
+    // CreditAccount is NCBA's internal account number (NCBA_CREDIT_ACCOUNT), NOT BusinessShortCode.
+    // IMPORTANT: hash uses the raw Mobile value exactly as sent by NCBA — do not normalise before hashing.
+    const ncbaCreditAccount = Deno.env.get('NCBA_CREDIT_ACCOUNT') ?? '';
+
     async function verifyHash(p: NCBAPayload): Promise<boolean> {
       if (!ncbaSecretKey) return true; // skip if not configured (dev mode)
 
@@ -61,13 +64,12 @@
       const transId = p.TransID ?? '';
       const transTime = p.TransTime ?? '';
       const transAmount = p.TransAmount ?? '';
-      const shortCode = p.BusinessShortCode ?? p.AccountNr ?? '';
       const billRef = p.BillRefNumber ?? p.Narrative ?? '';
       const mobile = p.Mobile ?? p.PhoneNr ?? '';
       const name = p.name ?? p.CustomerName ?? '';
       const incomingHash = p.Hash ?? p.HashVal ?? '';
 
-      const hashString = ncbaSecretKey + transType + transId + transTime + transAmount + shortCode + billRef + mobile + name + '1';
+      const hashString = ncbaSecretKey + transType + transId + transTime + transAmount + ncbaCreditAccount + billRef + mobile + name + '1';
       const hashBytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(hashString));
       const sha256hex = Array.from(new Uint8Array(hashBytes)).map((b) => b.toString(16).padStart(2, '0')).join('');
       const computed = btoa(String.fromCharCode(...new TextEncoder().encode(sha256hex)));
@@ -132,13 +134,7 @@
       // 2. Verify hash signature
       const hashValid = await verifyHash(payload);
       if (!hashValid) {
-        // Log mismatch for diagnostics but do not reject — username/password auth above is the
-        // primary security layer. Hash algo to be confirmed with NCBA and re-enabled.
-        const incomingHash = payload.Hash ?? payload.HashVal ?? '(none)';
-        console.warn('NCBA webhook: hash mismatch (bypassed)', JSON.stringify({
-          incoming: incomingHash,
-          secretKeyLength: ncbaSecretKey.length,
-        }));
+        return fail('Hash verification failed');
       }
 
       const transId = payload.TransID;
