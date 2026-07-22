@@ -1,0 +1,15 @@
+[Unit]
+Description=Nawe Connect AI agent - pick up ready-for-agent issues
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Edit this path to point at your local clone before enabling the unit.
+Environment=NAWE_AGENT_REPO_DIR=%h/path/to/nawe-connect
+ExecStart=/bin/bash %h/path/to/nawe-connect/scripts/agent-run.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
