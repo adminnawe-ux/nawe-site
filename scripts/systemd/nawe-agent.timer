@@ -1,0 +1,12 @@
+[Unit]
+Description=Run the Nawe agent every 2 hours while logged in
+
+[Timer]
+# In addition to the at-login run from nawe-agent.service (WantedBy=default.target),
+# re-check for ready-for-agent issues periodically while the session stays open.
+OnActiveSec=10m
+OnUnitActiveSec=2h
+Unit=nawe-agent.service
+
+[Install]
+WantedBy=timers.target

@@ -114,3 +114,41 @@ One-off Node.js `.mjs` scripts for operational tasks (sending emails, testing NC
 
 ### This project is NOT Next.js
 It is a Vite + React Router SPA. Ignore any suggestions about `"use client"`, App Router, or Next.js conventions.
+
+## AI issue-to-PR pipeline
+
+This repo has a local-only automated pipeline, run via `scripts/agent-run.sh`
+(manually or on a schedule via the systemd `--user` service). No cloud
+execution — everything runs on the operator's machine. Two label-driven
+phases:
+
+1. **Triage** (`agent-to-review` → `awaiting-fred-review`): for an issue you
+   labeled `agent-to-review` (which may be short or vague), Claude reads the
+   repo read-only and appends a structured analysis to the issue body —
+   affected files, proposed change, tests needed, security notes, open
+   questions. It cannot edit files or touch GitHub itself in this phase.
+2. **Implement** (`ready-for-agent` → `in-progress`): once you've reviewed
+   the analysis and relabel the issue `ready-for-agent`, Claude implements
+   the change on a branch, runs the required checks, and the script pushes
+   the branch and opens a PR (`Closes #<n>`). `ci.yml` gates the merge.
+
+Full details: `.github/PIPELINE.md`.
+
+**Every agent-driven step in this pipeline reads this file first.** If
+you're triaging or implementing an issue here, follow these rules:
+
+- Security-sensitive areas — be conservative, make the smallest correct
+  change, and call out exactly what you touched in the PR description:
+  - The payment flow (`initiate-stk-push`, `query-stk-push`,
+    `ncba-payment-webhook`) and anything reading `NCBA_*` / `MPESA_*` env vars
+  - Supabase RLS policies and `supabase/migrations/*.sql`
+  - Any edge function using the service-role key
+  - Auth/role logic in `AuthContext` and `ProtectedRoute`
+- Never edit `.env`, secrets, or files under `.github/workflows/`.
+- Required checks before a PR is opened (all must pass): `npm run lint`,
+  `npx tsc --noEmit`, `npm run test`, `npm run build`, and the relevant
+  `deno test` if an edge function changed.
+- In the implement phase, treat the issue's `## 🤖 Agent analysis` section
+  (added during triage) as the plan of record — follow it unless it's
+  wrong, in which case implement the correct fix instead and note the
+  deviation in the PR description.
