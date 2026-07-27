@@ -20,6 +20,7 @@ interface ClientRow {
   roles: string[];
   session_count: number;
   has_intake: boolean;
+  is_pure_client: boolean;
 }
 
 const AdminClients = () => {
@@ -45,18 +46,22 @@ const AdminClients = () => {
 
       const enriched: ClientRow[] = (profiles || [])
         .filter(p => clientUserIds.has(p.user_id))
-        .map(p => ({
-          user_id: p.user_id,
-          first_name: p.first_name,
-          last_name: p.last_name,
-          phone: p.phone,
-          country: p.country,
-          location: p.location,
-          created_at: p.created_at,
-          roles: (roles || []).filter(r => r.user_id === p.user_id).map(r => r.role),
-          session_count: (sessions || []).filter(s => s.client_id === p.user_id).length,
-          has_intake: (intakes || []).some(i => i.user_id === p.user_id && i.completed),
-        }));
+        .map(p => {
+          const userRoles = (roles || []).filter(r => r.user_id === p.user_id).map(r => r.role);
+          return {
+            user_id: p.user_id,
+            first_name: p.first_name,
+            last_name: p.last_name,
+            phone: p.phone,
+            country: p.country,
+            location: p.location,
+            created_at: p.created_at,
+            roles: userRoles,
+            session_count: (sessions || []).filter(s => s.client_id === p.user_id).length,
+            has_intake: (intakes || []).some(i => i.user_id === p.user_id && i.completed),
+            is_pure_client: !userRoles.includes('therapist') && !userRoles.includes('admin'),
+          };
+        });
 
       setClients(enriched);
       setLoading(false);
@@ -68,6 +73,8 @@ const AdminClients = () => {
     const name = `${c.first_name || ''} ${c.last_name || ''}`.toLowerCase();
     return name.includes(search.toLowerCase()) || (c.phone || '').includes(search);
   });
+
+  const pureClients = clients.filter(c => c.is_pure_client);
 
   if (loading) return <div className="flex justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>;
 
@@ -81,21 +88,21 @@ const AdminClients = () => {
         <div className="bg-card rounded-card p-4 border border-border shadow-card flex items-center gap-3">
           <Users className="h-5 w-5 text-muted-foreground" />
           <div>
-            <p className="font-display text-xl text-foreground">{clients.length}</p>
+            <p className="font-display text-xl text-foreground">{pureClients.length}</p>
             <p className="font-ui text-xs text-muted-foreground">Total Clients</p>
           </div>
         </div>
         <div className="bg-card rounded-card p-4 border border-border shadow-card flex items-center gap-3">
           <UserCheck className="h-5 w-5 text-muted-foreground" />
           <div>
-            <p className="font-display text-xl text-foreground">{clients.filter(c => c.has_intake).length}</p>
+            <p className="font-display text-xl text-foreground">{pureClients.filter(c => c.has_intake).length}</p>
             <p className="font-ui text-xs text-muted-foreground">Completed Intake</p>
           </div>
         </div>
         <div className="bg-card rounded-card p-4 border border-border shadow-card flex items-center gap-3">
           <Calendar className="h-5 w-5 text-muted-foreground" />
           <div>
-            <p className="font-display text-xl text-foreground">{clients.reduce((s, c) => s + c.session_count, 0)}</p>
+            <p className="font-display text-xl text-foreground">{pureClients.reduce((s, c) => s + c.session_count, 0)}</p>
             <p className="font-ui text-xs text-muted-foreground">Total Sessions</p>
           </div>
         </div>
@@ -124,7 +131,17 @@ const AdminClients = () => {
             <tbody>
               {filtered.map(c => (
                 <tr key={c.user_id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
-                  <td className="p-4 font-display text-sm text-foreground">{c.first_name || '—'} {c.last_name || ''}</td>
+                  <td className="p-4 font-display text-sm text-foreground">
+                    <div className="flex items-center gap-2">
+                      <span>{c.first_name || '—'} {c.last_name || ''}</span>
+                      {!c.is_pure_client && c.roles.includes('therapist') && (
+                        <Badge variant="outline" className="font-ui text-[10px]">Also Therapist</Badge>
+                      )}
+                      {!c.is_pure_client && c.roles.includes('admin') && (
+                        <Badge variant="outline" className="font-ui text-[10px]">Also Admin</Badge>
+                      )}
+                    </div>
+                  </td>
                   <td className="p-4 font-body text-sm text-muted-foreground">{c.location || c.country || '—'}</td>
                   <td className="p-4 font-ui text-sm text-foreground">{c.session_count}</td>
                   <td className="p-4">{c.has_intake ? <Badge className="bg-success/15 text-success border-success/20 font-ui">Done</Badge> : <Badge variant="outline" className="font-ui">Pending</Badge>}</td>

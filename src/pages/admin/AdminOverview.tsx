@@ -17,7 +17,12 @@ const AdminOverview = () => {
 
       // Roles
       const { data: roles } = await supabase.from('user_roles').select('user_id, role');
-      const clientCount = new Set((roles || []).filter(r => r.role === 'client').map(r => r.user_id)).size;
+      const nonClientRoleIds = new Set(
+        (roles || []).filter(r => r.role === 'therapist' || r.role === 'admin').map(r => r.user_id)
+      );
+      const clientCount = new Set(
+        (roles || []).filter(r => r.role === 'client' && !nonClientRoleIds.has(r.user_id)).map(r => r.user_id)
+      ).size;
 
       // Therapists
       const { data: therapists } = await supabase.from('therapists').select('id, verified');
@@ -59,7 +64,7 @@ const AdminOverview = () => {
   if (loading) return <div className="flex justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>;
 
   const cards = [
-    { label: 'Active Clients', value: String(stats.activeClients), icon: Users, link: '/admin/clients' },
+    { label: 'Total Clients', value: String(stats.activeClients), icon: Users, link: '/admin/clients' },
     { label: 'Verified Therapists', value: String(stats.activeTherapists), icon: UserCheck, link: '/admin/therapists' },
     { label: 'Sessions Today', value: String(stats.sessionsToday), icon: CalendarCheck, link: '/admin/sessions' },
     { label: 'Revenue (Month)', value: `KES ${stats.monthlyRevenue.toLocaleString()}`, icon: DollarSign, link: '/admin/finance' },
