@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Placeholder from '@tiptap/extension-placeholder';
+import RichTextEditor from '@/components/RichTextEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +20,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Plus, Edit, Trash2, FileText, Send, Upload, X as XIcon,
-  Bold, Italic, Heading2, Heading3, List, ListOrdered, Quote,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -46,60 +43,6 @@ interface Article {
 const emptyArticle = {
   title: '', slug: '', excerpt: '', category: 'General',
   tags: '', cover_image_url: '', status: 'draft',
-};
-
-// ─── Rich text editor ────────────────────────────────────────────────────────
-
-interface RichEditorProps {
-  initialContent: string;
-  onChange: (html: string) => void;
-}
-
-const RichEditor = ({ initialContent, onChange }: RichEditorProps) => {
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Placeholder.configure({ placeholder: 'Write your article here…' }),
-    ],
-    content: initialContent || '',
-    onUpdate: ({ editor: e }) => onChange(e.getHTML()),
-  });
-
-  if (!editor) return null;
-
-  const btn = (active: boolean, onClick: () => void, label: React.ReactNode) => (
-    <button
-      type="button"
-      onMouseDown={(e) => { e.preventDefault(); onClick(); }}
-      className={`p-1.5 rounded font-ui text-sm transition-colors ${active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
-      title={typeof label === 'string' ? label : undefined}
-    >
-      {label}
-    </button>
-  );
-
-  return (
-    <div className="border border-border rounded-lg overflow-hidden">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-0.5 px-3 py-2 border-b border-border bg-muted/40">
-        {btn(editor.isActive('bold'),        () => editor.chain().focus().toggleBold().run(),          <Bold className="h-4 w-4" />)}
-        {btn(editor.isActive('italic'),      () => editor.chain().focus().toggleItalic().run(),        <Italic className="h-4 w-4" />)}
-        <div className="w-px h-4 bg-border mx-1" />
-        {btn(editor.isActive('heading', { level: 2 }), () => editor.chain().focus().toggleHeading({ level: 2 }).run(), <Heading2 className="h-4 w-4" />)}
-        {btn(editor.isActive('heading', { level: 3 }), () => editor.chain().focus().toggleHeading({ level: 3 }).run(), <Heading3 className="h-4 w-4" />)}
-        <div className="w-px h-4 bg-border mx-1" />
-        {btn(editor.isActive('bulletList'),  () => editor.chain().focus().toggleBulletList().run(),    <List className="h-4 w-4" />)}
-        {btn(editor.isActive('orderedList'), () => editor.chain().focus().toggleOrderedList().run(),   <ListOrdered className="h-4 w-4" />)}
-        <div className="w-px h-4 bg-border mx-1" />
-        {btn(editor.isActive('blockquote'),  () => editor.chain().focus().toggleBlockquote().run(),    <Quote className="h-4 w-4" />)}
-      </div>
-      {/* Editor area */}
-      <EditorContent
-        editor={editor}
-        className="prose prose-sm max-w-none px-4 py-3 min-h-[240px] focus-within:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-muted-foreground [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0"
-      />
-    </div>
-  );
 };
 
 // ─── Main page ───────────────────────────────────────────────────────────────
@@ -410,7 +353,7 @@ const AdminContent = () => {
             </div>
             <div className="space-y-2">
               <Label className="font-ui">Content</Label>
-              <RichEditor key={editorKey} initialContent={editorContent} onChange={setEditorContent} />
+              <RichTextEditor key={editorKey} value={editorContent} onChange={setEditorContent} placeholder="Write your article here…" />
             </div>
           </div>
           <DialogFooter className="gap-2">
