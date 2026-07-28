@@ -23,6 +23,7 @@ import ForTherapists from "@/pages/ForTherapists";
 import HowItWorks from "@/pages/HowItWorks";
 import NotFound from "@/pages/NotFound";
 import AuthRedirect from "@/pages/AuthRedirect";
+import Unsubscribe from "@/pages/Unsubscribe";
 import Blog, { BlogPost } from "@/pages/Blog";
 import Terms from "@/pages/Terms";
 import AboutUs from "@/pages/AboutUs";
@@ -61,6 +62,7 @@ import AdminAnalytics from "@/pages/admin/AdminAnalytics";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminEvents from "@/pages/admin/AdminEvents";
 import AdminReviews from "@/pages/admin/AdminReviews";
+import AdminBroadcast from "@/pages/admin/AdminBroadcast";
 
 const queryClient = new QueryClient();
 
@@ -113,6 +115,7 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/auth-redirect" element={<AuthRedirect />} />
+            <Route path="/unsubscribe" element={<Unsubscribe />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
 
@@ -144,6 +147,7 @@ const App = () => (
               <Route path="/admin/settings" element={<AdminSettings />} />
               <Route path="/admin/events" element={<AdminEvents />} />
               <Route path="/admin/reviews" element={<AdminReviews />} />
+              <Route path="/admin/broadcast" element={<AdminBroadcast />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

@@ -73,6 +73,7 @@
         "npm:@testing-library/dom@^10.4.1",
         "npm:@testing-library/jest-dom@^6.6.0",
         "npm:@testing-library/react@16",
+        "npm:@tiptap/extension-character-count@^3.27.1",
         "npm:@tiptap/extension-placeholder@^3.27.1",
         "npm:@tiptap/pm@^3.27.1",
         "npm:@tiptap/react@^3.27.1",
