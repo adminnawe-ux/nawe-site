@@ -30,8 +30,26 @@ function parseCcList(raw: string): string[] {
     .filter((e) => e.length > 0 && EMAIL_RE.test(e));
 }
 
-function makeUnsubscribeToken(recipient: { user_id: string | null; subscriber_id: string | null; email: string }) {
-  return btoa(JSON.stringify({ u: recipient.user_id, s: recipient.subscriber_id, e: recipient.email }));
+function toBase64Url(bytes: ArrayBuffer) {
+  let binary = '';
+  for (const b of new Uint8Array(bytes)) binary += String.fromCharCode(b);
+  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+}
+
+async function hmacKey(secret: string) {
+  return crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+}
+
+async function makeUnsubscribeToken(
+  recipient: { user_id: string | null; subscriber_id: string | null; email: string },
+  secret: string
+) {
+  const payload = btoa(JSON.stringify({ u: recipient.user_id, s: recipient.subscriber_id, e: recipient.email }));
+  const key = await hmacKey(secret);
+  const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  return `${payload}.${toBase64Url(signature)}`;
 }
 
 function mergeRecipients(registered: Recipient[], newsletter: Recipient[]): Recipient[] {
@@ -89,10 +107,19 @@ Deno.test('parseCcList: empty string produces no addresses', () => {
 // makeUnsubscribeToken
 // ---------------------------------------------------------------------------
 
-Deno.test('makeUnsubscribeToken: round-trips through base64 JSON', () => {
-  const token = makeUnsubscribeToken({ user_id: 'user-1', subscriber_id: null, email: 'a@example.com' });
-  const decoded = JSON.parse(atob(token));
-  assertEquals(decoded, { u: 'user-1', s: null, e: 'a@example.com' });
+Deno.test('makeUnsubscribeToken: payload round-trips through base64 JSON', async () => {
+  const token = await makeUnsubscribeToken({ user_id: 'user-1', subscriber_id: null, email: 'a@example.com' }, 'test-secret');
+  const [payload] = token.split('.');
+  assertEquals(JSON.parse(atob(payload)), { u: 'user-1', s: null, e: 'a@example.com' });
+});
+
+Deno.test('makeUnsubscribeToken: signature differs for different secrets', async () => {
+  const recipient = { user_id: 'user-1', subscriber_id: null, email: 'a@example.com' };
+  const tokenA = await makeUnsubscribeToken(recipient, 'secret-a');
+  const tokenB = await makeUnsubscribeToken(recipient, 'secret-b');
+  const [, sigA] = tokenA.split('.');
+  const [, sigB] = tokenB.split('.');
+  assertEquals(sigA === sigB, false);
 });
 
 // ---------------------------------------------------------------------------

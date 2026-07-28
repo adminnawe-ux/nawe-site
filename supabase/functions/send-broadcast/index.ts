@@ -11,6 +11,7 @@ const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const resendApiKey = Deno.env.get('RESEND_API_KEY') ?? '';
 const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? 'support@nawe.co.ke';
 const appUrl = Deno.env.get('APP_URL') ?? 'https://nawe.co.ke';
+const unsubscribeTokenSecret = Deno.env.get('UNSUBSCRIBE_TOKEN_SECRET') ?? '';
 
 const VALID_ROLES = ['client', 'therapist', 'admin'] as const;
 type Role = (typeof VALID_ROLES)[number];
@@ -47,8 +48,26 @@ function parseCcList(raw: string): string[] {
     .filter((e) => e.length > 0 && EMAIL_RE.test(e));
 }
 
-function makeUnsubscribeToken(recipient: { user_id: string | null; subscriber_id: string | null; email: string }) {
-  return btoa(JSON.stringify({ u: recipient.user_id, s: recipient.subscriber_id, e: recipient.email }));
+function toBase64Url(bytes: ArrayBuffer) {
+  let binary = '';
+  for (const b of new Uint8Array(bytes)) binary += String.fromCharCode(b);
+  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+}
+
+async function hmacKey(secret: string) {
+  return crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+}
+
+// Signs the recipient payload so unsubscribe-broadcast can trust it without
+// re-authenticating the caller. Prevents forging a token for another user's
+// UUID (e.g. therapist user_ids, which are publicly visible on /matches).
+async function makeUnsubscribeToken(recipient: { user_id: string | null; subscriber_id: string | null; email: string }) {
+  const payload = btoa(JSON.stringify({ u: recipient.user_id, s: recipient.subscriber_id, e: recipient.email }));
+  const key = await hmacKey(unsubscribeTokenSecret);
+  const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  return `${payload}.${toBase64Url(signature)}`;
 }
 
 // Merge registered-user and newsletter recipients, de-duplicated by lowercased email.
@@ -225,6 +244,9 @@ Deno.serve(async (req) => {
     if (!resendApiKey) {
       throw new Error('RESEND_API_KEY is not configured');
     }
+    if (!unsubscribeTokenSecret) {
+      throw new Error('UNSUBSCRIBE_TOKEN_SECRET is not configured');
+    }
     if (fromEmail.endsWith('@resend.dev')) {
       throw new Error(
         'RESEND_FROM_EMAIL must use your verified nawe.co.ke domain. Resend test senders on resend.dev only work for your own inbox.'
@@ -237,8 +259,8 @@ Deno.serve(async (req) => {
     for (let i = 0; i < recipients.length; i += CONCURRENCY) {
       const batch = recipients.slice(i, i + CONCURRENCY);
       const results = await Promise.allSettled(
-        batch.map((r) => {
-          const unsubscribeUrl = `${appUrl}/unsubscribe?token=${encodeURIComponent(makeUnsubscribeToken(r))}`;
+        batch.map(async (r) => {
+          const unsubscribeUrl = `${appUrl}/unsubscribe?token=${encodeURIComponent(await makeUnsubscribeToken(r))}`;
           const html = `
             <div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937;max-width:600px">
               ${applyMergeTags(body, r)}
