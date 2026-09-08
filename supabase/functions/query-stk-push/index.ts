@@ -20,6 +20,22 @@ const ncbaStkPassword = Deno.env.get('NCBA_STK_PASSWORD') ?? '';
 const DEFAULT_COMMISSION_RATE = 0.20;
 const NCBA_TIMEOUT_MS = 10_000;
 
+// Phrases in NCBA's FAILED query description that indicate a genuine, terminal failure.
+// Anything else (including "still under processing" and unrecognised API errors) is
+// treated as pending — the webhook remains the authoritative confirmation source.
+const KNOWN_FAILURE_PHRASES = [
+  'cancelled',
+  'canceled',
+  'insufficient',
+  'wrong pin',
+  'incorrect pin',
+  'timeout',
+  'timed out',
+  'expired',
+  'declined',
+  'rejected',
+];
+
 let _cachedToken: { value: string; expiresAt: number } | null = null;
 
 async function ncbaFetch(url: string, init: RequestInit): Promise<Response> {
@@ -282,12 +298,15 @@ Deno.serve(async (req) => {
     }
 
     if (ncbaStatus.toUpperCase() === 'FAILED') {
-      // NCBA's query API returns FAILED for both genuine failures AND internal API errors.
-      // Treat API errors as still-pending so the browser keeps polling — the webhook is
-      // the authoritative confirmation source.
+      // NCBA's query API returns FAILED for genuine failures, internal API errors, AND
+      // transactions that are simply still in flight (e.g. "The transaction is still
+      // under processing"). Only treat it as a hard failure when the description matches
+      // a known terminal-failure phrase — everything else stays pending so the browser
+      // keeps polling and the webhook remains the authoritative confirmation source.
       const description = queryData.description ?? '';
-      const isApiError = !description || description.toLowerCase().includes('error') || description.toLowerCase().includes('internal');
-      if (isApiError) {
+      const lowerDescription = description.toLowerCase();
+      const isKnownFailure = KNOWN_FAILURE_PHRASES.some((phrase) => lowerDescription.includes(phrase));
+      if (!isKnownFailure) {
         return new Response(
           JSON.stringify({ status: 'pending' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

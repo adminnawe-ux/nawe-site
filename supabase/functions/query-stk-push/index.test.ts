@@ -88,6 +88,39 @@ Deno.test('simulate: still processing → pending', () => {
   assertEquals(resolveStatus(queryResponse.status), 'pending');
 });
 
+// ---------------------------------------------------------------------------
+// FAILED-description classification (mirrors index.ts's KNOWN_FAILURE_PHRASES)
+// ---------------------------------------------------------------------------
+
+const KNOWN_FAILURE_PHRASES = [
+  'cancelled', 'canceled', 'insufficient', 'wrong pin', 'incorrect pin',
+  'timeout', 'timed out', 'expired', 'declined', 'rejected',
+];
+
+function isKnownFailure(description: string): boolean {
+  const lower = description.toLowerCase();
+  return KNOWN_FAILURE_PHRASES.some((phrase) => lower.includes(phrase));
+}
+
+Deno.test('FAILED "still under processing" is NOT a known failure → stays pending', () => {
+  // Regression test: NCBA returns status FAILED with this description while the
+  // transaction is genuinely still in flight (observed 2026-09-08). Marking the
+  // session failed on this response kills sessions the webhook would otherwise confirm.
+  assertEquals(isKnownFailure('The transaction is still under processing'), false);
+});
+
+Deno.test('FAILED "System internal error." is NOT a known failure → stays pending', () => {
+  assertEquals(isKnownFailure('System internal error.'), false);
+});
+
+Deno.test('FAILED "Request cancelled by user" IS a known failure → marked failed', () => {
+  assertEquals(isKnownFailure('Request cancelled by user'), true);
+});
+
+Deno.test('FAILED "Insufficient funds in account" IS a known failure → marked failed', () => {
+  assertEquals(isKnownFailure('Insufficient funds in account'), true);
+});
+
 Deno.test('simulate: empty status field → pending (treat as not yet settled)', () => {
   const queryResponse = { status: '', description: '' };
   assertEquals(resolveStatus(queryResponse.status), 'pending');
