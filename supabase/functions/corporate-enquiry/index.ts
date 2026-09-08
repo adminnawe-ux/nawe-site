@@ -8,7 +8,7 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const resendApiKey = Deno.env.get('RESEND_API_KEY') ?? '';
-const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? 'support@nawe.co.ke';
+const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? 'connect@nawe.co.ke';
 
 function esc(v: string) {
   return v.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
