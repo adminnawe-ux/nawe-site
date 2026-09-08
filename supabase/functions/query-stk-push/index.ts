@@ -10,7 +10,7 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const resendApiKey = Deno.env.get('RESEND_API_KEY') ?? '';
-const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? 'support@nawe.co.ke';
+const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? 'connect@nawe.co.ke';
 const appUrl = Deno.env.get('APP_URL') ?? 'https://nawe.co.ke';
 
 const ncbaBaseUrl = 'https://c2bapis.ncbagroup.com';
@@ -83,6 +83,20 @@ async function sendEmail(to: string, subject: string, html: string) {
   if (!resp.ok) console.error('Resend error:', await resp.text());
 }
 
+// Best-effort — a calendar event is a nice-to-have, never block session confirmation on it.
+async function triggerSessionCalendarEvent(sessionId: string) {
+  try {
+    const resp = await fetch(`${supabaseUrl}/functions/v1/create-session-calendar-event`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${supabaseServiceRoleKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId }),
+    });
+    if (!resp.ok) console.error('create-session-calendar-event failed:', await resp.text());
+  } catch (err) {
+    console.error('create-session-calendar-event error:', err);
+  }
+}
+
 async function confirmSession(adminClient: ReturnType<typeof createClient>, sessionId: string) {
   const { data: session, error } = await adminClient
     .from('sessions')
@@ -116,6 +130,8 @@ async function confirmSession(adminClient: ReturnType<typeof createClient>, sess
 
   if (updateError) throw new Error('Failed to update session');
   if (!claimed || claimed.length === 0) return; // webhook already confirmed — skip emails
+
+  await triggerSessionCalendarEvent(session.id);
 
   // Fetch names and emails for confirmation emails
   const [{ data: clientProfile }, { data: therapist }] = await Promise.all([

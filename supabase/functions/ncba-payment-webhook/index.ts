@@ -3,7 +3,7 @@
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
     const resendApiKey = Deno.env.get('RESEND_API_KEY') ?? '';
-    const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? 'support@nawe.co.ke';
+    const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? 'connect@nawe.co.ke';
     const appUrl = Deno.env.get('APP_URL') ?? 'https://nawe.co.ke';
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
@@ -109,6 +109,20 @@
         body: JSON.stringify({ from: fromEmail, to, subject, html }),
       });
       if (!resp.ok) console.error('Resend error:', await resp.text());
+    }
+
+    // Best-effort — a calendar event is a nice-to-have, never block session confirmation on it.
+    async function triggerSessionCalendarEvent(sessionId: string) {
+      try {
+        const resp = await fetch(`${supabaseUrl}/functions/v1/create-session-calendar-event`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${supabaseServiceRoleKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId }),
+        });
+        if (!resp.ok) console.error('create-session-calendar-event failed:', await resp.text());
+      } catch (err) {
+        console.error('create-session-calendar-event error:', err);
+      }
     }
 
     Deno.serve(async (req) => {
@@ -227,6 +241,8 @@
         // query poller already confirmed — still return OK so NCBA doesn't retry
         return ok('Already confirmed');
       }
+
+      await triggerSessionCalendarEvent(session.id);
 
       // Mark any stored notification as matched
       await adminClient

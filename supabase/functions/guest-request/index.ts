@@ -49,8 +49,8 @@ type GuestRequestPayload = {
 };
 
 const resendApiKey = Deno.env.get('RESEND_API_KEY') ?? '';
-const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? 'support@nawe.co.ke';
-const alertToEmail = Deno.env.get('ALERT_TO_EMAIL') ?? 'support@nawe.co.ke';
+const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? 'connect@nawe.co.ke';
+const alertToEmail = Deno.env.get('ALERT_TO_EMAIL') ?? 'connect@nawe.co.ke';
 const appUrl = Deno.env.get('APP_URL') ?? 'https://nawe.co.ke';
 
 function getAlertRecipients() {
