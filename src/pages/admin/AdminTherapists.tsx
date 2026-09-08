@@ -341,7 +341,7 @@ const AdminTherapists = () => {
                   </Button>
                 )}
                 {!isVerified(selected.verification_status) && (
-                  <Button className="font-ui gap-1.5" onClick={() => updateStatus(selected.id, 'verified', true)}>
+                  <Button className="font-ui gap-1.5" onClick={() => updateStatus(selected.id, 'approved', true)}>
                     <CheckCircle className="h-4 w-4" /> Verify
                   </Button>
                 )}
