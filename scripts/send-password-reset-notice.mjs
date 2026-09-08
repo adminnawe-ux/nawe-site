@@ -4,7 +4,7 @@
  *
  * Requires these vars in .env (or set in your shell):
  *   RESEND_API_KEY
- *   RESEND_FROM_EMAIL  (optional, defaults to support@nawe.co.ke)
+ *   RESEND_FROM_EMAIL  (optional, defaults to connect@nawe.co.ke)
  */
 
 import { readFileSync } from 'fs';
@@ -42,7 +42,7 @@ function loadEnv() {
 loadEnv();
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'support@nawe.co.ke';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'connect@nawe.co.ke';
 const RESET_URL = 'https://nawe.co.ke/forgot-password';
 
 if (!RESEND_API_KEY) {

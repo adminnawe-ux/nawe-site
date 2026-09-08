@@ -107,6 +107,13 @@ const TherapistCalendar = () => {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
       });
       if (notifyError) { /* notification is non-critical */ }
+      if (status === 'confirmed') {
+        const { error: calendarError } = await supabase.functions.invoke('create-session-calendar-event', {
+          body: { session_id: sessionId },
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+        });
+        if (calendarError) { /* calendar event is non-critical */ }
+      }
       toast({ title: 'Session updated', description: `Session marked as ${status}.` });
     }
     setUpdatingId(null);
