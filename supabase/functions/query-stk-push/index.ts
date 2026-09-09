@@ -17,7 +17,7 @@ const ncbaBaseUrl = 'https://c2bapis.ncbagroup.com';
 const ncbaStkUsername = Deno.env.get('NCBA_STK_USERNAME') ?? '';
 const ncbaStkPassword = Deno.env.get('NCBA_STK_PASSWORD') ?? '';
 
-const DEFAULT_COMMISSION_RATE = 0.20;
+const DEFAULT_COMMISSION_RATE = 20; // percent, matching commission_tiers.commission_rate's scale (0-100)
 const NCBA_TIMEOUT_MS = 10_000;
 
 // Phrases in NCBA's FAILED query description that indicate a genuine, terminal failure.
@@ -116,9 +116,9 @@ async function confirmSession(adminClient: ReturnType<typeof createClient>, sess
     .order('min_revenue', { ascending: true });
 
   const commissionRate = tiers?.[0]?.commission_rate ?? DEFAULT_COMMISSION_RATE;
-  const platformCommission = Math.round(price * commissionRate);
+  const platformCommission = Math.round(price * commissionRate / 100);
   const therapistPayout = price - platformCommission;
-  const commissionPct = Math.round(commissionRate * 100);
+  const commissionPct = Math.round(commissionRate);
 
   // Atomic claim: only succeeds if another path hasn't confirmed yet
   const { data: claimed, error: updateError } = await adminClient
