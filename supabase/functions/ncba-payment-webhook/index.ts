@@ -12,7 +12,7 @@
     const ncbaWebhookPassword = Deno.env.get('NCBA_WEBHOOK_PASSWORD') ?? '';
     const ncbaSecretKey = Deno.env.get('NCBA_SECRET_KEY') ?? '';
 
-    const DEFAULT_COMMISSION_RATE = 0.20;
+    const DEFAULT_COMMISSION_RATE = 20; // percent, matching commission_tiers.commission_rate's scale (0-100)
 
     interface NCBAPayload {
       TransType?: string;
@@ -215,9 +215,9 @@
         .order('min_revenue', { ascending: true });
 
       const commissionRate = tiers?.[0]?.commission_rate ?? DEFAULT_COMMISSION_RATE;
-      const platformCommission = Math.round(price * commissionRate);
+      const platformCommission = Math.round(price * commissionRate / 100);
       const therapistPayout = price - platformCommission;
-      const commissionPct = Math.round(commissionRate * 100);
+      const commissionPct = Math.round(commissionRate);
 
       // 6. Confirm session — atomic claim to prevent double-email with query poller
       const { data: claimed, error: updateError } = await adminClient

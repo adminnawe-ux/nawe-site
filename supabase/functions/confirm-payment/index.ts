@@ -15,7 +15,7 @@ const googleServiceAccountEmail = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_EMAIL') ?
 const googlePrivateKey = Deno.env.get('GOOGLE_PRIVATE_KEY') ?? '';
 const googleCalendarId = Deno.env.get('GOOGLE_CALENDAR_ID') ?? 'primary';
 
-const DEFAULT_COMMISSION_RATE = 0.20;
+const DEFAULT_COMMISSION_RATE = 20; // percent, matching commission_tiers.commission_rate's scale (0-100)
 
 const VIDEO_FORMATS = ['Video Call', 'video'];
 
@@ -226,7 +226,7 @@ Deno.serve(async (req) => {
       .order('min_revenue', { ascending: true });
 
     const commissionRate = (tiers && tiers.length > 0) ? tiers[0].commission_rate : DEFAULT_COMMISSION_RATE;
-    const platformCommission = Math.round(price * commissionRate);
+    const platformCommission = Math.round(price * commissionRate / 100);
     const therapistPayout = price - platformCommission;
 
     // Confirm payment
@@ -286,7 +286,7 @@ Deno.serve(async (req) => {
     }
 
     const formattedDate = formatScheduledAt(session.scheduled_at);
-    const commissionPct = Math.round(commissionRate * 100);
+    const commissionPct = Math.round(commissionRate);
 
     // Build shared table rows for emails
     const calendarRow = calendarLink
