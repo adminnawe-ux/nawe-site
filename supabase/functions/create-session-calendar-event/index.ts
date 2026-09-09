@@ -66,17 +66,19 @@ async function createCalendarEvent(params: {
   const start = new Date(params.scheduledAt);
   const end = new Date(start.getTime() + params.durationMinutes * 60_000);
 
-  // Both therapist and client are invited as attendees and get a Google Calendar
-  // invite email (sendUpdates=all). True "organizer" transfer to the therapist's
-  // own Google account would require Workspace domain-wide delegation, which
-  // isn't configured — the service account's calendar (GOOGLE_CALENDAR_ID) owns
-  // the event; both people are equally invited guests on it.
+  // NOTE: no `attendees` here. Google's Calendar API rejects attendee invites from
+  // a bare service account with 403 forbiddenForServiceAccounts ("Service accounts
+  // cannot invite attendees without Domain-Wide Delegation of Authority") — and
+  // Domain-Wide Delegation requires a Google Workspace domain, which isn't set up
+  // (GOOGLE_CALENDAR_ID's owner is a personal Gmail account). So neither therapist
+  // nor client gets a native Calendar invite email; instead sessions.session_link
+  // (set below from the Meet link) surfaces the join link directly in the app —
+  // ClientDashboard.tsx and TherapistCalendar.tsx both already show it there.
   const body: Record<string, unknown> = {
     summary: params.title,
     start: { dateTime: start.toISOString(), timeZone: 'Africa/Nairobi' },
     end: { dateTime: end.toISOString(), timeZone: 'Africa/Nairobi' },
-    attendees: [{ email: params.therapistEmail }, { email: params.clientEmail }],
-    reminders: { useDefault: false, overrides: [{ method: 'email', minutes: 60 }, { method: 'popup', minutes: 15 }] },
+    reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 15 }] },
   };
 
   if (params.isVideo) {
@@ -86,7 +88,7 @@ async function createCalendarEvent(params: {
   }
 
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(googleCalendarId)}/events` +
-    `?conferenceDataVersion=1&sendUpdates=all`;
+    `?conferenceDataVersion=1`;
   const resp = await fetch(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
