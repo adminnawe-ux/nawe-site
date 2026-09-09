@@ -5,11 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import SessionLinkEditor from '@/components/therapist/SessionLinkEditor';
 import {
   ChevronLeft, ChevronRight, Clock, Video, Phone, MapPin, MessageCircle,
-  Calendar as CalendarIcon, Check, X, Loader2, Link2, Brain, FileText,
+  Calendar as CalendarIcon, Check, X, Loader2, Link2, FileText, Lock,
 } from 'lucide-react';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth,
@@ -19,6 +24,48 @@ import {
 import type { Tables } from '@/integrations/supabase/types';
 
 type Session = Tables<'sessions'>;
+
+interface SirpNote {
+  situation: string;
+  intervention: string;
+  response: string;
+  plan: string;
+}
+
+const EMPTY_SIRP: SirpNote = { situation: '', intervention: '', response: '', plan: '' };
+
+function hasSirpContent(note: SirpNote | undefined): boolean {
+  return !!note && Object.values(note).some((v) => v.trim().length > 0);
+}
+
+// Guides the therapist through each section of a SIRP note — the structured
+// documentation format used for psychotherapy/behavioral session notes.
+const SIRP_FIELDS: { key: keyof SirpNote; label: string; guide: string; placeholder: string }[] = [
+  {
+    key: 'situation',
+    label: 'Situation',
+    guide: "The client's presenting issue and status at the start of the session — symptoms, life updates, mental status, current mood.",
+    placeholder: 'e.g. Client arrived visibly tense with rapid speech; reported a panic attack at school this week after a low exam grade.',
+  },
+  {
+    key: 'intervention',
+    label: 'Intervention',
+    guide: 'What you did clinically — the therapeutic modality, technique, or exercise used (CBT, DBT, EMDR, psychoeducation, etc.).',
+    placeholder: 'e.g. Introduced a CBT thought record to examine catastrophic thinking; guided a 5-minute diaphragmatic breathing exercise.',
+  },
+  {
+    key: 'response',
+    label: 'Response',
+    guide: "How the client reacted — engagement level, feedback, emotional shifts, or resistance to the intervention.",
+    placeholder: 'e.g. Client identified two cognitive distortions; SUDS dropped from 8 to 4 after the breathing exercise.',
+  },
+  {
+    key: 'plan',
+    label: 'Plan',
+    guide: 'Next steps — homework, goal for the next session, risk monitoring, next appointment date.',
+    placeholder: 'e.g. Client to complete one thought record if anxiety spikes this week. Next session Thu 17 Sep — review homework.',
+  },
+];
 
 const FORMAT_ICON: Record<string, React.ElementType> = {
   'Video Call': Video, 'Phone Call': Phone, 'In-Person': MapPin, 'Chat / Messaging': MessageCircle,
@@ -40,8 +87,10 @@ const TherapistCalendar = () => {
   const [loading, setLoading] = useState(true);
   const [therapistId, setTherapistId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [generatingNoteId, setGeneratingNoteId] = useState<string | null>(null);
-  const [sessionNotes, setSessionNotes] = useState<Record<string, string>>({});
+  const [sirpNotes, setSirpNotes] = useState<Record<string, SirpNote>>({});
+  const [sirpDialogSessionId, setSirpDialogSessionId] = useState<string | null>(null);
+  const [sirpForm, setSirpForm] = useState<SirpNote>(EMPTY_SIRP);
+  const [savingSirp, setSavingSirp] = useState(false);
 
   // Fetch therapist ID and sessions
   useEffect(() => {
@@ -67,11 +116,57 @@ const TherapistCalendar = () => {
           .order('scheduled_at', { ascending: true });
 
         setSessions(rows ?? []);
+
+        const completedIds = (rows ?? []).filter((s) => s.status === 'completed').map((s) => s.id);
+        if (completedIds.length > 0) {
+          const { data: notes } = await supabase
+            .from('session_notes')
+            .select('session_id, situation, intervention, response, plan')
+            .in('session_id', completedIds);
+          const byId: Record<string, SirpNote> = {};
+          for (const n of notes ?? []) {
+            byId[n.session_id] = {
+              situation: n.situation ?? '', intervention: n.intervention ?? '',
+              response: n.response ?? '', plan: n.plan ?? '',
+            };
+          }
+          setSirpNotes(byId);
+        } else {
+          setSirpNotes({});
+        }
       }
       setLoading(false);
     };
     load();
   }, [user, currentMonth]);
+
+  const openSirpDialog = (sessionId: string) => {
+    setSirpForm(sirpNotes[sessionId] ?? EMPTY_SIRP);
+    setSirpDialogSessionId(sessionId);
+  };
+
+  const saveSirpNote = async () => {
+    if (!sirpDialogSessionId || !therapistId) return;
+    setSavingSirp(true);
+    const { error } = await supabase
+      .from('session_notes')
+      .upsert({
+        session_id: sirpDialogSessionId,
+        therapist_id: therapistId,
+        situation: sirpForm.situation || null,
+        intervention: sirpForm.intervention || null,
+        response: sirpForm.response || null,
+        plan: sirpForm.plan || null,
+      }, { onConflict: 'session_id' });
+    setSavingSirp(false);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setSirpNotes((prev) => ({ ...prev, [sirpDialogSessionId]: sirpForm }));
+    toast({ title: 'Session note saved', description: 'Only visible to you.' });
+    setSirpDialogSessionId(null);
+  };
 
   // Calendar grid
   const calendarDays = useMemo(() => {
@@ -117,29 +212,6 @@ const TherapistCalendar = () => {
       toast({ title: 'Session updated', description: `Session marked as ${status}.` });
     }
     setUpdatingId(null);
-  };
-
-  const generateNote = async (sessionId: string) => {
-    setGeneratingNoteId(sessionId);
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
-      const { data, error } = await supabase.functions.invoke('gemma-session-notes', {
-        body: { session_id: sessionId },
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
-      });
-      if (error) throw error;
-      setSessionNotes(prev => ({ ...prev, [sessionId]: data.content }));
-      toast({ title: 'Session note generated', description: 'Powered by Gemma 4.' });
-    } catch (err) {
-      toast({
-        title: 'Note generation failed',
-        description: err instanceof Error ? err.message : 'Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setGeneratingNoteId(null);
-    }
   };
 
   const sessionCount = sessions.filter((s) => s.status !== 'cancelled').length;
@@ -348,21 +420,14 @@ const TherapistCalendar = () => {
                             size="sm"
                             variant="outline"
                             className="font-ui text-xs rounded-full w-full border-primary/30 text-primary hover:bg-primary/5"
-                            onClick={() => generateNote(s.id)}
-                            disabled={generatingNoteId === s.id}
+                            onClick={() => openSirpDialog(s.id)}
                           >
-                            {generatingNoteId === s.id
-                              ? <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> Generating…</>
-                              : <><Brain className="mr-1.5 h-3 w-3" /> Generate AI Notes</>
-                            }
+                            <FileText className="mr-1.5 h-3 w-3" />
+                            {hasSirpContent(sirpNotes[s.id]) ? 'Edit Session Note' : 'Add Session Note (SIRP)'}
                           </Button>
-                          {sessionNotes[s.id] && (
-                            <div className="bg-muted/50 rounded-lg p-2.5 border border-border">
-                              <div className="flex items-center gap-1.5 mb-1.5">
-                                <FileText className="h-3 w-3 text-primary" />
-                                <span className="font-ui text-[10px] font-semibold text-primary uppercase tracking-wide">AI Session Note</span>
-                              </div>
-                              <pre className="font-body text-[11px] text-muted-foreground whitespace-pre-wrap leading-relaxed">{sessionNotes[s.id]}</pre>
+                          {hasSirpContent(sirpNotes[s.id]) && (
+                            <div className="flex items-center gap-1.5 font-ui text-[10px] text-muted-foreground">
+                              <Lock className="h-3 w-3" /> Private note saved — visible only to you
                             </div>
                           )}
                         </div>
@@ -383,6 +448,44 @@ const TherapistCalendar = () => {
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-destructive" /> Cancelled</span>
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-muted-foreground" /> Completed</span>
       </div>
+
+      <Dialog open={!!sirpDialogSessionId} onOpenChange={(open) => !open && setSirpDialogSessionId(null)}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Lock className="h-4 w-4 text-primary" /> Session Note (SIRP)
+            </DialogTitle>
+            <DialogDescription className="font-body">
+              Situation, Intervention, Response, Plan — structured documentation for this session. Only you can see this note.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {SIRP_FIELDS.map((field) => (
+              <div key={field.key} className="space-y-1.5">
+                <Label htmlFor={`sirp-${field.key}`} className="font-ui text-sm font-medium text-foreground">
+                  {field.label}
+                </Label>
+                <p className="font-body text-xs text-muted-foreground">{field.guide}</p>
+                <Textarea
+                  id={`sirp-${field.key}`}
+                  value={sirpForm[field.key]}
+                  onChange={(e) => setSirpForm((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                  placeholder={field.placeholder}
+                  className="font-body text-sm min-h-20"
+                />
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSirpDialogSessionId(null)} disabled={savingSirp}>
+              Cancel
+            </Button>
+            <Button onClick={saveSirpNote} disabled={savingSirp}>
+              {savingSirp ? <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> Saving…</> : 'Save Note'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
