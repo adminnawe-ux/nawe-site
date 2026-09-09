@@ -20,8 +20,13 @@ function resolveStatus(ncbaStatus: string): PollResult {
   return 'pending';
 }
 
-function calcPayout(price: number, commissionRate: number) {
-  const platform = Math.round(price * commissionRate);
+// commissionRate is a percentage (0-100), matching commission_tiers.commission_rate's
+// scale in the DB and the admin UI — NOT a fraction. Regression coverage for the bug
+// fixed 2026-09-09: the real code used to do `price * commissionRate` directly,
+// silently treating the percentage number as if it were already a fraction, which
+// produced wildly wrong (often deeply negative) payouts on every paid session.
+function calcPayout(price: number, commissionRatePercent: number) {
+  const platform = Math.round(price * commissionRatePercent / 100);
   return { platform, therapist: price - platform };
 }
 
@@ -53,15 +58,21 @@ Deno.test('resolveStatus: unknown status → pending', () => {
 // ---------------------------------------------------------------------------
 
 Deno.test('calcPayout: 20% on 3500', () => {
-  const { platform, therapist } = calcPayout(3500, 0.20);
+  const { platform, therapist } = calcPayout(3500, 20);
   assertEquals(platform, 700);
   assertEquals(therapist, 2800);
 });
 
 Deno.test('calcPayout: 15% on 5000', () => {
-  const { platform, therapist } = calcPayout(5000, 0.15);
+  const { platform, therapist } = calcPayout(5000, 15);
   assertEquals(platform, 750);
   assertEquals(therapist, 4250);
+});
+
+Deno.test('calcPayout: 24% on 3 (regression — used to produce a negative payout)', () => {
+  const { platform, therapist } = calcPayout(3, 24);
+  assertEquals(platform, 1);
+  assertEquals(therapist, 2);
 });
 
 // ---------------------------------------------------------------------------
