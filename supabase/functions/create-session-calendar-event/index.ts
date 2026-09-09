@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
         adminClient.auth.admin.getUserById(therapist.user_id),
       ]);
       therapistName = [tp?.first_name, tp?.last_name].filter(Boolean).join(' ') || therapist.professional_title || 'Your therapist';
-      therapistEmail = tAuth.data.user?.email ?? '';
+      therapistEmail = tAuth.user?.email ?? '';
     }
     const { data: clientAuth } = await adminClient.auth.admin.getUserById(session.client_id);
     const clientEmail = clientAuth.user?.email ?? '';
