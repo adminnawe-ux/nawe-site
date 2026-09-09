@@ -102,12 +102,20 @@ async function createCalendarEvent(params: {
   const start = new Date(params.scheduledAt);
   const end = new Date(start.getTime() + params.durationMinutes * 60_000);
 
+  // NOTE: no `attendees` here. Google's Calendar API rejects attendee invites from
+  // a bare service account with 403 forbiddenForServiceAccounts ("Service accounts
+  // cannot invite attendees without Domain-Wide Delegation of Authority") — and
+  // Domain-Wide Delegation requires a Google Workspace domain, which isn't set up
+  // (GOOGLE_CALENDAR_ID's owner is a personal Gmail account). This was silently
+  // failing every time (caught by the try/catch around createCalendarEvent below)
+  // since this function was written — meetLink/calendarLink were always null.
+  // Instead sessions.session_link (set from the Meet link) surfaces the join link
+  // directly in the app — ClientDashboard.tsx and TherapistCalendar.tsx show it.
   const body: Record<string, unknown> = {
     summary: params.title,
     start: { dateTime: start.toISOString(), timeZone: 'Africa/Nairobi' },
     end: { dateTime: end.toISOString(), timeZone: 'Africa/Nairobi' },
-    attendees: [{ email: params.clientEmail }, { email: params.therapistEmail }],
-    reminders: { useDefault: false, overrides: [{ method: 'email', minutes: 60 }, { method: 'popup', minutes: 15 }] },
+    reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 15 }] },
   };
 
   if (params.isVideo) {
@@ -120,7 +128,7 @@ async function createCalendarEvent(params: {
   }
 
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(googleCalendarId)}/events` +
-    `?conferenceDataVersion=1&sendUpdates=all`;
+    `?conferenceDataVersion=1`;
 
   const resp = await fetch(url, {
     method: 'POST',
