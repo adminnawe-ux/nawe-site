@@ -459,26 +459,38 @@ export type Database = {
       }
       session_notes: {
         Row: {
-          content: string
+          content: string | null
           created_at: string
           id: string
+          intervention: string | null
+          plan: string | null
+          response: string | null
           session_id: string
+          situation: string | null
           therapist_id: string
           updated_at: string
         }
         Insert: {
-          content: string
+          content?: string | null
           created_at?: string
           id?: string
+          intervention?: string | null
+          plan?: string | null
+          response?: string | null
           session_id: string
+          situation?: string | null
           therapist_id: string
           updated_at?: string
         }
         Update: {
-          content?: string
+          content?: string | null
           created_at?: string
           id?: string
+          intervention?: string | null
+          plan?: string | null
+          response?: string | null
           session_id?: string
+          situation?: string | null
           therapist_id?: string
           updated_at?: string
         }
