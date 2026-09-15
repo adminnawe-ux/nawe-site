@@ -369,15 +369,21 @@ const TherapistCalendar = () => {
                               <Link2 className="h-3 w-3" /> Join session
                             </a>
                           ) : (
-                            <SessionLinkEditor
-                              sessionId={s.id}
-                              currentLink={s.session_link}
-                              onUpdate={(link) => {
-                                setSessions((prev) =>
-                                  prev.map((sess) => (sess.id === s.id ? { ...sess, session_link: link } : sess))
-                                );
-                              }}
-                            />
+                            <div className="space-y-1.5">
+                              <p className="font-ui text-[10px] text-muted-foreground">
+                                Add a Google Meet, Zoom, or other call link — the client will see it in their
+                                dashboard, but it's a good idea to also share it with them directly.
+                              </p>
+                              <SessionLinkEditor
+                                sessionId={s.id}
+                                currentLink={s.session_link}
+                                onUpdate={(link) => {
+                                  setSessions((prev) =>
+                                    prev.map((sess) => (sess.id === s.id ? { ...sess, session_link: link } : sess))
+                                  );
+                                }}
+                              />
+                            </div>
                           )}
                         </div>
                       )}
