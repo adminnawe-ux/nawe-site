@@ -31,7 +31,7 @@ No JWT check, no shared-secret header, no role verification. Any HTTP caller (no
 ## Open — High
 
 ### H-2 · NCBA webhook hash verification bypassed
-**File:** `supabase/functions/ncba-payment-webhook/index.ts:133–142`
+**File:** `supabase/functions/ncba-payment-hook/index.ts:133–142`
 
 The HMAC is computed but the result is discarded with a `console.warn`. The only guard is a username/password pair embedded in the JSON body. An attacker with those credentials can POST a fake payment confirmation and trigger session/ticket delivery without any real payment.
 
@@ -111,7 +111,7 @@ The SELECT policy is `TO authenticated USING (true)`. Currently only stores supp
 ---
 
 ### M-7 · NCBA webhook amount check is one-directional
-`supabase/functions/ncba-payment-webhook/index.ts:192–195` — Checks for underpayment (`transAmount < expected - 1`) but accepts unlimited overpayment silently.
+`supabase/functions/ncba-payment-hook/index.ts:192–195` — Checks for underpayment (`transAmount < expected - 1`) but accepts unlimited overpayment silently.
 
 **Fix:** Also flag `transAmount > expected + 1` for manual reconciliation rather than auto-confirming.
 

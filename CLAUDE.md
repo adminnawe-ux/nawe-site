@@ -52,14 +52,14 @@ Written in Deno TypeScript. Each function:
 3. Verifies the caller's JWT via an anon-key Supabase client, then uses service-role client for DB writes
 4. Returns `ResultCode: "0"/"1"` for NCBA webhook callbacks; standard JSON for browser-facing functions
 
-The `gemma-triage` and `gemma-session-notes` functions call Google's Gemma API via `GOOGLE_AI_API_KEY`. The STK push flow spans three functions: `initiate-stk-push` → `query-stk-push` (browser polling) and `ncba-payment-webhook` (NCBA push callback). NCBA's query API returns FAILED for internal errors — treat any description containing "error"/"internal" as still-pending and rely on the webhook for authoritative confirmation.
+The `gemma-triage` and `gemma-session-notes` functions call Google's Gemma API via `GOOGLE_AI_API_KEY`. The STK push flow spans three functions: `initiate-stk-push` → `query-stk-push` (browser polling) and `ncba-payment-hook` (NCBA push callback). NCBA's query API returns FAILED for internal errors — treat any description containing "error"/"internal" as still-pending and rely on the webhook for authoritative confirmation.
 
 ### Payment flow (M-Pesa STK push)
 1. `initiate-stk-push` calls NCBA API, creates a `sessions` row with `payment_status = pending_stk`, returns `{ session_id, transaction_id }`
 2. Browser polls `query-stk-push` every 4 s (up to 15×). If NCBA query returns an API error, function returns `{ status: 'pending' }` so polling continues
-3. NCBA calls `ncba-payment-webhook` when payment lands — this is the authoritative confirmation. Webhook matches sessions with `payment_status IN ('pending_stk', 'pending_verification', 'failed')` (the `failed` case covers sessions prematurely failed by the poller)
+3. NCBA calls `ncba-payment-hook` when payment lands — this is the authoritative confirmation. Matches sessions with `payment_status IN ('pending_stk', 'pending_verification', 'failed')` (the `failed` case covers sessions prematurely failed by the poller)
 
-**⚠️ NCBA's actual registered webhook callback URL is `ncba-payment-hook` (no "web"), not `ncba-payment-webhook`.** This was discovered 2026-09-15 after months of drift: `ncba-payment-hook` is a real, still-live edge function deployed straight to Supabase with no git history at all — it was never in this repo. It had been silently running an unpatched April/June-era snapshot of the webhook code (broken commission math treating `commission_rate` as a fraction instead of a percentage, a crash in the confirmation-email path, stale `support@` email default) while every fix since then landed only in `ncba-payment-webhook`, which NCBA was never calling. **`supabase/functions/ncba-payment-hook/index.ts` now exists in this repo as a tracked copy — any change to `ncba-payment-webhook` MUST be mirrored there and redeployed too**, until NCBA's config is updated to call `ncba-payment-webhook` instead (at which point `ncba-payment-hook` can be deleted). If you're the agent implementing a fix to the webhook, always check whether `ncba-payment-hook` needs the same change.
+**Function naming note:** this function is named `ncba-payment-hook` (not `-webhook`) because that's the exact URL NCBA has registered as their callback and can't be changed from our side. A same-purpose function named `ncba-payment-webhook` existed in this repo for months and drifted silently out of sync with real fixes, because NCBA was never actually calling it — discovered and retired 2026-09-15 in favour of this single file. If you're ever tempted to rename this function, don't, unless NCBA's registered URL is updated first (and confirmed working) to match.
 
 Key env vars for the STK flow: `NCBA_STK_USERNAME`, `NCBA_STK_PASSWORD` (Basic auth to get token), `MPESA_PAYBILL` (880100), `MPESA_ACCOUNT` (231112), `NCBA_WEBHOOK_USERNAME`/`NCBA_WEBHOOK_PASSWORD` (credentials NCBA sends to our webhook), `NCBA_SECRET_KEY` (hash verification — currently bypassed pending NCBA clarification).
 
@@ -97,7 +97,7 @@ When an event's total capacity is full (counting `ACTIVE_STATUSES = ['free', 'pa
 **Edge functions involved:**
 - `register-event` — handles tier validation, capacity check, group creation, waitlist, approved_waitlist resume
 - `query-event-payment` — polls NCBA for event STK push status; marks lead + all group members
-- `ncba-payment-webhook` — authoritative confirmation; handles both session-booking and event-registration payments (see the ⚠️ note above — `ncba-payment-hook`, not this function, is what NCBA actually calls; keep both in sync)
+- `ncba-payment-hook` — authoritative confirmation; handles both session-booking and event-registration payments
 - `approve-waitlist` — admin-only; approves selected waitlisted registrations
 
 ### Styling conventions
@@ -142,9 +142,7 @@ you're triaging or implementing an issue here, follow these rules:
 - Security-sensitive areas — be conservative, make the smallest correct
   change, and call out exactly what you touched in the PR description:
   - The payment flow (`initiate-stk-push`, `query-stk-push`,
-    `ncba-payment-webhook`, `ncba-payment-hook`) and anything reading
-    `NCBA_*` / `MPESA_*` env vars — `ncba-payment-hook` and
-    `ncba-payment-webhook` must be changed together, see the ⚠️ note above
+    `ncba-payment-hook`) and anything reading `NCBA_*` / `MPESA_*` env vars
   - Supabase RLS policies and `supabase/migrations/*.sql`
   - Any edge function using the service-role key
   - Auth/role logic in `AuthContext` and `ProtectedRoute`

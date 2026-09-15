@@ -17,6 +17,7 @@ bun.lock
 bun.lockb
 *.local
 temp/
+supabase/.temp/
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

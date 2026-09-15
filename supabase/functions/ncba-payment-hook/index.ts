@@ -1,18 +1,9 @@
-    // IMPORTANT — this is the URL NCBA actually has registered as the payment
-    // webhook callback (confirmed 2026-09-15): .../functions/v1/ncba-payment-hook.
-    // ncba-payment-webhook is the "real" name used everywhere else in this repo
-    // and in CLAUDE.md's architecture docs — this file exists only because NCBA's
-    // registered URL can't be changed from our side.
-    //
-    // Until NCBA's config is updated to point at ncba-payment-webhook instead
-    // (after which this function should be deleted), THIS FILE MUST BE KEPT
-    // BYTE-IDENTICAL TO supabase/functions/ncba-payment-webhook/index.ts.
-    // Before 2026-09-15 this had silently drifted for months — this function was
-    // still running the original 2026-04/06 code while every fix since then
-    // landed only in ncba-payment-webhook, which NCBA was never actually calling.
-    // That's how the broken commission math (price * commissionRate instead of
-    // price * commissionRate / 100) and a confirmation-email crash both went
-    // undetected in production for so long. See CLAUDE.md for the full story.
+    // This is the NCBA payment webhook — the URL NCBA actually has registered
+    // as the callback: .../functions/v1/ncba-payment-hook. (Historical note:
+    // this repo used to also have a same-purpose function named
+    // ncba-payment-webhook that NCBA was never calling; it silently drifted out
+    // of sync with real fixes for months before being retired 2026-09-15 in
+    // favour of this one file. See CLAUDE.md's payment-flow section.)
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
