@@ -4,7 +4,7 @@
  * Background
  * ----------
  * NCBA sends a Hash/HashVal field on every push notification webhook call.
- * Our webhook function (supabase/functions/ncba-payment-webhook/index.ts) computes
+ * Our webhook function (supabase/functions/ncba-payment-hook/index.ts) computes
  * the hash and compares, but currently bypasses rejection on mismatch because the
  * computed value does not match what NCBA sends.
  *
@@ -18,7 +18,7 @@
  * NCBA doc:        docs-api/NCBA Paybill-Level Push Notifications Service Guide.pdf
  * Related scripts: scripts/gen-ncba-secret.ts     — how NCBA_SECRET_KEY was generated
  *                  scripts/gen-ncba-credentials.mjs — how Username/Password were generated
- * Webhook tests:   supabase/functions/ncba-payment-webhook/index.test.ts
+ * Webhook tests:   supabase/functions/ncba-payment-hook/index.test.ts
  *
  * ------------------------------------------------------------------
  * NCBA Java reference implementation (from doc page 5):
@@ -208,7 +208,7 @@ if (!found) {
   console.log('── Current webhook status ───────────────────────────────────');
   console.log('  Hash check is logging-only (not enforced).');
   console.log('  Username + Password auth is the active security layer.');
-  console.log('  File: supabase/functions/ncba-payment-webhook/index.ts:134');
+  console.log('  File: supabase/functions/ncba-payment-hook/index.ts:134');
 }
 
 console.log();

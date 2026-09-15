@@ -5,7 +5,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // Calendar event with a Meet link and writes it to sessions.session_link on
 // confirmation — this function brings the SAME behaviour to the other paths
 // that confirm a session (STK auto-confirm via query-stk-push and
-// ncba-payment-webhook, and the therapist's manual "Confirm" button), so all
+// ncba-payment-hook, and the therapist's manual "Confirm" button), so all
 // confirmation paths behave identically instead of only one of them.
 
 const corsHeaders = {

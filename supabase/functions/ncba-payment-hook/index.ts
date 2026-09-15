@@ -1,3 +1,9 @@
+    // This is the NCBA payment webhook — the URL NCBA actually has registered
+    // as the callback: .../functions/v1/ncba-payment-hook. (Historical note:
+    // this repo used to also have a same-purpose function named
+    // ncba-payment-webhook that NCBA was never calling; it silently drifted out
+    // of sync with real fixes for months before being retired 2026-09-15 in
+    // favour of this one file. See CLAUDE.md's payment-flow section.)
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
