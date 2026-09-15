@@ -74,13 +74,17 @@ function formatDate(value: string) {
 }
 
 async function sendEmail(to: string, subject: string, html: string) {
-  if (!resendApiKey || !to) return;
+  if (!resendApiKey || !to) {
+    console.warn(`sendEmail skipped (${!resendApiKey ? 'no RESEND_API_KEY' : 'no recipient'}): "${subject}"`);
+    return;
+  }
   const resp = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ from: fromEmail, to, subject, html }),
   });
   if (!resp.ok) console.error('Resend error:', await resp.text());
+  else console.log(`Email sent to ${to}: "${subject}" (id: ${(await resp.json()).id})`);
 }
 
 // Best-effort — a calendar event is a nice-to-have, never block session confirmation on it.
@@ -183,6 +187,8 @@ async function confirmSession(adminClient: ReturnType<typeof createClient>, sess
         <p><a href="${appUrl}/dashboard" style="color:#10b981">View your dashboard →</a></p>
       </div>
     `);
+  } else {
+    console.warn(`No client email on file for user ${session.client_id} — confirmation email not sent`);
   }
 
   if (therapistEmail) {
@@ -216,6 +222,8 @@ async function confirmSession(adminClient: ReturnType<typeof createClient>, sess
         <p><a href="${appUrl}/therapist-portal/calendar" style="color:#10b981">View your calendar →</a></p>
       </div>
     `);
+  } else {
+    console.warn(`No therapist email on file for therapist ${session.therapist_id} — confirmation email not sent`);
   }
 }
 
