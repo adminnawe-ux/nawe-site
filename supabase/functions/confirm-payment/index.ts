@@ -37,6 +37,7 @@ async function sendEmail(to: string, subject: string, html: string) {
     body: JSON.stringify({ from: fromEmail, to, subject, html }),
   });
   if (!resp.ok) throw new Error(`Resend error: ${await resp.text()}`);
+  console.log(`Email sent to ${to}: "${subject}" (id: ${(await resp.json()).id})`);
 }
 
 // ── Google Calendar ────────────────────────────────────────────────────────────
@@ -340,6 +341,8 @@ Deno.serve(async (req) => {
           </div>
         `,
       );
+    } else {
+      console.warn(`No client email on file for user ${session.client_id} — confirmation email not sent`);
     }
 
     // Email therapist
@@ -385,6 +388,8 @@ Deno.serve(async (req) => {
           </div>
         `,
       );
+    } else {
+      console.warn(`No therapist email on file for therapist ${session.therapist_id} — confirmation email not sent`);
     }
 
     return new Response(
