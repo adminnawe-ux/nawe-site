@@ -14,7 +14,7 @@ import { toast } from '@/hooks/use-toast';
 import SessionLinkEditor from '@/components/therapist/SessionLinkEditor';
 import {
   ChevronLeft, ChevronRight, Clock, Video, Phone, MapPin, MessageCircle,
-  Calendar as CalendarIcon, Check, X, Loader2, Link2, FileText, Lock,
+  Calendar as CalendarIcon, Check, X, Loader2, Link2, FileText, Lock, User, Mail,
 } from 'lucide-react';
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth,
@@ -33,6 +33,12 @@ interface SirpNote {
 }
 
 const EMPTY_SIRP: SirpNote = { situation: '', intervention: '', response: '', plan: '' };
+
+interface ClientContact {
+  name: string;
+  phone: string | null;
+  email: string | null;
+}
 
 function hasSirpContent(note: SirpNote | undefined): boolean {
   return !!note && Object.values(note).some((v) => v.trim().length > 0);
@@ -91,6 +97,7 @@ const TherapistCalendar = () => {
   const [sirpDialogSessionId, setSirpDialogSessionId] = useState<string | null>(null);
   const [sirpForm, setSirpForm] = useState<SirpNote>(EMPTY_SIRP);
   const [savingSirp, setSavingSirp] = useState(false);
+  const [clientContacts, setClientContacts] = useState<Record<string, ClientContact>>({});
 
   // Fetch therapist ID and sessions
   useEffect(() => {
@@ -133,6 +140,35 @@ const TherapistCalendar = () => {
           setSirpNotes(byId);
         } else {
           setSirpNotes({});
+        }
+
+        // Client contact info — scoped by RLS/edge function to clients with a
+        // paid session with this therapist (see migration
+        // 20260915220000_therapist_client_contact_visibility.sql).
+        const clientIds = [...new Set((rows ?? []).map((s) => s.client_id))];
+        if (clientIds.length > 0) {
+          const [{ data: profiles }, { data: sessionData }] = await Promise.all([
+            supabase.from('profiles').select('user_id, first_name, last_name, phone').in('user_id', clientIds),
+            supabase.auth.getSession(),
+          ]);
+          const byId: Record<string, ClientContact> = {};
+          for (const p of profiles ?? []) {
+            byId[p.user_id] = {
+              name: [p.first_name, p.last_name].filter(Boolean).join(' ') || 'Client',
+              phone: p.phone, email: null,
+            };
+          }
+          const accessToken = sessionData.session?.access_token;
+          const { data: emailData } = await supabase.functions.invoke('get-client-contact', {
+            body: { client_ids: clientIds },
+            headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+          });
+          for (const [id, email] of Object.entries((emailData?.emails ?? {}) as Record<string, string>)) {
+            if (byId[id]) byId[id].email = email;
+          }
+          setClientContacts(byId);
+        } else {
+          setClientContacts({});
         }
       }
       setLoading(false);
@@ -356,6 +392,23 @@ const TherapistCalendar = () => {
                         <p>{s.duration_minutes ?? 50} min · {s.session_format ?? 'Not set'}</p>
                         {s.price && <p>{s.currency ?? 'KES'} {s.price.toLocaleString()}</p>}
                       </div>
+                      {clientContacts[s.client_id] && (
+                        <div className="font-ui text-xs text-foreground space-y-0.5 pt-1 border-t border-border/60">
+                          <p className="flex items-center gap-1.5 font-medium">
+                            <User className="h-3 w-3 text-muted-foreground" /> {clientContacts[s.client_id].name}
+                          </p>
+                          {clientContacts[s.client_id].phone && (
+                            <p className="flex items-center gap-1.5 text-muted-foreground">
+                              <Phone className="h-3 w-3" /> {clientContacts[s.client_id].phone}
+                            </p>
+                          )}
+                          {clientContacts[s.client_id].email && (
+                            <p className="flex items-center gap-1.5 text-muted-foreground">
+                              <Mail className="h-3 w-3" /> {clientContacts[s.client_id].email}
+                            </p>
+                          )}
+                        </div>
+                      )}
                       {/* Session link for online sessions */}
                       {s.status === 'confirmed' && ['video', 'Video Call', 'phone', 'Phone Call', 'messaging', 'Chat / Messaging'].includes(s.session_format ?? '') && (
                         <div className="pt-1">
