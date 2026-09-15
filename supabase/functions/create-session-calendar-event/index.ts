@@ -66,14 +66,20 @@ async function createCalendarEvent(params: {
   const start = new Date(params.scheduledAt);
   const end = new Date(start.getTime() + params.durationMinutes * 60_000);
 
-  // NOTE: no `attendees` here. Google's Calendar API rejects attendee invites from
-  // a bare service account with 403 forbiddenForServiceAccounts ("Service accounts
-  // cannot invite attendees without Domain-Wide Delegation of Authority") — and
-  // Domain-Wide Delegation requires a Google Workspace domain, which isn't set up
-  // (GOOGLE_CALENDAR_ID's owner is a personal Gmail account). So neither therapist
-  // nor client gets a native Calendar invite email; instead sessions.session_link
-  // (set below from the Meet link) surfaces the join link directly in the app —
-  // ClientDashboard.tsx and TherapistCalendar.tsx both already show it there.
+  // NOTE: no `attendees` and no `conferenceData` here. Google's Calendar API
+  // rejects both on this account:
+  //   - attendees: 403 forbiddenForServiceAccounts ("Service accounts cannot
+  //     invite attendees without Domain-Wide Delegation of Authority") — Domain-Wide
+  //     Delegation requires a Google Workspace domain, which isn't set up
+  //     (GOOGLE_CALENDAR_ID's owner is a personal Gmail account).
+  //   - conferenceData (auto-generating a Meet link): 400 "Invalid conference type
+  //     value" — confirmed via a real production run (2026-09-15); auto-creating a
+  //     Meet conference via the API appears unavailable for this account type.
+  // Neither is required for the core feature: sessions.session_link already has a
+  // manual editor (SessionLinkEditor, used by TherapistCalendar) the therapist can
+  // paste a Meet/Zoom link into, and that's what ClientDashboard.tsx and
+  // TherapistCalendar.tsx already surface as "Join session". This function's job
+  // is just to put the confirmed session on the shared "Nawe Sessions" calendar.
   const body: Record<string, unknown> = {
     summary: params.title,
     start: { dateTime: start.toISOString(), timeZone: 'Africa/Nairobi' },
@@ -81,14 +87,7 @@ async function createCalendarEvent(params: {
     reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 15 }] },
   };
 
-  if (params.isVideo) {
-    body.conferenceData = {
-      createRequest: { requestId: params.sessionId, conferenceSolutionKey: { type: 'hangoutsMeet' } },
-    };
-  }
-
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(googleCalendarId)}/events` +
-    `?conferenceDataVersion=1`;
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(googleCalendarId)}/events`;
   const resp = await fetch(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
@@ -97,11 +96,7 @@ async function createCalendarEvent(params: {
   if (!resp.ok) throw new Error(`Google Calendar API error: ${await resp.text()}`);
   const event = await resp.json();
 
-  const meetLink = event.conferenceData?.entryPoints?.find(
-    (ep: { entryPointType: string; uri: string }) => ep.entryPointType === 'video',
-  )?.uri ?? null;
-
-  return { meetLink, calendarLink: event.htmlLink as string, eventId: event.id as string };
+  return { meetLink: null, calendarLink: event.htmlLink as string, eventId: event.id as string };
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────
