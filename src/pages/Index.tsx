@@ -182,8 +182,8 @@ const Index = () => (
         {/* Stats row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16">
           {stats.map((s) => (
-            <div key={s.label} className="bg-card border border-border rounded-card p-8 text-center shadow-card">
-              <p className="font-display text-5xl text-primary mb-2">{s.value}</p>
+            <div key={s.label} className="bg-card border border-border rounded-card p-5 md:p-8 text-center shadow-card">
+              <p className="font-display text-4xl md:text-5xl text-primary mb-2 whitespace-nowrap">{s.value}</p>
               <p className="font-ui text-sm text-muted-foreground">{s.label}</p>
             </div>
           ))}
