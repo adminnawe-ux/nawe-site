@@ -179,15 +179,24 @@ const Index = () => (
           </div>
         </div>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16">
-          {stats.map((s) => (
-            <div key={s.label} className="bg-card border border-border rounded-card p-5 md:p-8 text-center shadow-card">
-              <p className="font-display text-4xl md:text-5xl text-primary mb-2 whitespace-nowrap">{s.value}</p>
-              <p className="font-ui text-sm text-muted-foreground">{s.label}</p>
+        {/* Stats: one divided strip; 2×2 with rules on phones */}
+        <dl className="grid grid-cols-2 md:grid-cols-4 mt-16 border-y border-border">
+          {stats.map((s, i) => (
+            <div
+              key={s.label}
+              className={[
+                'py-8 px-4 text-center flex flex-col gap-2',
+                i % 2 === 0 ? 'border-r border-border' : '',
+                i < 2 ? 'border-b border-border' : '',
+                i < 3 ? 'md:border-r md:border-border' : 'md:border-r-0',
+                'md:border-b-0',
+              ].join(' ')}
+            >
+              <dd className="font-display text-4xl md:text-5xl text-primary whitespace-nowrap m-0">{s.value}</dd>
+              <dt className="font-ui text-sm text-muted-foreground">{s.label}</dt>
             </div>
           ))}
-        </div>
+        </dl>
       </div>
     </section>
 
