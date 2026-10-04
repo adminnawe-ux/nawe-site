@@ -147,7 +147,7 @@ const Index = () => (
             </div>
             <p className="font-ui text-sm text-brand-navy/70 mt-6">
               Are you a therapist?{' '}
-              <Link to="/for-therapists" className="text-primary font-medium hover:underline">Join the professional network</Link>
+              <Link to="/therapists" className="text-primary font-medium hover:underline">Join the professional network</Link>
             </p>
           </div>
         </div>
