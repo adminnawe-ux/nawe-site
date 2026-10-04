@@ -123,7 +123,9 @@ Recommendation: **A** for therapist pages and the three audience pages, since th
 ## Decisions (confirmed)
 
 - **Public therapist pages:** verified therapists only (existing RLS rule).
-- **Slug format:** `firstname-secondname-<first 2 chars of therapist id>`, lowercase, ASCII-folded, e.g. `jane-wanjiru-a3`. The id suffix makes collisions rare; a uniqueness check still runs and appends a counter if a collision occurs.
+- **Public URL:** `nawe.co.ke/therapist/<slug>` (keep the `/therapist/` prefix; no root-level therapist URLs).
+- **Slug format:** first name + last name joined with no separator, lowercase, ASCII-folded, e.g. `janewanjiru`.
+- **Collision handling:** on a clash, append the first two digits from the therapist's id (`janewanjiru35`). If the id has no digits in its first characters, use the next digits found; as a last resort, append a counter (`janewanjiru-2`). The slug must be unique in the database.
 - **SEO approach:** prerendering for the public audience pages and therapist pages.
 - **Imagery:** user will provide photography for the audience pages.
 
