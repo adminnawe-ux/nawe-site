@@ -106,10 +106,10 @@ const Index = () => (
   <div>
 
     {/* 1 · HERO ─────────────────────────────────────────────────────────── */}
-    <section className="relative min-h-screen flex items-center overflow-hidden bg-white">
+    <section className="relative min-h-screen flex items-center overflow-x-clip bg-transparent">
       {/* Decorative circles */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-brand-sky translate-x-1/4 -translate-y-1/4 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[420px] h-[420px] rounded-full bg-brand-sand -translate-x-1/4 translate-y-1/4 pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-brand-sky translate-x-1/4 -translate-y-1/4 pointer-events-none -z-10" />
+      <div className="absolute bottom-0 left-0 w-[420px] h-[420px] rounded-full bg-brand-sand -translate-x-1/4 translate-y-1/4 pointer-events-none -z-10" />
 
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-3xl mx-auto text-center animate-fade-in">
@@ -142,7 +142,7 @@ const Index = () => (
     </section>
 
     {/* 2 · WHAT IS NAWE ─────────────────────────────────────────────────── */}
-    <section className="py-28 bg-background">
+    <section className="py-28 bg-transparent">
       <div className="container mx-auto px-6">
         <div className="inline-block border border-border rounded-full px-4 py-1.5 font-ui text-sm text-muted-foreground uppercase tracking-widest mb-10">Overview</div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
