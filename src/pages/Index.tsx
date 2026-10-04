@@ -133,29 +133,23 @@ const Index = () => (
             With you, Every step.
           </h1>
           <div className="mt-10">
-            <p className="font-ui text-sm text-brand-navy/50 uppercase tracking-widest mb-4">I'm here as a...</p>
+            <p className="font-ui text-sm text-brand-navy/50 uppercase tracking-widest mb-4">What brings you here?</p>
             <div className="flex flex-wrap gap-3 justify-center">
-              <Link to="/questionnaire">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/8 transition-colors">
-                  Individual
-                </button>
+              {/* Interim targets: existing pages until /people, /communities, /organizations and /therapists are built */}
+              <Link to="/questionnaire" className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/10 transition-colors">
+                I need support
               </Link>
-              <Link to="/for-therapists">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/8 transition-colors">
-                  Therapist
-                </button>
+              <Link to="/events" className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/10 transition-colors">
+                Support my community
               </Link>
-              <Link to="/grow">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/8 transition-colors">
-                  Corporate
-                </button>
-              </Link>
-              <Link to="/grow">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/8 transition-colors">
-                  Partner
-                </button>
+              <Link to="/grow" className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/10 transition-colors">
+                Strengthen my organization
               </Link>
             </div>
+            <p className="font-ui text-sm text-brand-navy/70 mt-6">
+              Are you a therapist?{' '}
+              <Link to="/for-therapists" className="text-primary font-medium hover:underline">Join the professional network</Link>
+            </p>
           </div>
         </div>
       </div>
@@ -462,7 +456,7 @@ const Index = () => (
           </p>
           <Link to="/questionnaire">
             <Button size="lg" className="font-ui text-lg px-10 py-7 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-soft">
-              Find a Therapist <ArrowRight className="ml-2 h-5 w-5" />
+              Find support <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </Link>
         </div>
