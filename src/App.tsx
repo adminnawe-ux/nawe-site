@@ -43,6 +43,7 @@ import TherapistProfile from "@/pages/TherapistProfile";
 import BookSession from "@/pages/BookSession";
 import Triage from "@/pages/Triage";
 import People from "@/pages/People";
+import Communities from "@/pages/Communities";
 
 // Therapist pages
 import TherapistDashboard from "@/pages/therapist/TherapistDashboard";
@@ -86,6 +87,7 @@ const App = () => (
               <Route path="/resources" element={<Resources />} />
               <Route path="/grow" element={<Grow />} />
               <Route path="/people" element={<People />} />
+              <Route path="/communities" element={<Communities />} />
               {/* Browsing therapists is open to guests */}
               <Route path="/matches" element={<Matches />} />
               <Route path="/therapist/:id" element={<TherapistProfile />} />
