@@ -27,20 +27,7 @@ const services = [
   // { icon: Building2,  title: 'Corporate Wellness',      body: 'Employee mental health packages for organisations, helping companies build healthier, more resilient workforces.' },
 ];
 
-const steps = [
-  { n: '01', title: 'Create Profile',        body: 'Sign up and share your preferences, needs, and language — in minutes.' },
-  { n: '02', title: 'Get Matched',           body: 'Our platform suggests vetted therapists that fit your unique profile.' },
-  { n: '03', title: 'Choose Your Therapist', body: 'Browse profiles, read bios, and select the therapist you feel best with.' },
-  { n: '04', title: 'Book a Session',        body: 'Schedule online or in-person at a time that works for you.' },
-  { n: '05', title: 'Start Your Journey',    body: 'Begin therapy with transparent, standardized pricing — no surprises.' },
-];
 
-const regions = [
-  { name: 'East Africa (HQ)',  countries: 'Kenya, Uganda, Tanzania',   status: 'Active',      statusClass: 'bg-primary/10 text-primary' },
-  { name: 'West Africa',       countries: 'Nigeria, Ghana',            status: 'Expanding',   statusClass: 'bg-accent/10 text-accent' },
-  { name: 'Southern Africa',   countries: 'South Africa, Zimbabwe',    status: 'Pilot Phase', statusClass: 'bg-muted text-muted-foreground' },
-  { name: 'Online / Diaspora', countries: 'Global reach via platform', status: 'Active',      statusClass: 'bg-primary/10 text-primary' },
-];
 
 
 const resources = [
@@ -78,15 +65,15 @@ const NewsletterPanel = () => {
   };
 
   return (
-    <div className="bg-[#c8e6f7] rounded-card p-8 flex flex-col gap-6">
+    <div className="bg-brand-sky rounded-card p-8 flex flex-col gap-6">
       <div>
-        <h3 className="font-display text-2xl text-[#000b3d] mb-3">Stay Informed</h3>
-        <p className="font-body text-base text-[#000b3d]/70 leading-relaxed">
+        <h3 className="font-display text-2xl text-brand-navy mb-3">Stay Informed</h3>
+        <p className="font-body text-base text-brand-navy/70 leading-relaxed">
           Subscribe to our newsletter for the latest mental health research, therapist insights, and community stories from across Africa.
         </p>
       </div>
       {state === 'done' ? (
-        <p className="font-ui text-base text-[#000b3d] text-center py-4">You're subscribed! We'll be in touch.</p>
+        <p className="font-ui text-base text-brand-navy text-center py-4">You're subscribed! We'll be in touch.</p>
       ) : (
         <div className="space-y-3">
           <input
@@ -95,7 +82,7 @@ const NewsletterPanel = () => {
             onChange={(e) => { setEmail(e.target.value); if (state === 'error') setState('idle'); }}
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             placeholder="Your email address"
-            className="w-full rounded-full px-4 py-3 font-ui text-sm bg-[#000b3d]/10 border border-[#000b3d]/20 text-[#000b3d] placeholder:text-[#000b3d]/50 outline-none focus:border-[#000b3d]/60"
+            className="w-full rounded-full px-4 py-3 font-ui text-sm bg-brand-navy/10 border border-brand-navy/20 text-brand-navy placeholder:text-brand-navy/50 outline-none focus:border-brand-navy/60"
           />
           {state === 'error' && (
             <p className="font-ui text-sm text-destructive text-center">{errorMsg}</p>
@@ -121,41 +108,34 @@ const Index = () => (
     {/* 1 · HERO ─────────────────────────────────────────────────────────── */}
     <section className="relative min-h-screen flex items-center overflow-hidden bg-white">
       {/* Decorative circles */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-[#c8e6f7] translate-x-1/4 -translate-y-1/4 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[420px] h-[420px] rounded-full bg-[#f0e8d8] -translate-x-1/4 translate-y-1/4 pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-brand-sky translate-x-1/4 -translate-y-1/4 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[420px] h-[420px] rounded-full bg-brand-sand -translate-x-1/4 translate-y-1/4 pointer-events-none" />
 
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-3xl mx-auto text-center animate-fade-in">
-          <p className="font-ui text-[#000b3d]/50 text-sm uppercase tracking-widest mb-8">
+          <p className="font-ui text-brand-navy/50 text-sm uppercase tracking-widest mb-8">
             Connect  - Heal - Grow
           </p>
-          <h1 className="font-display text-5xl md:text-7xl text-[#000b3d] leading-none mb-2">
+          <h1 className="font-display text-5xl md:text-7xl text-brand-navy leading-none mb-2">
             With you, Every step.
           </h1>
           <div className="mt-10">
-            <p className="font-ui text-sm text-[#000b3d]/50 uppercase tracking-widest mb-4">I'm here as a...</p>
+            <p className="font-ui text-sm text-brand-navy/50 uppercase tracking-widest mb-4">What brings you here?</p>
             <div className="flex flex-wrap gap-3 justify-center">
-              <Link to="/questionnaire">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/30 text-[#000b3d] hover:bg-[#000b3d]/8 transition-colors">
-                  Individual
-                </button>
+              <Link to="/people" className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/10 transition-colors">
+                I need support
               </Link>
-              <Link to="/for-therapists">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/30 text-[#000b3d] hover:bg-[#000b3d]/8 transition-colors">
-                  Therapist
-                </button>
+              <Link to="/communities" className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/10 transition-colors">
+                Support my community
               </Link>
-              <Link to="/grow">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/30 text-[#000b3d] hover:bg-[#000b3d]/8 transition-colors">
-                  Corporate
-                </button>
-              </Link>
-              <Link to="/grow">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/30 text-[#000b3d] hover:bg-[#000b3d]/8 transition-colors">
-                  Partner
-                </button>
+              <Link to="/organizations" className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/10 transition-colors">
+                Strengthen my organization
               </Link>
             </div>
+            <p className="font-ui text-sm text-brand-navy/70 mt-6">
+              Are you a therapist?{' '}
+              <Link to="/therapists" className="text-primary font-medium hover:underline">Join the professional network</Link>
+            </p>
           </div>
         </div>
       </div>
@@ -185,7 +165,7 @@ const Index = () => (
               {[
                 { icon: Heart,      title: 'Individuals & Families ',   body: 'Book a confidential session with a licensed therapist.',           cta: 'Find a therapist',  href: '/questionnaire' },
                 { icon: Building2,  title: 'Corporate',     body: 'Give your teams structured, confidential wellbeing support.',     cta: 'See pricing tiers', href: '/how-it-works' },
-                { icon: Users,      title: 'Licensed therapists',      body: 'Build your practice and get matched with clients.',                cta: 'Apply to join',     href: '/for-therapists' },
+                { icon: Users,      title: 'Licensed therapists',      body: 'Build your practice and get matched with clients.',                cta: 'Apply to join',     href: '/therapists' },
                 { icon: Globe,      title: 'Partners', body: 'Bring resilience programmes into your community.',                 cta: 'Partner with us',   href: '/#partnerships' },
               ].map((card) => (
                 <a key={card.title} href={card.href} className="group flex flex-col gap-3 bg-card border border-border rounded-card p-5 hover:border-primary/40 hover:shadow-card transition-all">
@@ -199,15 +179,24 @@ const Index = () => (
           </div>
         </div>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16">
-          {stats.map((s) => (
-            <div key={s.label} className="bg-card border border-border rounded-card p-8 text-center shadow-card">
-              <p className="font-display text-5xl text-primary mb-2">{s.value}</p>
-              <p className="font-ui text-sm text-muted-foreground">{s.label}</p>
+        {/* Stats: one divided strip; 2×2 with rules on phones */}
+        <dl className="grid grid-cols-2 md:grid-cols-4 mt-16 border-y border-border">
+          {stats.map((s, i) => (
+            <div
+              key={s.label}
+              className={[
+                'py-8 px-4 text-center flex flex-col gap-2',
+                i % 2 === 0 ? 'border-r border-border' : '',
+                i < 2 ? 'border-b border-border' : '',
+                i < 3 ? 'md:border-r md:border-border' : 'md:border-r-0',
+                'md:border-b-0',
+              ].join(' ')}
+            >
+              <dd className="font-display text-4xl md:text-5xl text-primary whitespace-nowrap m-0">{s.value}</dd>
+              <dt className="font-ui text-sm text-muted-foreground">{s.label}</dt>
             </div>
           ))}
-        </div>
+        </dl>
       </div>
     </section>
 
@@ -234,9 +223,9 @@ const Index = () => (
 
                   {/* CONNECT */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-stretch rounded-card overflow-hidden border border-border shadow-card">
-            <div className="bg-[#c8e6f7] p-10 flex flex-col justify-between">
-              <h3 className="font-display text-5xl md:text-6xl text-[#000b3d] mb-6">Connect</h3>
-              <p className="font-body text-base text-[#000b3d]/70 leading-relaxed">Mental health care does not start in a clinic. It starts in the places people already gather: offices, schools, places of worship, WhatsApp groups. CONNECT brings facilitated workshops, public events and corporate wellness sessions into those everyday spaces, so asking for help becomes normal long before someone is in crisis.</p>
+            <div className="bg-brand-sky p-10 flex flex-col justify-between">
+              <h3 className="font-display text-5xl md:text-6xl text-brand-navy mb-6">Connect</h3>
+              <p className="font-body text-base text-brand-navy/70 leading-relaxed">Mental health care does not start in a clinic. It starts in the places people already gather: offices, schools, places of worship, WhatsApp groups. CONNECT brings facilitated workshops, public events and corporate wellness sessions into those everyday spaces, so asking for help becomes normal long before someone is in crisis.</p>
             </div>
             <div className="grid grid-cols-2 gap-px bg-border">
               {[
@@ -257,9 +246,9 @@ const Index = () => (
 
         {/* HEAL — below What We Offer */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-stretch rounded-card overflow-hidden border border-border shadow-card mt-20">
-          <div className="bg-[#c8e6f7] p-10 flex flex-col justify-between">
-            <h3 className="font-display text-5xl md:text-6xl text-[#000b3d] mb-6">Heal</h3>
-            <p className="font-body text-base text-[#000b3d]/70 leading-relaxed">We help individuals, families and communities heal from life's challenges through evidence-based psychological care. We provide compassionate support to help you heal, cope, and move forward. Healing minds strengthens lives. We are here to support your healing journey, one step at a time.</p>
+          <div className="bg-brand-sky p-10 flex flex-col justify-between">
+            <h3 className="font-display text-5xl md:text-6xl text-brand-navy mb-6">Heal</h3>
+            <p className="font-body text-base text-brand-navy/70 leading-relaxed">We help individuals, families and communities heal from life's challenges through evidence-based psychological care. We provide compassionate support to help you heal, cope, and move forward. Healing minds strengthens lives. We are here to support your healing journey, one step at a time.</p>
           </div>
           <div className="grid grid-cols-2 gap-px bg-border">
             {[
@@ -290,37 +279,6 @@ const Index = () => (
       </div>
     </section>
 
-    {/* 5 · HOW IT WORKS ─────────────────────────────────────────────────── */}
-    <section className="py-28 bg-card border-y border-border">
-      <div className="container mx-auto px-6">
-        <div className="inline-block border border-border rounded-full px-4 py-1.5 font-ui text-sm text-muted-foreground uppercase tracking-widest mb-10">How It Works</div>
-        <h2 className="font-display text-5xl md:text-6xl text-foreground mb-16">Your Journey to Better Mental Health</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-          {steps.map((s, i) => (
-            <div key={s.n} className="relative">
-              {i < steps.length - 1 && (
-                <div className="hidden lg:block absolute top-6 left-full w-full h-px bg-border -translate-y-1/2 z-0" />
-              )}
-              <div className="relative z-10">
-                <div className="w-14 h-14 rounded-full border-2 border-primary flex items-center justify-center mb-5">
-                  <span className="font-ui text-base font-bold text-primary">{s.n}</span>
-                </div>
-                <p className="font-display text-lg text-foreground mb-2">{s.title}</p>
-                <p className="font-body text-base text-muted-foreground leading-relaxed">{s.body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-14">
-          <Link to="/questionnaire">
-            <Button size="lg" className="font-ui text-lg px-10 py-7 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-soft">
-              Get Started <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </Link>
-        </div>
-      </div>
-    </section>
-
     {/* 7 · PARTNERSHIPS ─────────────────────────────────────────────────── */}
     <section id="partnerships" className="py-28 bg-card border-y border-border">
       <div className="container mx-auto px-6">
@@ -329,11 +287,11 @@ const Index = () => (
 
         {/* GROW */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-stretch rounded-card overflow-hidden border border-border shadow-card mb-16 mt-10">
-          <div className="bg-[#c8e6f7] p-10 flex flex-col justify-between">
-            <h3 className="font-display text-5xl md:text-6xl text-[#000b3d] mb-6">Grow</h3>
-            <p className="font-body text-lg text-[#000b3d]/70 mb-14 max-w-2xl">Nawe works alongside governments, NGOs, research institutions, and private sector partners to extend our reach and deepen our impact.</p>
-            <p className="font-body text-base text-[#000b3d]/70 leading-relaxed">GROW moves beyond a single session or workshop. It is one-on-one coaching, leadership development and organisational wellness systems for people and teams who want lasting change.</p>
-            <p className="font-body text-base text-[#000b3d]/70 leading-relaxed">Nawe works alongside governments, NGOs, research institutions, and private sector partners to extend our reach and deepen our impact.</p>
+          <div className="bg-brand-sky p-10 flex flex-col justify-between">
+            <h3 className="font-display text-5xl md:text-6xl text-brand-navy mb-6">Grow</h3>
+            <p className="font-body text-lg text-brand-navy/70 mb-14 max-w-2xl">Nawe works alongside governments, NGOs, research institutions, and private sector partners to extend our reach and deepen our impact.</p>
+            <p className="font-body text-base text-brand-navy/70 leading-relaxed">GROW moves beyond a single session or workshop. It is one-on-one coaching, leadership development and organisational wellness systems for people and teams who want lasting change.</p>
+            <p className="font-body text-base text-brand-navy/70 leading-relaxed">Nawe works alongside governments, NGOs, research institutions, and private sector partners to extend our reach and deepen our impact.</p>
           </div>
           <div className="grid grid-cols-2 gap-px bg-border">
             {[
@@ -352,18 +310,18 @@ const Index = () => (
         </div>
 
         {/* Partnership CTA */}
-        <div className="bg-[#c8e6f7] rounded-card p-10 md:p-14 flex flex-col md:flex-row md:items-center gap-8">
+        <div className="bg-brand-sky rounded-card p-10 md:p-14 flex flex-col md:flex-row md:items-center gap-8">
           <div className="flex-1">
-            <p className="font-ui text-sm text-[#000b3d]/50 uppercase tracking-widest mb-3">Work with us</p>
-            <h3 className="font-display text-3xl md:text-4xl text-[#000b3d] mb-4">
+            <p className="font-ui text-sm text-brand-navy/50 uppercase tracking-widest mb-3">Work with us</p>
+            <h3 className="font-display text-3xl md:text-4xl text-brand-navy mb-4">
               Bring mental health support to your organisation
             </h3>
-            <p className="font-body text-base text-[#000b3d]/70 leading-relaxed max-w-xl">
+            <p className="font-body text-base text-brand-navy/70 leading-relaxed max-w-xl">
               Whether you're a corporation building an employee wellness programme, an NGO serving a community, or a government body shaping mental health policy — we'd love to explore how Nawe can support your goals.
             </p>
             <div className="flex flex-wrap gap-3 mt-6">
               {['Corporate Wellness', 'NGO & Civil Society', 'Government', 'Research & Academic'].map(tag => (
-                <span key={tag} className="font-ui text-xs px-3 py-1.5 rounded-full border border-[#000b3d]/20 text-[#000b3d]/60">{tag}</span>
+                <span key={tag} className="font-ui text-xs px-3 py-1.5 rounded-full border border-brand-navy/20 text-brand-navy/60">{tag}</span>
               ))}
             </div>
           </div>
@@ -403,29 +361,6 @@ const Index = () => (
       </div>
     </section>
 
-    {/* 6 · WHERE WE WORK ────────────────────────────────────────────────── */}
-    <section className="py-28 bg-background">
-      <div className="container mx-auto px-6">
-        <div className="inline-block border border-border rounded-full px-4 py-1.5 font-ui text-sm text-muted-foreground uppercase tracking-widest mb-10">Where We Work</div>
-        <h2 className="font-display text-5xl md:text-6xl text-foreground mb-4">Our Reach Across Africa</h2>
-        <p className="font-body text-lg text-muted-foreground mb-14">Headquartered in Nairobi, Kenya · Licensed therapists operating in 3+ countries · Expanding continuously</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {regions.map((r) => (
-            <div key={r.name} className="bg-card border border-border rounded-card p-7 shadow-card">
-              <div className="flex items-start justify-between mb-4">
-                <h3 className="font-display text-xl text-foreground">{r.name}</h3>
-                <span className={`font-ui text-sm px-3 py-1 rounded-full ${r.statusClass}`}>{r.status}</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="h-4 w-4 shrink-0" />
-                <p className="font-body text-base">{r.countries}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-
     {/* 9 · TESTIMONIALS ─────────────────────────────────────────────────── */}
     <section className="py-28 bg-card border-y border-border">
       <div className="container mx-auto px-6">
@@ -450,19 +385,19 @@ const Index = () => (
     </section>
 
     {/* 10 · FINAL CTA ───────────────────────────────────────────────────── */}
-    <section className="py-28 bg-[#c8e6f7]">
+    <section className="py-28 bg-brand-sky">
       <div className="container mx-auto px-6">
         <div className="max-w-2xl mx-auto text-center">
-          <Heart className="h-12 w-12 text-[#000b3d]/40 mx-auto mb-8" />
-          <h2 className="font-display text-5xl md:text-6xl text-[#000b3d] mb-6">
+          <Heart className="h-12 w-12 text-brand-navy/40 mx-auto mb-8" />
+          <h2 className="font-display text-5xl md:text-6xl text-brand-navy mb-6">
             Your journey starts with one step
           </h2>
-          <p className="font-body text-xl text-[#000b3d]/70 mb-10 max-w-lg mx-auto leading-relaxed">
+          <p className="font-body text-xl text-brand-navy/70 mb-10 max-w-lg mx-auto leading-relaxed">
             You don't have to figure this out alone. Let us help you find a therapist who understands.
           </p>
           <Link to="/questionnaire">
             <Button size="lg" className="font-ui text-lg px-10 py-7 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-soft">
-              Find a Therapist <ArrowRight className="ml-2 h-5 w-5" />
+              Find support <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </Link>
         </div>

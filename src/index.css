@@ -52,6 +52,11 @@
     --sidebar-border: 40 30% 88%;
     --sidebar-ring: 203 83% 51%;
 
+    /* Brand palette (from the public site) */
+    --brand-navy: 229 100% 12%;   /* #000b3d — headings, body on light */
+    --brand-sky: 202 75% 88%;     /* #c8e6f7 — hero/section panels */
+    --brand-sand: 40 44% 89%;     /* #f0e8d8 — accent panels */
+
     /* Custom Nawe tokens */
     --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.06);
     --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.04);
