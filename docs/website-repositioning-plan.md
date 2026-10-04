@@ -120,13 +120,17 @@ Recommendation: **A** for therapist pages and the three audience pages, since th
 
 ---
 
-## Decisions needed before Phase 2 starts
+## Decisions (confirmed)
+
+- **Public therapist pages:** verified therapists only (existing RLS rule).
+- **Slug format:** `firstname-secondname-<first 2 chars of therapist id>`, lowercase, ASCII-folded, e.g. `jane-wanjiru-a3`. The id suffix makes collisions rare; a uniqueness check still runs and appends a counter if a collision occurs.
+- **SEO approach:** prerendering for the public audience pages and therapist pages.
+- **Imagery:** user will provide photography for the audience pages.
+
+## Decisions still open before Phase 2 starts
 
 1. **Grow page:** split into Communities + Organizations, or one page with two sections?
-2. **Therapist public visibility:** keep `verified = true` only?
-3. **Public display name:** is the slug built from the full name, first name + surname initial, or a separate display name field?
-4. **SEO approach:** prerender (recommended) vs. client-rendered + sitemap.
-5. **Copy:** will you send final copy for sections not already in brief §10, and imagery for the "human photography" direction?
+2. **Copy:** final copy for sections not already covered by brief §10.
 
 ## Order of work
 
