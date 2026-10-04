@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
@@ -19,7 +19,7 @@ import Signup from "@/pages/Signup";
 import TherapistSignup from "@/pages/TherapistSignup";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
-import ForTherapists from "@/pages/ForTherapists";
+
 import HowItWorks from "@/pages/HowItWorks";
 import NotFound from "@/pages/NotFound";
 import AuthRedirect from "@/pages/AuthRedirect";
@@ -81,7 +81,8 @@ const App = () => (
             {/* Public routes — landing page with navbar + footer */}
             <Route element={<ClientLayout />}>
               <Route path="/" element={<Index />} />
-              <Route path="/for-therapists" element={<ForTherapists />} />
+              {/* Old therapist page, now redirected to the audience page */}
+              <Route path="/for-therapists" element={<Navigate to="/therapists" replace />} />
               <Route path="/how-it-works" element={<HowItWorks />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />

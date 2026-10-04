@@ -178,7 +178,7 @@ const Index = () => (
               {[
                 { icon: Heart,      title: 'Individuals & Families ',   body: 'Book a confidential session with a licensed therapist.',           cta: 'Find a therapist',  href: '/questionnaire' },
                 { icon: Building2,  title: 'Corporate',     body: 'Give your teams structured, confidential wellbeing support.',     cta: 'See pricing tiers', href: '/how-it-works' },
-                { icon: Users,      title: 'Licensed therapists',      body: 'Build your practice and get matched with clients.',                cta: 'Apply to join',     href: '/for-therapists' },
+                { icon: Users,      title: 'Licensed therapists',      body: 'Build your practice and get matched with clients.',                cta: 'Apply to join',     href: '/therapists' },
                 { icon: Globe,      title: 'Partners', body: 'Bring resilience programmes into your community.',                 cta: 'Partner with us',   href: '/#partnerships' },
               ].map((card) => (
                 <a key={card.title} href={card.href} className="group flex flex-col gap-3 bg-card border border-border rounded-card p-5 hover:border-primary/40 hover:shadow-card transition-all">

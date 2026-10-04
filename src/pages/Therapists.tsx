@@ -83,8 +83,8 @@ const Therapists = () => (
             <span className="font-display text-2xl text-foreground">Apply to join</span>
             <ArrowRight className="h-5 w-5 text-primary group-hover:translate-x-1 transition-transform" />
           </Link>
-          <Link to="/for-therapists" className="group rounded-card border border-border p-8 flex justify-between items-center hover:bg-brand-sand/50 transition-colors">
-            <span className="font-display text-2xl text-foreground">Read the full details</span>
+          <Link to="/login" className="group rounded-card border border-border p-8 flex justify-between items-center hover:bg-brand-sand/50 transition-colors">
+            <span className="font-display text-2xl text-foreground">Already a therapist? Log in</span>
             <ArrowRight className="h-5 w-5 text-primary group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>

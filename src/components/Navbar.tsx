@@ -24,7 +24,7 @@ const Navbar = () => {
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-6">
-          <Link to="/for-therapists" className="font-ui text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <Link to="/therapists" className="font-ui text-sm text-muted-foreground hover:text-foreground transition-colors">
             For Therapists
           </Link>
           <Link to="/events" className="font-ui text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -73,7 +73,7 @@ const Navbar = () => {
       {/* Mobile menu */}
       {mobileOpen && (
         <div className="md:hidden bg-card border-b border-border px-6 py-4 space-y-3 animate-fade-in">
-          <Link to="/for-therapists" className="block font-ui text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
+          <Link to="/therapists" className="block font-ui text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             For Therapists
           </Link>
           <Link to="/events" className="block font-ui text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>

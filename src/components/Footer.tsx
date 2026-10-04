@@ -43,7 +43,7 @@ const Footer = () => (
           <div>
             <h4 className="font-ui font-semibold text-foreground mb-3 text-sm uppercase tracking-wider">For Therapists</h4>
             <ul className="space-y-2 font-body text-sm text-muted-foreground">
-              <li><Link to="/for-therapists" className="hover:text-primary transition-colors">Join Our Network</Link></li>
+              <li><Link to="/therapists" className="hover:text-primary transition-colors">Join Our Network</Link></li>
               <li><Link to="/therapist-portal" className="hover:text-primary transition-colors">Therapist Portal</Link></li>
             </ul>
           </div>
