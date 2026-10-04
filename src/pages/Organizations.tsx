@@ -50,16 +50,16 @@ const Organizations = () => (
     </section>
 
     {/* The cycle */}
-    <section className="py-24 bg-brand-navy text-white">
+    <section className="py-24 bg-brand-sand">
       <div className="container mx-auto px-6">
-        <p className="font-ui text-sm uppercase tracking-widest text-white/60 mb-4">How it works</p>
-        <h2 className="font-display text-4xl md:text-5xl mb-14 max-w-2xl">Measure, understand, act, and measure again</h2>
+        <p className="font-ui text-sm uppercase tracking-widest text-brand-navy/60 mb-4">How it works</p>
+        <h2 className="font-display text-4xl md:text-5xl text-brand-navy mb-14 max-w-2xl">Measure, understand, act, and measure again</h2>
         <ol className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {cycle.map((step, i) => (
-            <li key={step.title} className="border-t border-white/25 pt-6 flex flex-col gap-3">
-              <span className="font-ui text-sm font-medium text-white/60">Step {i + 1}</span>
-              <h3 className="font-display text-2xl">{step.title}</h3>
-              <p className="font-body text-base text-white/75 leading-relaxed">{step.body}</p>
+            <li key={step.title} className="border-t border-brand-navy/25 pt-6 flex flex-col gap-3">
+              <span className="font-ui text-sm font-medium text-brand-navy/60">Step {i + 1}</span>
+              <h3 className="font-display text-2xl text-brand-navy">{step.title}</h3>
+              <p className="font-body text-base text-brand-navy/75 leading-relaxed">{step.body}</p>
             </li>
           ))}
         </ol>
@@ -96,7 +96,7 @@ const Organizations = () => (
     </section>
 
     {/* Closing */}
-    <section className="py-24 bg-brand-sand text-center">
+    <section className="py-24 bg-brand-sky text-center">
       <div className="container mx-auto px-6 max-w-2xl">
         <h2 className="font-display text-4xl md:text-5xl text-brand-navy mb-6">Invest in your people.</h2>
         <p className="font-body text-xl text-brand-navy/70 mb-10">Start with an assessment and see where your organisation stands.</p>

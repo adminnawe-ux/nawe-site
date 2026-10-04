@@ -27,20 +27,7 @@ const services = [
   // { icon: Building2,  title: 'Corporate Wellness',      body: 'Employee mental health packages for organisations, helping companies build healthier, more resilient workforces.' },
 ];
 
-const steps = [
-  { n: '01', title: 'Create Profile',        body: 'Sign up and share your preferences, needs, and language — in minutes.' },
-  { n: '02', title: 'Get Matched',           body: 'Our platform suggests vetted therapists that fit your unique profile.' },
-  { n: '03', title: 'Choose Your Therapist', body: 'Browse profiles, read bios, and select the therapist you feel best with.' },
-  { n: '04', title: 'Book a Session',        body: 'Schedule online or in-person at a time that works for you.' },
-  { n: '05', title: 'Start Your Journey',    body: 'Begin therapy with transparent, standardized pricing — no surprises.' },
-];
 
-const regions = [
-  { name: 'East Africa (HQ)',  countries: 'Kenya, Uganda, Tanzania',   status: 'Active',      statusClass: 'bg-primary/10 text-primary' },
-  { name: 'West Africa',       countries: 'Nigeria, Ghana',            status: 'Expanding',   statusClass: 'bg-accent/10 text-accent' },
-  { name: 'Southern Africa',   countries: 'South Africa, Zimbabwe',    status: 'Pilot Phase', statusClass: 'bg-muted text-muted-foreground' },
-  { name: 'Online / Diaspora', countries: 'Global reach via platform', status: 'Active',      statusClass: 'bg-primary/10 text-primary' },
-];
 
 
 const resources = [
@@ -283,37 +270,6 @@ const Index = () => (
       </div>
     </section>
 
-    {/* 5 · HOW IT WORKS ─────────────────────────────────────────────────── */}
-    <section className="py-28 bg-card border-y border-border">
-      <div className="container mx-auto px-6">
-        <div className="inline-block border border-border rounded-full px-4 py-1.5 font-ui text-sm text-muted-foreground uppercase tracking-widest mb-10">How It Works</div>
-        <h2 className="font-display text-5xl md:text-6xl text-foreground mb-16">Your Journey to Better Mental Health</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-          {steps.map((s, i) => (
-            <div key={s.n} className="relative">
-              {i < steps.length - 1 && (
-                <div className="hidden lg:block absolute top-6 left-full w-full h-px bg-border -translate-y-1/2 z-0" />
-              )}
-              <div className="relative z-10">
-                <div className="w-14 h-14 rounded-full border-2 border-primary flex items-center justify-center mb-5">
-                  <span className="font-ui text-base font-bold text-primary">{s.n}</span>
-                </div>
-                <p className="font-display text-lg text-foreground mb-2">{s.title}</p>
-                <p className="font-body text-base text-muted-foreground leading-relaxed">{s.body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-14">
-          <Link to="/questionnaire">
-            <Button size="lg" className="font-ui text-lg px-10 py-7 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-soft">
-              Get Started <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </Link>
-        </div>
-      </div>
-    </section>
-
     {/* 7 · PARTNERSHIPS ─────────────────────────────────────────────────── */}
     <section id="partnerships" className="py-28 bg-card border-y border-border">
       <div className="container mx-auto px-6">
@@ -392,29 +348,6 @@ const Index = () => (
             ))}
           </div>
           <NewsletterPanel />
-        </div>
-      </div>
-    </section>
-
-    {/* 6 · WHERE WE WORK ────────────────────────────────────────────────── */}
-    <section className="py-28 bg-background">
-      <div className="container mx-auto px-6">
-        <div className="inline-block border border-border rounded-full px-4 py-1.5 font-ui text-sm text-muted-foreground uppercase tracking-widest mb-10">Where We Work</div>
-        <h2 className="font-display text-5xl md:text-6xl text-foreground mb-4">Our Reach Across Africa</h2>
-        <p className="font-body text-lg text-muted-foreground mb-14">Headquartered in Nairobi, Kenya · Licensed therapists operating in 3+ countries · Expanding continuously</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {regions.map((r) => (
-            <div key={r.name} className="bg-card border border-border rounded-card p-7 shadow-card">
-              <div className="flex items-start justify-between mb-4">
-                <h3 className="font-display text-xl text-foreground">{r.name}</h3>
-                <span className={`font-ui text-sm px-3 py-1 rounded-full ${r.statusClass}`}>{r.status}</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="h-4 w-4 shrink-0" />
-                <p className="font-body text-base">{r.countries}</p>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </section>
