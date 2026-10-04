@@ -23,7 +23,16 @@ const Navbar = () => {
         </Link>
 
         {/* Desktop nav */}
-        <div className="hidden md:flex items-center gap-6">
+        <div className="hidden lg:flex items-center gap-5">
+          <Link to="/people" className="font-ui text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Individuals
+          </Link>
+          <Link to="/communities" className="font-ui text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Communities
+          </Link>
+          <Link to="/organizations" className="font-ui text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Organizations
+          </Link>
           <Link to="/therapists" className="font-ui text-sm text-muted-foreground hover:text-foreground transition-colors">
             For Therapists
           </Link>
@@ -65,14 +74,23 @@ const Navbar = () => {
         </div>
 
         {/* Mobile toggle */}
-        <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle menu">
+        <button className="lg:hidden" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Toggle menu">
           {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
       </div>
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden bg-card border-b border-border px-6 py-4 space-y-3 animate-fade-in">
+        <div className="lg:hidden bg-card border-b border-border px-6 py-4 space-y-3 animate-fade-in">
+          <Link to="/people" className="block font-ui text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
+            Individuals
+          </Link>
+          <Link to="/communities" className="block font-ui text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
+            Communities
+          </Link>
+          <Link to="/organizations" className="block font-ui text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
+            Organizations
+          </Link>
           <Link to="/therapists" className="block font-ui text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             For Therapists
           </Link>
