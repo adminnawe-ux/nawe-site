@@ -135,8 +135,7 @@ const Index = () => (
           <div className="mt-10">
             <p className="font-ui text-sm text-brand-navy/50 uppercase tracking-widest mb-4">What brings you here?</p>
             <div className="flex flex-wrap gap-3 justify-center">
-              {/* Interim targets: existing pages until /people, /communities, /organizations and /therapists are built */}
-              <Link to="/questionnaire" className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/10 transition-colors">
+              <Link to="/people" className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/10 transition-colors">
                 I need support
               </Link>
               <Link to="/events" className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/10 transition-colors">
