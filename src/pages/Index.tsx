@@ -78,15 +78,15 @@ const NewsletterPanel = () => {
   };
 
   return (
-    <div className="bg-[#c8e6f7] rounded-card p-8 flex flex-col gap-6">
+    <div className="bg-brand-sky rounded-card p-8 flex flex-col gap-6">
       <div>
-        <h3 className="font-display text-2xl text-[#000b3d] mb-3">Stay Informed</h3>
-        <p className="font-body text-base text-[#000b3d]/70 leading-relaxed">
+        <h3 className="font-display text-2xl text-brand-navy mb-3">Stay Informed</h3>
+        <p className="font-body text-base text-brand-navy/70 leading-relaxed">
           Subscribe to our newsletter for the latest mental health research, therapist insights, and community stories from across Africa.
         </p>
       </div>
       {state === 'done' ? (
-        <p className="font-ui text-base text-[#000b3d] text-center py-4">You're subscribed! We'll be in touch.</p>
+        <p className="font-ui text-base text-brand-navy text-center py-4">You're subscribed! We'll be in touch.</p>
       ) : (
         <div className="space-y-3">
           <input
@@ -95,7 +95,7 @@ const NewsletterPanel = () => {
             onChange={(e) => { setEmail(e.target.value); if (state === 'error') setState('idle'); }}
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             placeholder="Your email address"
-            className="w-full rounded-full px-4 py-3 font-ui text-sm bg-[#000b3d]/10 border border-[#000b3d]/20 text-[#000b3d] placeholder:text-[#000b3d]/50 outline-none focus:border-[#000b3d]/60"
+            className="w-full rounded-full px-4 py-3 font-ui text-sm bg-brand-navy/10 border border-brand-navy/20 text-brand-navy placeholder:text-brand-navy/50 outline-none focus:border-brand-navy/60"
           />
           {state === 'error' && (
             <p className="font-ui text-sm text-destructive text-center">{errorMsg}</p>
@@ -121,37 +121,37 @@ const Index = () => (
     {/* 1 · HERO ─────────────────────────────────────────────────────────── */}
     <section className="relative min-h-screen flex items-center overflow-hidden bg-white">
       {/* Decorative circles */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-[#c8e6f7] translate-x-1/4 -translate-y-1/4 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[420px] h-[420px] rounded-full bg-[#f0e8d8] -translate-x-1/4 translate-y-1/4 pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-brand-sky translate-x-1/4 -translate-y-1/4 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[420px] h-[420px] rounded-full bg-brand-sand -translate-x-1/4 translate-y-1/4 pointer-events-none" />
 
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-3xl mx-auto text-center animate-fade-in">
-          <p className="font-ui text-[#000b3d]/50 text-sm uppercase tracking-widest mb-8">
+          <p className="font-ui text-brand-navy/50 text-sm uppercase tracking-widest mb-8">
             Connect  - Heal - Grow
           </p>
-          <h1 className="font-display text-5xl md:text-7xl text-[#000b3d] leading-none mb-2">
+          <h1 className="font-display text-5xl md:text-7xl text-brand-navy leading-none mb-2">
             With you, Every step.
           </h1>
           <div className="mt-10">
-            <p className="font-ui text-sm text-[#000b3d]/50 uppercase tracking-widest mb-4">I'm here as a...</p>
+            <p className="font-ui text-sm text-brand-navy/50 uppercase tracking-widest mb-4">I'm here as a...</p>
             <div className="flex flex-wrap gap-3 justify-center">
               <Link to="/questionnaire">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/30 text-[#000b3d] hover:bg-[#000b3d]/8 transition-colors">
+                <button className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/8 transition-colors">
                   Individual
                 </button>
               </Link>
               <Link to="/for-therapists">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/30 text-[#000b3d] hover:bg-[#000b3d]/8 transition-colors">
+                <button className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/8 transition-colors">
                   Therapist
                 </button>
               </Link>
               <Link to="/grow">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/30 text-[#000b3d] hover:bg-[#000b3d]/8 transition-colors">
+                <button className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/8 transition-colors">
                   Corporate
                 </button>
               </Link>
               <Link to="/grow">
-                <button className="font-ui text-base px-6 py-3 rounded-full border border-[#000b3d]/30 text-[#000b3d] hover:bg-[#000b3d]/8 transition-colors">
+                <button className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/8 transition-colors">
                   Partner
                 </button>
               </Link>
@@ -234,9 +234,9 @@ const Index = () => (
 
                   {/* CONNECT */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-stretch rounded-card overflow-hidden border border-border shadow-card">
-            <div className="bg-[#c8e6f7] p-10 flex flex-col justify-between">
-              <h3 className="font-display text-5xl md:text-6xl text-[#000b3d] mb-6">Connect</h3>
-              <p className="font-body text-base text-[#000b3d]/70 leading-relaxed">Mental health care does not start in a clinic. It starts in the places people already gather: offices, schools, places of worship, WhatsApp groups. CONNECT brings facilitated workshops, public events and corporate wellness sessions into those everyday spaces, so asking for help becomes normal long before someone is in crisis.</p>
+            <div className="bg-brand-sky p-10 flex flex-col justify-between">
+              <h3 className="font-display text-5xl md:text-6xl text-brand-navy mb-6">Connect</h3>
+              <p className="font-body text-base text-brand-navy/70 leading-relaxed">Mental health care does not start in a clinic. It starts in the places people already gather: offices, schools, places of worship, WhatsApp groups. CONNECT brings facilitated workshops, public events and corporate wellness sessions into those everyday spaces, so asking for help becomes normal long before someone is in crisis.</p>
             </div>
             <div className="grid grid-cols-2 gap-px bg-border">
               {[
@@ -257,9 +257,9 @@ const Index = () => (
 
         {/* HEAL — below What We Offer */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-stretch rounded-card overflow-hidden border border-border shadow-card mt-20">
-          <div className="bg-[#c8e6f7] p-10 flex flex-col justify-between">
-            <h3 className="font-display text-5xl md:text-6xl text-[#000b3d] mb-6">Heal</h3>
-            <p className="font-body text-base text-[#000b3d]/70 leading-relaxed">We help individuals, families and communities heal from life's challenges through evidence-based psychological care. We provide compassionate support to help you heal, cope, and move forward. Healing minds strengthens lives. We are here to support your healing journey, one step at a time.</p>
+          <div className="bg-brand-sky p-10 flex flex-col justify-between">
+            <h3 className="font-display text-5xl md:text-6xl text-brand-navy mb-6">Heal</h3>
+            <p className="font-body text-base text-brand-navy/70 leading-relaxed">We help individuals, families and communities heal from life's challenges through evidence-based psychological care. We provide compassionate support to help you heal, cope, and move forward. Healing minds strengthens lives. We are here to support your healing journey, one step at a time.</p>
           </div>
           <div className="grid grid-cols-2 gap-px bg-border">
             {[
@@ -329,11 +329,11 @@ const Index = () => (
 
         {/* GROW */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-stretch rounded-card overflow-hidden border border-border shadow-card mb-16 mt-10">
-          <div className="bg-[#c8e6f7] p-10 flex flex-col justify-between">
-            <h3 className="font-display text-5xl md:text-6xl text-[#000b3d] mb-6">Grow</h3>
-            <p className="font-body text-lg text-[#000b3d]/70 mb-14 max-w-2xl">Nawe works alongside governments, NGOs, research institutions, and private sector partners to extend our reach and deepen our impact.</p>
-            <p className="font-body text-base text-[#000b3d]/70 leading-relaxed">GROW moves beyond a single session or workshop. It is one-on-one coaching, leadership development and organisational wellness systems for people and teams who want lasting change.</p>
-            <p className="font-body text-base text-[#000b3d]/70 leading-relaxed">Nawe works alongside governments, NGOs, research institutions, and private sector partners to extend our reach and deepen our impact.</p>
+          <div className="bg-brand-sky p-10 flex flex-col justify-between">
+            <h3 className="font-display text-5xl md:text-6xl text-brand-navy mb-6">Grow</h3>
+            <p className="font-body text-lg text-brand-navy/70 mb-14 max-w-2xl">Nawe works alongside governments, NGOs, research institutions, and private sector partners to extend our reach and deepen our impact.</p>
+            <p className="font-body text-base text-brand-navy/70 leading-relaxed">GROW moves beyond a single session or workshop. It is one-on-one coaching, leadership development and organisational wellness systems for people and teams who want lasting change.</p>
+            <p className="font-body text-base text-brand-navy/70 leading-relaxed">Nawe works alongside governments, NGOs, research institutions, and private sector partners to extend our reach and deepen our impact.</p>
           </div>
           <div className="grid grid-cols-2 gap-px bg-border">
             {[
@@ -352,18 +352,18 @@ const Index = () => (
         </div>
 
         {/* Partnership CTA */}
-        <div className="bg-[#c8e6f7] rounded-card p-10 md:p-14 flex flex-col md:flex-row md:items-center gap-8">
+        <div className="bg-brand-sky rounded-card p-10 md:p-14 flex flex-col md:flex-row md:items-center gap-8">
           <div className="flex-1">
-            <p className="font-ui text-sm text-[#000b3d]/50 uppercase tracking-widest mb-3">Work with us</p>
-            <h3 className="font-display text-3xl md:text-4xl text-[#000b3d] mb-4">
+            <p className="font-ui text-sm text-brand-navy/50 uppercase tracking-widest mb-3">Work with us</p>
+            <h3 className="font-display text-3xl md:text-4xl text-brand-navy mb-4">
               Bring mental health support to your organisation
             </h3>
-            <p className="font-body text-base text-[#000b3d]/70 leading-relaxed max-w-xl">
+            <p className="font-body text-base text-brand-navy/70 leading-relaxed max-w-xl">
               Whether you're a corporation building an employee wellness programme, an NGO serving a community, or a government body shaping mental health policy — we'd love to explore how Nawe can support your goals.
             </p>
             <div className="flex flex-wrap gap-3 mt-6">
               {['Corporate Wellness', 'NGO & Civil Society', 'Government', 'Research & Academic'].map(tag => (
-                <span key={tag} className="font-ui text-xs px-3 py-1.5 rounded-full border border-[#000b3d]/20 text-[#000b3d]/60">{tag}</span>
+                <span key={tag} className="font-ui text-xs px-3 py-1.5 rounded-full border border-brand-navy/20 text-brand-navy/60">{tag}</span>
               ))}
             </div>
           </div>
@@ -450,14 +450,14 @@ const Index = () => (
     </section>
 
     {/* 10 · FINAL CTA ───────────────────────────────────────────────────── */}
-    <section className="py-28 bg-[#c8e6f7]">
+    <section className="py-28 bg-brand-sky">
       <div className="container mx-auto px-6">
         <div className="max-w-2xl mx-auto text-center">
-          <Heart className="h-12 w-12 text-[#000b3d]/40 mx-auto mb-8" />
-          <h2 className="font-display text-5xl md:text-6xl text-[#000b3d] mb-6">
+          <Heart className="h-12 w-12 text-brand-navy/40 mx-auto mb-8" />
+          <h2 className="font-display text-5xl md:text-6xl text-brand-navy mb-6">
             Your journey starts with one step
           </h2>
-          <p className="font-body text-xl text-[#000b3d]/70 mb-10 max-w-lg mx-auto leading-relaxed">
+          <p className="font-body text-xl text-brand-navy/70 mb-10 max-w-lg mx-auto leading-relaxed">
             You don't have to figure this out alone. Let us help you find a therapist who understands.
           </p>
           <Link to="/questionnaire">
