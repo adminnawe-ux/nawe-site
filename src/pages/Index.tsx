@@ -141,7 +141,7 @@ const Index = () => (
               <Link to="/communities" className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/10 transition-colors">
                 Support my community
               </Link>
-              <Link to="/grow" className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/10 transition-colors">
+              <Link to="/organizations" className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/10 transition-colors">
                 Strengthen my organization
               </Link>
             </div>
