@@ -75,7 +75,7 @@ const Therapists = () => (
           <p className="font-ui text-sm uppercase tracking-widest text-muted-foreground mb-4">Transparent pricing</p>
           <h2 className="font-display text-4xl md:text-5xl text-brand-navy mb-6">No hidden costs, no surprises.</h2>
           <p className="font-body text-xl text-foreground leading-relaxed">
-            You keep 80% of every session fee. Payouts arrive on your schedule.
+            You keep at least 80% of every session fee. Payouts arrive on your schedule.
           </p>
         </div>
         <div className="flex flex-col gap-4">
