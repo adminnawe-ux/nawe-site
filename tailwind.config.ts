@@ -21,6 +21,11 @@ export default {
         ui: ['"DM Sans"', 'system-ui', 'sans-serif'],
       },
       colors: {
+        brand: {
+          navy: "hsl(var(--brand-navy) / <alpha-value>)",
+          sky: "hsl(var(--brand-sky) / <alpha-value>)",
+          sand: "hsl(var(--brand-sand) / <alpha-value>)",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

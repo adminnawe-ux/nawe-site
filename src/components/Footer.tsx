@@ -24,7 +24,7 @@ const Footer = () => (
     <CrisisFooter />
     <div className="bg-card border-t border-border">
       <div className="container mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-8">
           <div>
             <img src="/nawe-logo.png" alt={SITE_NAME} className="h-32 w-auto mb-3" />
             <p className="font-body text-sm text-muted-foreground leading-relaxed">
@@ -41,9 +41,18 @@ const Footer = () => (
             </ul>
           </div>
           <div>
+            <h4 className="font-ui font-semibold text-foreground mb-3 text-sm uppercase tracking-wider">Who We Serve</h4>
+            <ul className="space-y-2 font-body text-sm text-muted-foreground">
+              <li><Link to="/people" className="hover:text-primary transition-colors">Individuals & Families</Link></li>
+              <li><Link to="/communities" className="hover:text-primary transition-colors">Communities & Partners</Link></li>
+              <li><Link to="/organizations" className="hover:text-primary transition-colors">Organizations</Link></li>
+              <li><Link to="/grow" className="hover:text-primary transition-colors">Corporate Packages</Link></li>
+            </ul>
+          </div>
+          <div>
             <h4 className="font-ui font-semibold text-foreground mb-3 text-sm uppercase tracking-wider">For Therapists</h4>
             <ul className="space-y-2 font-body text-sm text-muted-foreground">
-              <li><Link to="/for-therapists" className="hover:text-primary transition-colors">Join Our Network</Link></li>
+              <li><Link to="/therapists" className="hover:text-primary transition-colors">Join Our Network</Link></li>
               <li><Link to="/therapist-portal" className="hover:text-primary transition-colors">Therapist Portal</Link></li>
             </ul>
           </div>
