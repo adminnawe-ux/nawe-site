@@ -31,11 +31,6 @@ const People = () => (
                 Find support <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <Link to="/triage">
-              <Button size="lg" variant="outline" className="font-ui text-lg px-8 py-6 rounded-full border-brand-navy/30 text-brand-navy">
-                Talk to our triage
-              </Button>
-            </Link>
           </div>
         </div>
         <img

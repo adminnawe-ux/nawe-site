@@ -322,12 +322,12 @@ const AdminTherapists = () => {
                 <div>
                   <p className="font-ui text-xs text-muted-foreground mb-1">Public Profile Link</p>
                   <a
-                    href={`/therapist/${selected.id}`}
+                    href={`/therapist/${selected.slug}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-ui text-xs text-primary hover:underline break-all"
                   >
-                    /therapist/{selected.id}
+                    /therapist/{selected.slug}
                   </a>
                 </div>
               </div>

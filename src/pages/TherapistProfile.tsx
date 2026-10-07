@@ -24,66 +24,64 @@ const FORMAT_ICONS: Record<string, React.ElementType> = {
   'In-Person': MapPin,
 };
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const TherapistProfile = () => {
-  const { id } = useParams<{ id: string }>();
+  const { idOrSlug } = useParams<{ idOrSlug: string }>();
   const navigate = useNavigate();
   const { user, roles, loading: authLoading } = useAuth();
   const [therapist, setTherapist] = useState<Therapist | null>(null);
   const [profileName, setProfileName] = useState('');
   const [reviews, setReviews] = useState<Tables<'reviews_public'>[]>([]);
   const [loading, setLoading] = useState(true);
-  const [accessChecked, setAccessChecked] = useState(false);
   const [canViewProfile, setCanViewProfile] = useState(true);
 
   useEffect(() => {
-    if (authLoading || !id) return;
+    if (authLoading || !idOrSlug) return;
 
-    const checkAccess = async () => {
-      if (!user || !roles.includes('therapist')) {
-        setCanViewProfile(true);
-        setAccessChecked(true);
+    const load = async () => {
+      setLoading(true);
+
+      // Old shared links use the UUID; resolve them to the slug URL.
+      const column = UUID_RE.test(idOrSlug) ? 'id' : 'slug';
+      const { data: t } = await supabase.from('therapists').select('*').eq(column, idOrSlug).maybeSingle();
+
+      if (!t) {
+        setTherapist(null);
+        setLoading(false);
         return;
       }
 
-      const { data } = await supabase
-        .from('therapists')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      const ownsProfile = data?.id === id;
-      setCanViewProfile(ownsProfile);
-      setAccessChecked(true);
-
-      if (!ownsProfile) {
-        navigate('/therapist-portal/profile-edit', { replace: true });
+      if (column === 'id' && t.slug) {
+        navigate(`/therapist/${t.slug}`, { replace: true });
+        return;
       }
-    };
 
-    checkAccess();
-  }, [authLoading, id, navigate, roles, user]);
+      if (user && roles.includes('therapist')) {
+        const { data: own } = await supabase.from('therapists').select('id').eq('user_id', user.id).maybeSingle();
+        const ownsProfile = own?.id === t.id;
+        setCanViewProfile(ownsProfile);
+        if (!ownsProfile) {
+          navigate('/therapist-portal/profile-edit', { replace: true });
+          return;
+        }
+      }
 
-  useEffect(() => {
-    if (!id || !accessChecked || !canViewProfile) return;
-    const load = async () => {
-      setLoading(true);
-      const { data: t } = await supabase.from('therapists').select('*').eq('id', id).maybeSingle();
       setTherapist(t);
 
-      if (t) {
-        const [profileRes, reviewRes] = await Promise.all([
-          supabase.from('therapist_public_profiles').select('first_name, last_name').eq('user_id', t.user_id).maybeSingle(),
-          supabase.from('reviews_public').select('*').eq('therapist_id', t.id).order('created_at', { ascending: false }).limit(10),
-        ]);
-        setProfileName(formatTherapistDisplayName(profileRes.data?.first_name, profileRes.data?.last_name));
-        setReviews(reviewRes.data ?? []);
-      }
+      const [profileRes, reviewRes] = await Promise.all([
+        supabase.from('therapist_public_profiles').select('first_name, last_name').eq('user_id', t.user_id).maybeSingle(),
+        supabase.from('reviews_public').select('*').eq('therapist_id', t.id).order('created_at', { ascending: false }).limit(10),
+      ]);
+      setProfileName(formatTherapistDisplayName(profileRes.data?.first_name, profileRes.data?.last_name));
+      setReviews(reviewRes.data ?? []);
       setLoading(false);
     };
-    load();
-  }, [accessChecked, canViewProfile, id]);
 
-  if (authLoading || (user && roles.includes('therapist') && !accessChecked)) {
+    load();
+  }, [authLoading, idOrSlug, navigate, roles, user]);
+
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">

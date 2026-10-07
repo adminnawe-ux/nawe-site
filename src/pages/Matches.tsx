@@ -415,7 +415,7 @@ const TherapistCard = ({ therapist: t, hasIntake }: { therapist: ScoredTherapist
   const specs = (t.specialisations ?? []).slice(0, 4);
 
   return (
-    <Link to={`/therapist/${t.id}`}>
+    <Link to={`/therapist/${t.slug}`}>
       <Card className="rounded-card overflow-hidden border-border hover:shadow-soft transition-shadow group h-full flex flex-col">
         {/* Photo / placeholder */}
         <div className="relative h-48 bg-muted overflow-hidden">

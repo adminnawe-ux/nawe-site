@@ -576,6 +576,7 @@ export type Database = {
           session_formats: string[] | null
           sliding_scale: boolean | null
           sliding_scale_min: number | null
+          slug: string
           specialisations: string[] | null
           tagline: string | null
           updated_at: string
@@ -608,6 +609,7 @@ export type Database = {
           session_formats?: string[] | null
           sliding_scale?: boolean | null
           sliding_scale_min?: number | null
+          slug?: string
           specialisations?: string[] | null
           tagline?: string | null
           updated_at?: string
@@ -640,6 +642,7 @@ export type Database = {
           session_formats?: string[] | null
           sliding_scale?: boolean | null
           sliding_scale_min?: number | null
+          slug?: string
           specialisations?: string[] | null
           tagline?: string | null
           updated_at?: string

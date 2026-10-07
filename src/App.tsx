@@ -95,7 +95,7 @@ const App = () => (
               <Route path="/therapists" element={<Therapists />} />
               {/* Browsing therapists is open to guests */}
               <Route path="/matches" element={<Matches />} />
-              <Route path="/therapist/:id" element={<TherapistProfile />} />
+              <Route path="/therapist/:idOrSlug" element={<TherapistProfile />} />
               <Route path="/book/:id" element={<BookSession />} />
               <Route path="/triage" element={<Triage />} />
               {/* Events */}

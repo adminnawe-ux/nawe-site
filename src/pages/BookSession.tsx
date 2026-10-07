@@ -294,7 +294,7 @@ const BookSession = () => {
               <Button variant="outline" className="flex-1 font-ui rounded-full" onClick={() => navigate('/dashboard')}>
                 Dashboard
               </Button>
-              <Button className="flex-1 font-ui rounded-full" onClick={() => navigate(`/therapist/${id}`)}>
+              <Button className="flex-1 font-ui rounded-full" onClick={() => navigate(`/therapist/${therapist?.slug ?? id}`)}>
                 View Profile
               </Button>
             </div>
