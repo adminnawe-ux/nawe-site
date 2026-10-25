@@ -397,7 +397,7 @@ const Grow = () => {
             Understand what your people need first, then we'll design a programme that fits your organisation's size, budget, and goals.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
-            <a href="mailto:connect@nawe.co.ke?subject=Organizational%20Health%20Assessment%20Enquiry">
+            <a href="mailto:connect@nawe.co.ke?subject=Organisational%20Health%20Assessment%20Enquiry">
               <Button size="lg" className="font-ui text-base px-8 py-6 rounded-full bg-brand-navy hover:bg-brand-navy/90 text-white shadow-soft">
                 <Mail className="mr-2 h-5 w-5" /> Get a free assessment
               </Button>

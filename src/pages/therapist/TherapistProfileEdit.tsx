@@ -43,7 +43,7 @@ const MODALITIES = [
   'Integrative', 'Gestalt', 'Existential',
 ];
 
-const SESSION_FORMATS = ['Video Call', 'Phone Call', 'In-Person', 'Chat / Messaging'];
+const SESSION_FORMATS = ['Video Call', 'In-Person'];
 const LANGUAGES = ['English', 'Swahili', 'Kikuyu', 'Luo', 'Kamba', 'French', 'Arabic', 'Somali'];
 const CLIENT_POPULATIONS = ['Adults', 'Adolescents', 'Children', 'Couples', 'Families', 'LGBTQ+', 'Elderly'];
 const CURRENCIES = ['KES', 'USD', 'GBP', 'EUR'];

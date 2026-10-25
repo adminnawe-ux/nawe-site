@@ -11,13 +11,6 @@ import {
 // ─── Data ────────────────────────────────────────────────────────────────────
 
 
-const stats = [
-  { value: '20+',    label: 'Licensed Therapists' },
-  { value: '1,000+', label: 'Sessions Completed' },
-  { value: '3+',     label: 'Countries' },
-  { value: '4.8/5',  label: 'Average Rating' },
-];
-
 const services = [
   // { icon: Users,      title: 'Therapist Matching',      body: 'Smart matching connects you to the right licensed therapist based on specialisation, language, and personal preference.' },
   // { icon: Video,      title: 'Online & In-Person',      body: 'Flexible session formats — video, phone, or in-person — to meet clients where they are. No commute, no barriers.' },
@@ -35,12 +28,6 @@ const resources = [
   { n: '2', title: 'Self-Help Toolkit',   body: 'Guided exercises, mood trackers, and coping strategies you can use between sessions.' },
   { n: '3', title: 'Therapist Directory', body: 'Browse licensed therapists by specialty, language, and location before you even sign up.' },
   { n: '4', title: 'Policy & Research',   body: 'White papers and policy briefs on mental health equity in Sub-Saharan Africa, in collaboration with academic partners.' },
-];
-
-const testimonials = [
-  { text: '"Nawe helped me find a therapist who truly understands my culture and my struggles. I finally feel heard."', name: 'Sarah M.', location: 'Nairobi' },
-  { text: '"The matching process was so gentle and thoughtful. Within a week, I had my first session and it changed everything."', name: 'James K.', location: 'Qatar' },
-  { text: '"I was nervous about starting therapy. Nawe made it feel safe and welcoming from the very first step."', name: 'Amina R.', location: 'Kampala' },
 ];
 
 // ─── Newsletter ──────────────────────────────────────────────────────────────
@@ -129,7 +116,7 @@ const Index = () => (
                 Support my community
               </Link>
               <Link to="/organizations" className="font-ui text-base px-6 py-3 rounded-full border border-brand-navy/30 text-brand-navy hover:bg-brand-navy/10 transition-colors">
-                Strengthen my organization
+                Strengthen my organisation
               </Link>
             </div>
             <p className="font-ui text-sm text-brand-navy/70 mt-6">
@@ -178,25 +165,6 @@ const Index = () => (
             </div>
           </div>
         </div>
-
-        {/* Stats: one divided strip; 2×2 with rules on phones */}
-        <dl className="grid grid-cols-2 md:grid-cols-4 mt-16 border-y border-border">
-          {stats.map((s, i) => (
-            <div
-              key={s.label}
-              className={[
-                'py-8 px-4 text-center flex flex-col gap-2',
-                i % 2 === 0 ? 'border-r border-border' : '',
-                i < 2 ? 'border-b border-border' : '',
-                i < 3 ? 'md:border-r md:border-border' : 'md:border-r-0',
-                'md:border-b-0',
-              ].join(' ')}
-            >
-              <dd className="font-display text-4xl md:text-5xl text-primary whitespace-nowrap m-0">{s.value}</dd>
-              <dt className="font-ui text-sm text-muted-foreground">{s.label}</dt>
-            </div>
-          ))}
-        </dl>
       </div>
     </section>
 
@@ -207,7 +175,7 @@ const Index = () => (
         <h2 className="font-display text-5xl md:text-6xl text-foreground mb-10">Our Mission </h2>
         <blockquote className="border-l-4 border-primary bg-background rounded-card p-8 mb-10">
           <p className="font-body text-xl text-foreground italic leading-relaxed">
-            "To provide equitable access to quality and culturally grounded mental healthcare across Africa through scalable systems, community-centered support, and digital innovation, leading to healthier individuals, stronger institutions, and more resilient communities.</p>
+            "To build the people-centred systems that make wellbeing accessible and sustainable across Africa. We connect individuals to quality care, help organisations build healthier workplaces, and strengthen communities so people and the systems around them can heal, adapt and grow."</p>
         </blockquote>
         <div className="space-y-16 mt-2">
         </div>
@@ -225,7 +193,7 @@ const Index = () => (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-stretch rounded-card overflow-hidden border border-border shadow-card">
             <div className="bg-brand-sky p-10 flex flex-col justify-between">
               <h3 className="font-display text-5xl md:text-6xl text-brand-navy mb-6">Connect</h3>
-              <p className="font-body text-base text-brand-navy/70 leading-relaxed">Mental health care does not start in a clinic. It starts in the places people already gather: offices, schools, places of worship, WhatsApp groups. CONNECT brings facilitated workshops, public events and corporate wellness sessions into those everyday spaces, so asking for help becomes normal long before someone is in crisis.</p>
+              <p className="font-body text-base text-brand-navy/70 leading-relaxed">Wellbeing grows through connection. It starts in the places people already gather — offices, schools, places of worship, community groups — not in a clinic. CONNECT brings facilitated workshops, public events and corporate wellness sessions into those everyday spaces, so conversations about wellbeing become normal long before someone is in crisis.</p>
             </div>
             <div className="grid grid-cols-2 gap-px bg-border">
               {[
@@ -248,12 +216,12 @@ const Index = () => (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-stretch rounded-card overflow-hidden border border-border shadow-card mt-20">
           <div className="bg-brand-sky p-10 flex flex-col justify-between">
             <h3 className="font-display text-5xl md:text-6xl text-brand-navy mb-6">Heal</h3>
-            <p className="font-body text-base text-brand-navy/70 leading-relaxed">We help individuals, families and communities heal from life's challenges through evidence-based psychological care. We provide compassionate support to help you heal, cope, and move forward. Healing minds strengthens lives. We are here to support your healing journey, one step at a time.</p>
+            <p className="font-body text-base text-brand-navy/70 leading-relaxed">When you need someone to talk to, Nawe helps you find appropriate psychological support — including counselling and therapy — matched to your needs, language and budget. You don't have to know exactly what you're looking for before you begin; we help you explore your options and take the next step at your own pace.</p>
           </div>
           <div className="grid grid-cols-2 gap-px bg-border">
             {[
               { icon: Heart,    title: 'Therapist Matching',  body: 'Smart matching to licensed therapists by specialty, language, and price.' },
-              { icon: Video,    title: 'Online Sessions',     body: 'Secure video or phone therapy from anywhere. No commute, no waiting room.' },
+              { icon: Video,    title: 'Online Sessions',     body: 'Secure video sessions from anywhere. No commute, no waiting room.' },
               { icon: MapPin,   title: 'In-Person Therapy',   body: 'Face-to-face sessions with local therapists in Nairobi, Kampala, Lagos.' },
               { icon: BookOpen, title: 'Self-Help Resources', body: 'Curated articles, mood trackers, and guided exercises between sessions.' },
             ].map((c) => (
@@ -357,29 +325,6 @@ const Index = () => (
             ))}
           </div>
           <NewsletterPanel />
-        </div>
-      </div>
-    </section>
-
-    {/* 9 · TESTIMONIALS ─────────────────────────────────────────────────── */}
-    <section className="py-28 bg-card border-y border-border">
-      <div className="container mx-auto px-6">
-        <h2 className="font-display text-5xl md:text-6xl text-foreground text-center mb-16">Stories from our community</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {testimonials.map((t) => (
-            <div key={t.name} className="bg-background rounded-card p-8 shadow-card border border-border">
-              <div className="flex gap-1 mb-5">
-                {[1,2,3,4,5].map((s) => (
-                  <Star key={s} className="h-5 w-5 fill-warning text-warning" />
-                ))}
-              </div>
-              <p className="font-body text-lg text-foreground italic leading-relaxed mb-6">{t.text}</p>
-              <div>
-                <p className="font-ui text-base font-medium text-foreground">{t.name}</p>
-                <p className="font-ui text-sm text-muted-foreground">{t.location}</p>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </section>

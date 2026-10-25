@@ -32,7 +32,7 @@ const CONCERNS = [
   'Identity & Belonging', 'Work / Career', 'Parenting', 'Sexual Health',
 ];
 
-const SESSION_FORMATS = ['Video Call', 'Phone Call', 'In-Person', 'Chat / Messaging'];
+const SESSION_FORMATS = ['Video Call', 'In-Person'];
 
 interface FormData {
   age_range: string;

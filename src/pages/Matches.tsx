@@ -333,9 +333,7 @@ const Matches = () => {
                 <SelectContent>
                   <SelectItem value="all">All Formats</SelectItem>
                   <SelectItem value="Video Call">Video Call</SelectItem>
-                  <SelectItem value="Phone Call">Phone Call</SelectItem>
                   <SelectItem value="In-Person">In-Person</SelectItem>
-                  <SelectItem value="Chat / Messaging">Chat</SelectItem>
                 </SelectContent>
               </Select>
             </div>
