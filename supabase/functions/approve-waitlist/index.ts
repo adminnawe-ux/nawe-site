@@ -158,7 +158,8 @@ Deno.serve(async (req) => {
           .eq('payment_status', 'waitlisted');
         if (updateErr) throw updateErr;
 
-        const eventUrl = `${appUrl}/events/${event.slug}`;
+        // ?resume= lets guests (no account) pay for the reserved row; see register-event/guest.ts
+        const eventUrl = `${appUrl}/events/${event.slug}?resume=${reg.id}`;
         const price = event.price ?? 0;
         const html = `
           <div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937;max-width:600px">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
 import { SUPPORT_PHONE } from '@/lib/site';
+import { authHeaders, getResumeRegistrationId, paymentStillPendingMessage } from '@/lib/eventRegistration';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any;
@@ -81,7 +82,11 @@ function tierLabel(tier: TicketTier): string {
 const EventDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
+  // Set when arriving from the waitlist approval email (works without an account)
+  const resumeRegistrationId = getResumeRegistrationId(location.search);
+  const [reservedTierId, setReservedTierId] = useState<string | null>(null);
 
   const [event, setEvent] = useState<Event | null>(null);
   const [tiers, setTiers] = useState<TicketTier[]>([]);
@@ -150,31 +155,36 @@ const EventDetail = () => {
   useEffect(() => {
     if (!event) return;
 
-    // Overall registration count — must match ACTIVE_STATUSES in register-event
-    db.from('event_registrations')
-      .select('id', { count: 'exact', head: true })
-      .eq('event_id', event.id)
-      .in('payment_status', ['free', 'paid', 'pending_stk', 'approved_waitlist'])
-      .then(({ count }: { count: number | null }) => setRegistrationCount(count ?? 0));
+    // Counts come from an RPC — RLS hides other people's registrations from direct queries.
+    // Statuses counted there must match ACTIVE_STATUSES in register-event.
+    const availability = db.rpc('get_event_availability', { p_event_id: event.id })
+      .then(({ data }: { data: { total: number; tiers: Record<string, number> } | null }) => {
+        setRegistrationCount(data?.total ?? 0);
+        return data?.tiers ?? {};
+      });
 
-    // Fetch tiers with sold counts
     db.from('event_ticket_tiers')
       .select('*')
       .eq('event_id', event.id)
       .order('sort_order')
       .then(async ({ data: tierData }: { data: TicketTier[] | null }) => {
         if (!tierData || tierData.length === 0) { setTiers([]); return; }
-
-        // For each tier, get sold count
-        const withCounts = await Promise.all(tierData.map(async (t: TicketTier) => {
-          const { count } = await db.from('event_registrations')
-            .select('id', { count: 'exact', head: true })
-            .eq('tier_id', t.id)
-            .in('payment_status', ['free', 'paid', 'pending_stk']);
-          return { ...t, soldCount: count ?? 0 };
-        }));
-        setTiers(withCounts);
+        const tierCounts = await availability;
+        setTiers(tierData.map((t: TicketTier) => ({ ...t, soldCount: tierCounts[t.id] ?? 0 })));
       });
+
+    // Approved-waitlist payment link from email — look up the reserved row to prefill the form
+    if (resumeRegistrationId) {
+      supabase.functions.invoke('register-event', {
+        body: { action: 'resume_lookup', event_id: event.id, registration_id: resumeRegistrationId },
+      }).then(({ data }: { data: { tier_id: string | null; attendee_name: string; attendee_email: string; error?: string } | null }) => {
+        if (!data || data.error) return;
+        setApprovedWaitlist(true);
+        setReservedTierId(data.tier_id);
+        setName(data.attendee_name);
+        setEmail(data.attendee_email);
+      });
+    }
 
     // Check if logged-in user already has a registration in any active state
     if (user) {
@@ -196,15 +206,18 @@ const EventDetail = () => {
             setWaitlisted(true);
           } else if (data.payment_status === 'approved_waitlist') {
             setApprovedWaitlist(true);
-            // Pre-select their tier so the payment dialog starts correctly
-            if (data.tier_id) {
-              const matchedTier = tiers.find(t => t.id === data.tier_id);
-              if (matchedTier) setSelectedTier(matchedTier);
-            }
+            setReservedTierId(data.tier_id);
           }
         });
     }
-  }, [event, user]);
+  }, [event, user, resumeRegistrationId]);
+
+  // Pre-select the reserved tier once tiers have loaded so the payment dialog starts correctly
+  useEffect(() => {
+    if (!reservedTierId) return;
+    const matchedTier = tiers.find(t => t.id === reservedTierId);
+    if (matchedTier) setSelectedTier(matchedTier);
+  }, [reservedTierId, tiers]);
 
   // Pre-fill email from logged-in user
   useEffect(() => {
@@ -224,12 +237,9 @@ const EventDetail = () => {
     const timer = setTimeout(async () => {
       try {
         const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData.session?.access_token;
-        if (!accessToken) { setPollCount(c => c + 1); return; }
-
         const { data, error: invokeErr } = await supabase.functions.invoke('query-event-payment', {
           body: { transaction_id: transactionId, registration_id: registrationId },
-          headers: { Authorization: `Bearer ${accessToken}` },
+          headers: authHeaders(sessionData.session?.access_token),
         });
 
         if (invokeErr) { setPollCount(c => c + 1); return; }
@@ -267,12 +277,9 @@ const EventDetail = () => {
     const timer = setTimeout(async () => {
       try {
         const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData.session?.access_token;
-        if (!accessToken) { setSlowPollCount(c => c + 1); return; }
-
         const { data, error: invokeErr } = await supabase.functions.invoke('query-event-payment', {
           body: { transaction_id: transactionId, registration_id: registrationId },
-          headers: { Authorization: `Bearer ${accessToken}` },
+          headers: authHeaders(sessionData.session?.access_token),
         });
 
         if (invokeErr) { setSlowPollCount(c => c + 1); return; }
@@ -299,10 +306,6 @@ const EventDetail = () => {
   }, [stkSlowPoll, slowPollCount, transactionId, registrationId]);
 
   const openDialog = (joinWaitlist = false) => {
-    if (!user) {
-      navigate(`/login?redirect_to=${encodeURIComponent(`/events/${event?.slug ?? slug}`)}`);
-      return;
-    }
     setError('');
     setPhone('');
     setSelectedTier(null);
@@ -353,7 +356,6 @@ const EventDetail = () => {
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
 
       const isFree = !selectedTier || selectedTier.price === 0;
 
@@ -366,8 +368,9 @@ const EventDetail = () => {
           phone: isFree ? undefined : phone.trim(),
           quantity: selectedTier?.ticket_type !== 'group' ? quantity : undefined,
           group_members: members,
+          resume_registration_id: approvedWaitlist && resumeRegistrationId ? resumeRegistrationId : undefined,
         },
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+        headers: authHeaders(sessionData.session?.access_token),
       });
 
       if (invokeErr) {
@@ -938,13 +941,17 @@ const EventDetail = () => {
                   {!stkPending && !stkSlowPoll ? (
                     <>
                       <p className="font-ui font-medium text-foreground">Still waiting for M-Pesa</p>
-                      <p className="font-body text-sm text-muted-foreground mt-1">
-                        Your payment may still be processing. Close this and check{' '}
-                        <button className="text-primary underline" onClick={() => { setDialogOpen(false); navigate('/dashboard'); }}>
-                          your tickets
-                        </button>{' '}
-                        in a few minutes.
-                      </p>
+                      {user ? (
+                        <p className="font-body text-sm text-muted-foreground mt-1">
+                          Your payment may still be processing. Close this and check{' '}
+                          <button className="text-primary underline" onClick={() => { setDialogOpen(false); navigate('/dashboard'); }}>
+                            your tickets
+                          </button>{' '}
+                          in a few minutes.
+                        </p>
+                      ) : (
+                        <p className="font-body text-sm text-muted-foreground mt-1">{paymentStillPendingMessage(true)}</p>
+                      )}
                     </>
                   ) : (
                     <>

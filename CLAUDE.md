@@ -14,7 +14,8 @@ npm run test:watch   # Vitest in watch mode
 npx vitest run src/lib/therapist.test.ts   # run a single test file
 
 # Edge function tests (Deno, no local Supabase needed)
-deno test --allow-env supabase/functions/initiate-stk-push/index.test.ts
+deno test --allow-env supabase/functions/                                   # all (what CI runs)
+deno test --allow-env supabase/functions/initiate-stk-push/index.test.ts   # one file
 ```
 
 CI runs lint → tsc → vitest → vite build, plus a separate Deno job for edge function tests. Both must pass before merging to main.

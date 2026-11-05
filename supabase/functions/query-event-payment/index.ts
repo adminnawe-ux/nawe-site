@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { authorisePoll } from './access.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': (Deno.env.get('APP_URL') ?? 'https://nawe.co.ke'),
@@ -46,6 +47,7 @@ async function getNcbaToken(): Promise<string> {
 interface RegRow {
   id: string;
   user_id: string | null;
+  payment_reference: string | null;
   ticket_code: string;
   attendee_name: string;
   attendee_email: string;
@@ -162,19 +164,17 @@ Deno.serve(async (req) => {
     status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
+  // Guests can poll too — authorisePoll() decides access below.
+  let callerUserId: string | null = null;
   const authHeader = req.headers.get('Authorization') ?? '';
-  if (!authHeader) return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-    status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
-
-  const authClient = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: userData, error: userError } = await authClient.auth.getUser();
-  if (userError || !userData.user) return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-    status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
+  if (authHeader) {
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData } = await authClient.auth.getUser();
+    callerUserId = userData.user?.id ?? null;
+  }
 
   let body: { transaction_id: string; registration_id: string };
   try { body = await req.json(); }
@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
 
   const { data: lead } = await adminClient
     .from('event_registrations')
-    .select('id, user_id, ticket_code, payment_status, attendee_name, attendee_email, price_paid, tier_id, event:events(title, location, starts_at, ends_at, currency, google_calendar_id, google_calendar_event_id)')
+    .select('id, user_id, payment_reference, ticket_code, payment_status, attendee_name, attendee_email, price_paid, tier_id, event:events(title, location, starts_at, ends_at, currency, google_calendar_id, google_calendar_event_id)')
     .eq('id', registration_id)
     .maybeSingle() as { data: RegRow | null };
 
@@ -199,10 +199,14 @@ Deno.serve(async (req) => {
     status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
-  // Ownership check — prevent one user from polling (and potentially failing) another's registration.
-  // Guest registrations (user_id = null) are skipped; they have no owner to check against and
-  // registration requires login going forward, so null rows are legacy only.
-  if (lead.user_id !== null && lead.user_id !== userData.user.id) {
+  // Ownership check — prevent anyone from polling (and potentially failing) another's registration.
+  // See access.ts: always requires the matching transaction_id; owned rows also require the owner's JWT.
+  if (authorisePoll({
+    leadUserId: lead.user_id,
+    leadPaymentReference: lead.payment_reference,
+    callerUserId,
+    transactionId: transaction_id,
+  }) === 'forbidden') {
     return new Response(JSON.stringify({ error: 'Forbidden' }), {
       status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

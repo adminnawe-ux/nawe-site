@@ -44,10 +44,7 @@ jobs:
         with:
           deno-version: v2.x
 
+      # Discovers every *.test.ts under supabase/functions/ so new test files
+      # can't be silently left out of CI.
       - name: Test edge functions
-        run: |
-          deno test --allow-env supabase/functions/ncba-payment-hook/index.test.ts
-          deno test --allow-env supabase/functions/initiate-stk-push/index.test.ts
-          deno test --allow-env supabase/functions/query-stk-push/index.test.ts
-          deno test --allow-env supabase/functions/gemma-triage/index.test.ts
-          deno test --allow-env supabase/functions/gemma-session-notes/index.test.ts
+        run: deno test --allow-env supabase/functions/

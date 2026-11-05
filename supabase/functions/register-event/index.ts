@@ -1,4 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  escapeLikePattern, guestDuplicateResponse, isValidEmail, normaliseEmail,
+  pickGuestDuplicate, resolveGuestDuplicate, validateResumeRow,
+} from './guest.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': (Deno.env.get('APP_URL') ?? 'https://nawe.co.ke'),
@@ -185,6 +189,11 @@ interface RequestBody {
   phone?: string;
   quantity?: number;
   group_members?: AttendeeInput[];
+  // Approved-waitlist payment via the emailed ?resume=<registration_id> link (works for guests)
+  resume_registration_id?: string;
+  // 'resume_lookup' returns the reserved row's details so the page can prefill the form
+  action?: 'resume_lookup';
+  registration_id?: string;
 }
 
 Deno.serve(async (req) => {
@@ -218,7 +227,27 @@ Deno.serve(async (req) => {
     });
   }
 
-  const { event_id, tier_id, attendee_name, attendee_email, phone, group_members } = body;
+  const { event_id, attendee_name, attendee_email, phone, group_members, resume_registration_id } = body;
+  let tier_id = body.tier_id;
+
+  if (body.action === 'resume_lookup') {
+    if (!event_id || !body.registration_id) {
+      return new Response(JSON.stringify({ error: 'event_id and registration_id are required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const { data: row } = await adminClient.from('event_registrations')
+      .select('event_id, payment_status, group_lead_id, tier_id, attendee_name, attendee_email')
+      .eq('id', body.registration_id).maybeSingle();
+    const resumeErr = validateResumeRow(row, event_id);
+    if (resumeErr) return new Response(JSON.stringify({ error: resumeErr }), {
+      status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+    return new Response(JSON.stringify({
+      tier_id: row!.tier_id, attendee_name: row!.attendee_name, attendee_email: row!.attendee_email,
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
   const quantity = Math.max(1, Math.min(10, Math.floor(body.quantity ?? 1)));
   console.log('[register-event] body:', JSON.stringify({ event_id, tier_id, attendee_name, attendee_email, phone: phone ? '***' : undefined, quantity, group_members_count: group_members?.length }));
   if (attendee_name && attendee_name.trim().length > 200) {
@@ -237,6 +266,12 @@ Deno.serve(async (req) => {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
+  if (!isValidEmail(attendee_email.trim())) {
+    return new Response(JSON.stringify({ error: 'Please enter a valid email address.' }), {
+      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  const emailPattern = escapeLikePattern(normaliseEmail(attendee_email));
 
   try {
     const { data: event, error: eventError } = await adminClient
@@ -246,6 +281,32 @@ Deno.serve(async (req) => {
     });
 
     const now = new Date();
+    const eventDate = new Intl.DateTimeFormat('en-GB', {
+      dateStyle: 'full', timeStyle: 'short', timeZone: 'Africa/Nairobi',
+    }).format(new Date(event.starts_at));
+
+    // ── approved_waitlist fast-path ───────────────────────────────────────────
+    // If the user was approved from the waitlist on a paid event, they already
+    // have a registration row. Skip the duplicate guard and go straight to payment.
+    // Signed-in users are matched by user_id; guests arrive via the emailed resume link.
+    let approvedWaitlistRow: { id: string; ticket_code: string; tier_id: string | null } | null = null;
+    if (resume_registration_id) {
+      const { data: awRow } = await adminClient.from('event_registrations')
+        .select('id, ticket_code, tier_id, event_id, payment_status, group_lead_id')
+        .eq('id', resume_registration_id).maybeSingle();
+      const resumeErr = validateResumeRow(awRow, event_id);
+      if (resumeErr) return new Response(JSON.stringify({ error: resumeErr }), {
+        status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+      approvedWaitlistRow = awRow;
+    } else if (userId) {
+      const { data: awRow } = await adminClient.from('event_registrations')
+        .select('id, ticket_code, tier_id').eq('event_id', event_id).eq('user_id', userId)
+        .eq('payment_status', 'approved_waitlist').maybeSingle();
+      if (awRow) approvedWaitlistRow = awRow;
+    }
+    // The reserved slot is for the tier they were approved on
+    if (approvedWaitlistRow?.tier_id) tier_id = approvedWaitlistRow.tier_id;
 
     // Fetch tier if provided and validate date gates (hard errors — not waivable by waitlist)
     let tier: {
@@ -267,8 +328,9 @@ Deno.serve(async (req) => {
         status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
 
-      // Tier-level capacity is a hard cap (waitlist is event-level)
-      if (tier.capacity !== null) {
+      // Tier-level capacity is a hard cap (waitlist is event-level).
+      // An approved_waitlist row already holds one of these slots.
+      if (tier.capacity !== null && !approvedWaitlistRow) {
         const { count: tierSold } = await adminClient
           .from('event_registrations').select('id', { count: 'exact', head: true })
           .eq('tier_id', tier_id).in('payment_status', ACTIVE_STATUSES);
@@ -282,17 +344,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── approved_waitlist fast-path ───────────────────────────────────────────
-    // If the user was approved from the waitlist on a paid event, they already
-    // have a registration row. Skip the duplicate guard and go straight to payment.
-    let approvedWaitlistRow: { id: string; ticket_code: string } | null = null;
-    if (userId) {
-      const { data: awRow } = await adminClient.from('event_registrations')
-        .select('id, ticket_code').eq('event_id', event_id).eq('user_id', userId)
-        .eq('payment_status', 'approved_waitlist').maybeSingle();
-      if (awRow) approvedWaitlistRow = awRow;
-    }
-
     // Auto-expire stale pending_stk registrations for this user+event.
     // Mirrors the session flow: STK prompts expire ~30 s; 5 min is a safe cutoff.
     // The webhook can still confirm a 'failed' row → it handles failed status.
@@ -304,7 +355,34 @@ Deno.serve(async (req) => {
         .is('group_lead_id', null)
         .eq('payment_status', 'pending_stk')
         .lt('created_at', expiryCutoff);
+    } else if (!userId && !approvedWaitlistRow) {
+      const expiryCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      await adminClient.from('event_registrations')
+        .update({ payment_status: 'failed' })
+        .eq('event_id', event_id).ilike('attendee_email', emailPattern)
+        .is('group_lead_id', null)
+        .eq('payment_status', 'pending_stk')
+        .lt('created_at', expiryCutoff);
     }
+
+    // A previously-waitlisted row: if capacity has since opened (or is unlimited),
+    // drop it and let the normal flow create a fresh registration.
+    const resolveStaleWaitlist = async (rowId: string): Promise<Response | null> => {
+      let capacityStillFull = false;
+      if (event.capacity) {
+        const { count: activeCount } = await adminClient.from('event_registrations')
+          .select('id', { count: 'exact', head: true })
+          .eq('event_id', event_id).in('payment_status', ACTIVE_STATUSES);
+        capacityStillFull = (activeCount ?? 0) >= event.capacity;
+      }
+      if (capacityStillFull) {
+        return new Response(JSON.stringify({ error: 'You are already on the waitlist for this event.' }), {
+          status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      await adminClient.from('event_registrations').delete().eq('id', rowId);
+      return null;
+    };
 
     // Track a failed row for in-place retry (avoids unique constraint on re-insert)
     let failedRow: { id: string; payment_reference: string | null } | null = null;
@@ -322,21 +400,8 @@ Deno.serve(async (req) => {
             // We update the row in-place rather than delete+insert to avoid the unique constraint.
             failedRow = { id: existing.id, payment_reference: existing.payment_reference ?? null };
           } else if (existing.payment_status === 'waitlisted') {
-            // If capacity has since opened (or is unlimited), drop the stale waitlisted
-            // row and let the normal flow create a fresh registration.
-            let capacityStillFull = false;
-            if (event.capacity) {
-              const { count: activeCount } = await adminClient.from('event_registrations')
-                .select('id', { count: 'exact', head: true })
-                .eq('event_id', event_id).in('payment_status', ACTIVE_STATUSES);
-              capacityStillFull = (activeCount ?? 0) >= event.capacity;
-            }
-            if (capacityStillFull) {
-              return new Response(JSON.stringify({ error: 'You are already on the waitlist for this event.' }), {
-                status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              });
-            }
-            await adminClient.from('event_registrations').delete().eq('id', existing.id);
+            const stillFull = await resolveStaleWaitlist(existing.id);
+            if (stillFull) return stillFull;
             // Fall through to normal registration below
           } else {
             return new Response(JSON.stringify({ error: 'You are already registered for this event.', ticket_code: existing.ticket_code }), {
@@ -344,6 +409,42 @@ Deno.serve(async (req) => {
             });
           }
         }
+      } else {
+        // ── Guest duplicate guard (by event + email) ─────────────────────────
+        const { data: rows } = await adminClient.from('event_registrations')
+          .select('id, ticket_code, payment_status, payment_reference, updated_at, attendee_name, attendee_email, tier_id, price_paid')
+          .eq('event_id', event_id).ilike('attendee_email', emailPattern)
+          .is('group_lead_id', null)
+          .in('payment_status', [...ACTIVE_STATUSES, 'waitlisted', 'failed']);
+        const existing = pickGuestDuplicate(rows ?? []);
+        const action = resolveGuestDuplicate(existing, now);
+
+        if (existing && action === 'retry_failed') {
+          failedRow = { id: existing.id, payment_reference: existing.payment_reference ?? null };
+        } else if (existing && action === 'waitlisted') {
+          const stillFull = await resolveStaleWaitlist(existing.id);
+          if (stillFull) return stillFull;
+        } else if (existing && action === 'resend_ticket') {
+          // Touch the row (bumps updated_at) to start the resend cooldown
+          await adminClient.from('event_registrations')
+            .update({ attendee_name: existing.attendee_name }).eq('id', existing.id);
+          let existingTierName: string | null = null;
+          if (existing.tier_id) {
+            const { data: t } = await adminClient.from('event_ticket_tiers').select('name').eq('id', existing.tier_id).maybeSingle();
+            existingTierName = t?.name ?? null;
+          }
+          // Sent to the stored address, never the one typed in this request
+          await sendTicketEmail({
+            to: existing.attendee_email, name: existing.attendee_name, eventTitle: event.title,
+            eventDate, eventLocation: event.location, ticketCode: existing.ticket_code,
+            tierName: existingTierName, isFree: existing.payment_status === 'free',
+            price: existing.price_paid, currency: event.currency,
+          });
+        }
+        const dup = guestDuplicateResponse(action);
+        if (dup) return new Response(JSON.stringify(dup.body), {
+          status: dup.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
       // ── Event capacity check — waitlist if full ───────────────────────────
@@ -362,10 +463,6 @@ Deno.serve(async (req) => {
             price_paid: 0,
           });
           if (wlErr) throw wlErr;
-
-          const eventDate = new Intl.DateTimeFormat('en-GB', {
-            dateStyle: 'full', timeStyle: 'short', timeZone: 'Africa/Nairobi',
-          }).format(new Date(event.starts_at));
 
           await sendWaitlistEmail({
             to: attendee_email.trim(), name: attendee_name.trim(),
@@ -409,16 +506,16 @@ Deno.serve(async (req) => {
     const currency = tier?.currency ?? event.currency;
     const tierName = tier?.name ?? null;
 
-    const eventDate = new Intl.DateTimeFormat('en-GB', {
-      dateStyle: 'full', timeStyle: 'short', timeZone: 'Africa/Nairobi',
-    }).format(new Date(event.starts_at));
-
     // ── Free registration ─────────────────────────────────────────────────────
     if (isFree) {
-      const { data: leadReg, error: regError } = await adminClient.from('event_registrations').insert({
-        event_id, user_id: userId, attendee_name: attendee_name.trim(), attendee_email: attendee_email.trim(),
-        tier_id: tier_id ?? null, payment_status: 'free', price_paid: 0,
-      }).select('id, ticket_code').single();
+      const { data: leadReg, error: regError } = approvedWaitlistRow
+        ? await adminClient.from('event_registrations')
+            .update({ payment_status: 'free', price_paid: 0 })
+            .eq('id', approvedWaitlistRow.id).select('id, ticket_code, attendee_name, attendee_email').single()
+        : await adminClient.from('event_registrations').insert({
+            event_id, user_id: userId, attendee_name: attendee_name.trim(), attendee_email: attendee_email.trim(),
+            tier_id: tier_id ?? null, payment_status: 'free', price_paid: 0,
+          }).select('id, ticket_code, attendee_name, attendee_email').single();
       if (regError) throw regError;
 
       if (group_members && group_members.length > 0) {
@@ -437,9 +534,9 @@ Deno.serve(async (req) => {
             .select('id, ticket_code, attendee_name, attendee_email').eq('group_lead_id', leadReg.id)
         : { data: [] };
 
-      await addToCalendar(event, attendee_email.trim());
+      await addToCalendar(event, leadReg.attendee_email);
       await sendTicketEmail({
-        to: attendee_email.trim(), name: attendee_name.trim(), eventTitle: event.title,
+        to: leadReg.attendee_email, name: leadReg.attendee_name, eventTitle: event.title,
         eventDate, eventLocation: event.location, ticketCode: leadReg.ticket_code,
         tierName, isFree: true, price: null, currency,
       });
@@ -510,14 +607,18 @@ Deno.serve(async (req) => {
     let leadRegId: string;
 
     if (approvedWaitlistRow) {
-      // Resume payment for an approved waitlist user — update existing row
+      // Resume payment for an approved waitlist user — update existing row.
+      // Via the emailed link, keep the approved attendee's details so the ticket
+      // goes to the address the approval was sent to.
       await adminClient.from('event_registrations')
         .update({
           payment_status: 'pending_stk',
           payment_reference: stkData.TransactionID,
           price_paid: stkAmount,
-          attendee_name: attendee_name.trim(),
-          attendee_email: attendee_email.trim(),
+          ...(resume_registration_id ? {} : {
+            attendee_name: attendee_name.trim(),
+            attendee_email: attendee_email.trim(),
+          }),
         })
         .eq('id', approvedWaitlistRow.id);
       leadRegId = approvedWaitlistRow.id;
