@@ -39,6 +39,13 @@ interface BroadcastSend {
   failed_count: number;
   sent_at: string;
   resource_ids: string[] | null;
+  event_id: string | null;
+}
+
+interface EventOption {
+  id: string;
+  title: string;
+  starts_at: string;
 }
 
 interface Attachment {
@@ -55,6 +62,9 @@ const AdminBroadcast = () => {
   const [cc, setCc] = useState('');
   const [roles, setRoles] = useState<string[]>([]);
   const [includeNewsletter, setIncludeNewsletter] = useState(false);
+  const [includeEventAttendees, setIncludeEventAttendees] = useState(false);
+  const [eventId, setEventId] = useState('');
+  const [events, setEvents] = useState<EventOption[]>([]);
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [sending, setSending] = useState(false);
@@ -64,13 +74,14 @@ const AdminBroadcast = () => {
   const [uploading, setUploading] = useState(false);
   const [historyFileNames, setHistoryFileNames] = useState<Record<string, string>>({});
 
-  const audienceSelected = roles.length > 0 || includeNewsletter;
+  const eventAudience = includeEventAttendees && eventId ? eventId : null;
+  const audienceSelected = roles.length > 0 || includeNewsletter || !!eventAudience;
   const canSend = subject.trim() && body && body !== '<p></p>' && audienceSelected;
 
   const fetchHistory = async () => {
     const { data } = await supabase
       .from('broadcast_sends')
-      .select('id, subject, audience_roles, include_newsletter, cc_addresses, recipient_count, failed_count, sent_at, resource_ids')
+      .select('id, subject, audience_roles, include_newsletter, cc_addresses, recipient_count, failed_count, sent_at, resource_ids, event_id')
       .order('sent_at', { ascending: false })
       .limit(20);
     const rows = (data ?? []) as BroadcastSend[];
@@ -139,10 +150,14 @@ const AdminBroadcast = () => {
     }
   };
 
-  useEffect(() => { fetchHistory(); }, []);
+  useEffect(() => {
+    fetchHistory();
+    db.from('events').select('id, title, starts_at').order('starts_at', { ascending: false }).limit(50)
+      .then(({ data }: { data: EventOption[] | null }) => setEvents(data ?? []));
+  }, []);
 
   // Any change to the audience invalidates the last preview count.
-  useEffect(() => { setPreviewCount(null); }, [roles, includeNewsletter]);
+  useEffect(() => { setPreviewCount(null); }, [roles, includeNewsletter, eventAudience]);
 
   const toggleRole = (role: string) =>
     setRoles(prev => prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role]);
@@ -153,6 +168,7 @@ const AdminBroadcast = () => {
       body: {
         subject, body, roles, include_newsletter: includeNewsletter, cc, preview,
         resource_ids: attachments.map(a => a.id),
+        event_id: eventAudience ?? undefined,
       },
       headers: { Authorization: `Bearer ${sessionData.session?.access_token}` },
     });
@@ -183,6 +199,8 @@ const AdminBroadcast = () => {
       setCc('');
       setRoles([]);
       setIncludeNewsletter(false);
+      setIncludeEventAttendees(false);
+      setEventId('');
       setPreviewCount(null);
       setAttachments([]);
       fetchHistory();
@@ -273,7 +291,28 @@ const AdminBroadcast = () => {
               <Checkbox checked={includeNewsletter} onCheckedChange={(v) => setIncludeNewsletter(v === true)} />
               Newsletter subscribers
             </label>
+            <label className="flex items-center gap-2 font-ui text-sm text-foreground cursor-pointer">
+              <Checkbox checked={includeEventAttendees} onCheckedChange={(v) => setIncludeEventAttendees(v === true)} />
+              Event attendees
+            </label>
           </div>
+          {includeEventAttendees && (
+            <div className="space-y-1.5 pt-1">
+              <label htmlFor="broadcast-event" className="font-ui text-xs text-muted-foreground">Event</label>
+              <select
+                id="broadcast-event" value={eventId} onChange={(e) => setEventId(e.target.value)}
+                className="w-full max-w-md font-ui text-sm border border-input rounded-md px-3 py-2 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Choose an event…</option>
+                {events.map(ev => (
+                  <option key={ev.id} value={ev.id}>{ev.title} — {format(new Date(ev.starts_at), 'd MMM yyyy')}</option>
+                ))}
+              </select>
+              <p className="font-ui text-xs text-muted-foreground">
+                Everyone with a confirmed ticket (free or paid), including group members. {'{{first_name}}'} uses the first word of the name they registered with.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3 pt-2">
@@ -337,6 +376,11 @@ const AdminBroadcast = () => {
                       <div className="flex flex-wrap gap-1">
                         {h.audience_roles.map(r => <Badge key={r} variant="outline" className="font-ui text-xs capitalize">{r}</Badge>)}
                         {h.include_newsletter && <Badge variant="outline" className="font-ui text-xs">Newsletter</Badge>}
+                        {h.event_id && (
+                          <Badge variant="outline" className="font-ui text-xs">
+                            Attendees: {events.find(ev => ev.id === h.event_id)?.title ?? 'event'}
+                          </Badge>
+                        )}
                       </div>
                       {h.cc_addresses?.length > 0 && (
                         <p className="font-ui text-xs text-muted-foreground mt-1">CC: {h.cc_addresses.join(', ')}</p>

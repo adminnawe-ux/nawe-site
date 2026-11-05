@@ -101,6 +101,9 @@ When an event's total capacity is full (counting `ACTIVE_STATUSES = ['free', 'pa
 - `ncba-payment-hook` — authoritative confirmation; handles both session-booking and event-registration payments
 - `approve-waitlist` — admin-only; approves selected waitlisted registrations
 
+### Broadcast audiences
+`send-broadcast` audiences: roles (`client`/`therapist`/`admin`), newsletter subscribers, and **event attendees** (`event_id`: registrations with `payment_status IN ('free','paid')`, group members included). `send-broadcast/audience.ts` merges them to one email per person; `{{first_name}}` uses the profile name, else the first word of `attendee_name`, else "there". Unsubscribe tokens carry `u` (user → `profiles.broadcast_opt_out`) and `s` (newsletter row); guest attendees have neither, so `unsubscribe-broadcast` adds their email to `broadcast_suppressions`, which `send-broadcast` checks for event-only recipients.
+
 ### Broadcast file links
 Admins can attach up to 5 files (25 MB each; PDF/Office/PNG/JPG) in `AdminBroadcast`. Each upload goes to the public `resources` storage bucket under a random-prefixed slug (`k3f9x2ab-q3-report.pptx`) and gets a row in the `resources` table. `send-broadcast` takes `resource_ids`, looks the rows up server-side and adds download buttons linking to `<APP_URL>/resource/<slug>/`. The trailing slash is required: Render's static host returns a bare 404 for paths ending in known file extensions (`.pdf`, `.png`, `.jpg`, `.doc`), so they never reach the SPA. `src/pages/ResourceDownload.tsx` resolves the slug via the `get_resource(slug)` RPC (exact match only) and redirects to the storage URL with `?download=<original filename>`. The bucket deliberately has no anon SELECT policy, so the bucket can't be listed. Limits and types live in `src/lib/resources.ts` and the migration; keep them in sync.
 

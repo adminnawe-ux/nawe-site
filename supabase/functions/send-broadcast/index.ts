@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { buildDownloadsHtml, parseResourceIds, type BroadcastResource } from './resources.ts';
+import { ATTENDEE_STATUSES, buildEventRecipients, mergeAllRecipients, parseEventId, type Recipient } from './audience.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': (Deno.env.get('APP_URL') ?? 'https://nawe.co.ke'),
@@ -25,13 +26,7 @@ interface BroadcastRequest {
   cc?: string;
   preview?: boolean;
   resource_ids?: string[];
-}
-
-interface Recipient {
-  email: string;
-  user_id: string | null;
-  subscriber_id: string | null;
-  first_name: string | null;
+  event_id?: string;
 }
 
 // Fills the {{first_name}} merge tag written by admins in the composer.
@@ -70,19 +65,6 @@ async function makeUnsubscribeToken(recipient: { user_id: string | null; subscri
   const key = await hmacKey(unsubscribeTokenSecret);
   const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
   return `${payload}.${toBase64Url(signature)}`;
-}
-
-// Merge registered-user and newsletter recipients, de-duplicated by lowercased email.
-// Registered-user entries win on collision (carries user_id for the opt-out flag).
-function mergeRecipients(registered: Recipient[], newsletter: Recipient[]): Recipient[] {
-  const byEmail = new Map<string, Recipient>();
-  for (const r of newsletter) {
-    byEmail.set(r.email.toLowerCase(), r);
-  }
-  for (const r of registered) {
-    byEmail.set(r.email.toLowerCase(), r);
-  }
-  return [...byEmail.values()];
 }
 
 async function sendEmail(to: string, subject: string, html: string, cc: string[]) {
@@ -186,6 +168,13 @@ Deno.serve(async (req) => {
     });
   }
   const resourceIds = parsedResources.ids;
+  const parsedEvent = parseEventId(payload.event_id);
+  if ('error' in parsedEvent) {
+    return new Response(JSON.stringify({ error: parsedEvent.error }), {
+      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  const eventId = parsedEvent.eventId;
 
   if (!isPreview && (!subject || !body || body === '<p></p>')) {
     return new Response(JSON.stringify({ error: 'Subject and body are required' }), {
@@ -193,7 +182,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  if (roles.length === 0 && !includeNewsletter) {
+  if (roles.length === 0 && !includeNewsletter && !eventId) {
     return new Response(JSON.stringify({ error: 'Select at least one audience' }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -242,7 +231,40 @@ Deno.serve(async (req) => {
       }));
     }
 
-    const recipients = mergeRecipients(registered, newsletter);
+    let attendees: Recipient[] = [];
+    if (eventId) {
+      const { data: eventRow, error: eventError } = await adminClient
+        .from('events').select('id').eq('id', eventId).maybeSingle();
+      if (eventError) throw eventError;
+      if (!eventRow) {
+        return new Response(JSON.stringify({ error: 'Event not found' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const { data: regRows, error: regError } = await adminClient
+        .from('event_registrations').select('attendee_email, attendee_name, user_id')
+        .eq('event_id', eventId).in('payment_status', [...ATTENDEE_STATUSES]);
+      if (regError) throw regError;
+      const rows = (regRows ?? []) as { attendee_email: string; attendee_name: string | null; user_id: string | null }[];
+
+      const attendeeUserIds = [...new Set(rows.map((r) => r.user_id).filter((id): id is string => !!id))];
+      const optedOut = new Set<string>();
+      for (const batch of chunk(attendeeUserIds, 200)) {
+        const { data: profileRows, error: profileError } = await adminClient
+          .from('profiles').select('user_id').in('user_id', batch).eq('broadcast_opt_out', true);
+        if (profileError) throw profileError;
+        for (const p of profileRows ?? []) optedOut.add(p.user_id as string);
+      }
+
+      const { data: suppressedRows, error: suppressedError } = await adminClient
+        .from('broadcast_suppressions').select('email');
+      if (suppressedError) throw suppressedError;
+      const suppressed = new Set((suppressedRows ?? []).map((r) => (r.email as string).toLowerCase()));
+
+      attendees = buildEventRecipients(rows, optedOut, suppressed);
+    }
+
+    const recipients = mergeAllRecipients(registered, newsletter, attendees);
 
     if (isPreview) {
       return new Response(JSON.stringify({ recipient_count: recipients.length }), {
@@ -311,6 +333,7 @@ Deno.serve(async (req) => {
       include_newsletter: includeNewsletter,
       cc_addresses: cc,
       resource_ids: resourceIds,
+      event_id: eventId,
       recipient_count: sent,
       failed_count: failed,
       sent_by: userData.user.id,

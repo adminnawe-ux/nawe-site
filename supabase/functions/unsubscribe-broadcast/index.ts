@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { unsubscribeActions } from './actions.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': (Deno.env.get('APP_URL') ?? 'https://nawe.co.ke'),
@@ -83,11 +84,17 @@ Deno.serve(async (req) => {
   });
 
   try {
-    if (decoded.u) {
-      await adminClient.from('profiles').update({ broadcast_opt_out: true }).eq('user_id', decoded.u);
+    const actions = unsubscribeActions(decoded);
+    if (actions.optOutUserId) {
+      await adminClient.from('profiles').update({ broadcast_opt_out: true }).eq('user_id', actions.optOutUserId);
     }
-    if (decoded.s) {
-      await adminClient.from('newsletter_subscribers').update({ unsubscribed_at: new Date().toISOString() }).eq('id', decoded.s);
+    if (actions.unsubscribeSubscriberId) {
+      await adminClient.from('newsletter_subscribers').update({ unsubscribed_at: new Date().toISOString() }).eq('id', actions.unsubscribeSubscriberId);
+    }
+    if (actions.suppressEmail) {
+      const { error: suppressError } = await adminClient.from('broadcast_suppressions')
+        .upsert({ email: actions.suppressEmail }, { onConflict: 'email', ignoreDuplicates: true });
+      if (suppressError) throw suppressError;
     }
 
     return new Response(JSON.stringify({ unsubscribed: true }), {
