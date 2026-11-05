@@ -1,13 +1,19 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  ArrowRight, Check, Mail, DollarSign,
+  ArrowRight, Check,
   Users, GraduationCap, Shield, Building2,
   Loader2, CheckCircle2,
 } from 'lucide-react';
+
+// /grow — Organisational Health. Explains the offer first, then pricing in its
+// own section (decision: keep explainer + pricing on one page for now). One
+// primary call to action, "Discuss Organisational Health", opens the enquiry
+// form; package buttons open the same form tagged with that package.
+// Copy follows the Website Repositioning strategy (V2): no unverified claims,
+// no promised outcomes. /organizations redirects here.
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -115,11 +121,27 @@ const plans = [
   },
 ];
 
+const problems = [
+  { title: 'Burnout risk', body: 'Exhaustion and strain that stay hidden behind people who still look productive.' },
+  { title: 'Workload and role clarity', body: 'Understaffing, competing priorities and roles that have drifted from what was agreed.' },
+  { title: 'Leadership and management', body: 'How communication, fairness and day-to-day management shape people’s experience of work.' },
+  { title: 'Psychological safety', body: 'Whether people can raise concerns, admit mistakes and ask for help without fear.' },
+  { title: 'Retention and engagement', body: 'Turnover and disengagement as signals of underlying conditions, not isolated events.' },
+  { title: 'Silence around support', body: 'Low uptake of support because of stigma, confidentiality doubts or not knowing what exists.' },
+];
+
 const steps = [
-  { title: 'ASSESS', body: 'Get structured information from your workforce.' },
-  { title: 'UNDERSTAND', body: 'Identify strengths, patterns, risks and areas requiring attention.' },
-  { title: 'INTERVENE', body: 'Develop targeted interventions based on the findings.' },
-  { title: 'IMPROVE', body: 'Track progress and support continued organisational health.' },
+  { title: 'Assess', body: 'Agree the scope, participants and safeguards, then gather structured information about how people experience work.' },
+  { title: 'Understand', body: 'Interpret the findings responsibly and identify strengths, patterns, risks and priorities.' },
+  { title: 'Intervene', body: 'Agree targeted interventions and owners, such as leadership development, team facilitation, wellbeing initiatives and access to psychological support.' },
+  { title: 'Improve', body: 'Review progress against agreed measures and adjust what is not working.' },
+];
+
+const value = [
+  'A clearer picture of how your people experience work',
+  'Priorities grounded in evidence rather than assumptions',
+  'Interventions that address working conditions, not only individuals',
+  'Agreed measures for tracking progress over time',
 ];
 
 const partnerTypes = [
@@ -137,7 +159,7 @@ const includedAll = [
   'Kenya DPA compliance documentation',
 ];
 
-// ─── Corporate Enquiry Dialog ────────────────────────────────────────────────
+// ─── Enquiry Dialog ──────────────────────────────────────────────────────────
 
 type Plan = typeof plans[number];
 type Status = 'idle' | 'loading' | 'done' | 'error';
@@ -153,7 +175,10 @@ interface Fields {
 
 const EMPTY: Fields = { companyName: '', contactName: '', email: '', phone: '', employees: '', message: '' };
 
-function CorporateEnquiryDialog({ plan, open, onClose }: { plan: Plan; open: boolean; onClose: () => void }) {
+const PRIMARY_CTA = 'Discuss Organisational Health';
+
+// plan = null → general Organisational Health enquiry (the primary CTA).
+function EnquiryDialog({ plan, open, onClose }: { plan: Plan | null; open: boolean; onClose: () => void }) {
   const [fields, setFields] = useState<Fields>(EMPTY);
   const [status, setStatus] = useState<Status>('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -176,7 +201,7 @@ function CorporateEnquiryDialog({ plan, open, onClose }: { plan: Plan; open: boo
         email: fields.email.trim(),
         phone: fields.phone.trim() || null,
         employees: parseInt(fields.employees) || null,
-        plan: plan.name,
+        plan: plan?.name ?? null,
         message: fields.message.trim() || null,
       },
     });
@@ -197,7 +222,7 @@ function CorporateEnquiryDialog({ plan, open, onClose }: { plan: Plan; open: boo
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl text-brand-navy">
-            {status === 'done' ? 'Enquiry received' : `${plan.name} Plan — Get Started`}
+            {status === 'done' ? 'Enquiry received' : plan ? `${plan.name} — enquiry` : PRIMARY_CTA}
           </DialogTitle>
         </DialogHeader>
 
@@ -205,7 +230,7 @@ function CorporateEnquiryDialog({ plan, open, onClose }: { plan: Plan; open: boo
           <div className="py-6 text-center space-y-4">
             <CheckCircle2 className="h-12 w-12 text-brand-navy mx-auto" />
             <p className="font-body text-base text-brand-navy">
-              Thanks, {fields.companyName}! Our team will be in touch with you at <strong>{fields.email}</strong> within 24 hours.
+              Thank you. A member of our team will be in touch at <strong>{fields.email}</strong>.
             </p>
             <Button onClick={() => { reset(); onClose(); }} className="font-ui rounded-full bg-brand-navy hover:bg-brand-navy/90 text-white">
               Close
@@ -213,14 +238,16 @@ function CorporateEnquiryDialog({ plan, open, onClose }: { plan: Plan; open: boo
           </div>
         ) : (
           <div className="space-y-3 mt-2">
-            <p className="font-body text-sm text-muted-foreground">Fill in your details and our team will reach out within 24 hours.</p>
-            <input placeholder="Company name *" value={fields.companyName} onChange={set('companyName')} className={inputCls} />
-            <input placeholder="Contact person name *" value={fields.contactName} onChange={set('contactName')} className={inputCls} />
+            <p className="font-body text-sm text-muted-foreground">
+              Tell us about your organisation and what you would like to understand. Share only what is needed for an initial conversation — please do not include employee names or health details.
+            </p>
+            <input placeholder="Organisation name *" value={fields.companyName} onChange={set('companyName')} className={inputCls} />
+            <input placeholder="Your name *" value={fields.contactName} onChange={set('contactName')} className={inputCls} />
             <input type="email" placeholder="Work email *" value={fields.email} onChange={set('email')} className={inputCls} />
             <input placeholder="Phone number" value={fields.phone} onChange={set('phone')} className={inputCls} />
             <input type="number" placeholder="Number of employees" value={fields.employees} onChange={set('employees')} min={1} className={inputCls} />
             <textarea
-              placeholder="Anything else you'd like us to know? (optional)"
+              placeholder="What would you like to understand or improve? (optional)"
               value={fields.message}
               onChange={set('message')}
               rows={3}
@@ -234,6 +261,7 @@ function CorporateEnquiryDialog({ plan, open, onClose }: { plan: Plan; open: boo
             >
               {status === 'loading' ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : <>Send Enquiry <ArrowRight className="ml-2 h-4 w-4" /></>}
             </Button>
+            <p className="font-ui text-xs text-muted-foreground">This form is not for urgent or emergency support.</p>
           </div>
         )}
       </DialogContent>
@@ -244,7 +272,18 @@ function CorporateEnquiryDialog({ plan, open, onClose }: { plan: Plan; open: boo
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 const Grow = () => {
-  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [enquiry, setEnquiry] = useState<{ open: boolean; plan: Plan | null }>({ open: false, plan: null });
+  const openEnquiry = (plan: Plan | null = null) => setEnquiry({ open: true, plan });
+
+  const PrimaryCta = () => (
+    <Button
+      size="lg"
+      onClick={() => openEnquiry()}
+      className="font-ui text-base px-8 py-6 rounded-full bg-brand-navy hover:bg-brand-navy/90 text-white shadow-soft"
+    >
+      {PRIMARY_CTA} <ArrowRight className="ml-2 h-5 w-5" />
+    </Button>
+  );
 
   return (
   <>
@@ -256,60 +295,106 @@ const Grow = () => {
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-3xl">
           <div className="inline-block border border-brand-navy/20 rounded-full px-4 py-1.5 font-ui text-sm text-brand-navy/60 uppercase tracking-widest mb-8">
-            Partnerships & Collaborations
+            Grow · Organisational Health
           </div>
-          <h1 className="font-display text-5xl md:text-7xl text-brand-navy leading-none mb-6">Grow</h1>
-          <div className="max-w-2xl mb-10">
-            <h2 className="font-display text-3xl md:text-4xl text-brand-navy mb-3">Organisational Health</h2>
-            <p className="font-body text-xl text-brand-navy/80 leading-relaxed mb-4">
-              Understand the health of your organisation. Act on what you find.
-            </p>
-            <p className="font-body text-lg text-brand-navy/70 leading-relaxed mb-4">
-              We assess workforce wellbeing, leadership, psychological safety, team effectiveness and organisational risks, then work with your organisation to develop targeted interventions.
-            </p>
-            <p className="font-ui text-sm text-brand-navy uppercase tracking-widest">
-              Assess. Understand. Intervene. Improve.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-4">
-            <a href="mailto:connect@nawe.co.ke?subject=Partnership%20Enquiry">
-              <Button size="lg" className="font-ui text-base px-8 py-6 rounded-full bg-brand-navy hover:bg-brand-navy/90 text-white shadow-soft">
-                <Mail className="mr-2 h-5 w-5" /> Get a free assessment
-              </Button>
-            </a>
-            <a href="#pricing">
-              <Button size="lg" variant="outline" className="font-ui text-base px-8 py-6 rounded-full border-brand-navy/30 text-brand-navy hover:bg-brand-navy/8">
-                View Pricing <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
+          <h1 className="font-display text-5xl md:text-7xl text-brand-navy leading-none mb-8">
+            Build a healthier organisation from the inside out.
+          </h1>
+          <p className="font-body text-xl text-brand-navy/80 leading-relaxed mb-10 max-w-2xl">
+            An organisation’s health is shaped by how people experience work every day. Nawe helps organisations understand those conditions, then agree practical steps to improve them.
+          </p>
+          <div className="flex flex-wrap items-center gap-6">
+            <PrimaryCta />
+            <a href="#pricing" className="font-ui text-base text-brand-navy underline-offset-4 hover:underline">
+              See packages and pricing
             </a>
           </div>
         </div>
       </div>
     </section>
 
-    {/* THREE PILLARS */}
-    <section className="py-24 bg-white">
+    {/* WHAT IS ORGANISATIONAL HEALTH */}
+    <section className="py-24 bg-background">
+      <div className="container mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div>
+          <h2 className="font-display text-4xl md:text-5xl text-brand-navy mb-6">What is organisational health?</h2>
+          <p className="font-body text-lg text-foreground leading-relaxed mb-4">
+            Organisational health is the ability of an organisation to create conditions in which people can contribute, work together, adapt and perform sustainably.
+          </p>
+          <p className="font-body text-lg text-muted-foreground leading-relaxed">
+            It is not a single survey score or a one-off wellness event. It means understanding the systems, relationships and everyday practices that shape people’s experience: the clarity of leadership, how teams communicate, the demands placed on people, and whether they can raise concerns and access support.
+          </p>
+        </div>
+        <img
+          src="/site-revamp/team_session.webp"
+          alt="A team in a meeting around a conference table"
+          className="w-full rounded-card object-cover aspect-[4/3]"
+          loading="lazy"
+        />
+      </div>
+    </section>
+
+    {/* PROBLEMS WE ADDRESS */}
+    <section className="py-24 bg-brand-sand">
       <div className="container mx-auto px-6">
-        <div className="inline-block border border-border rounded-full px-4 py-1.5 font-ui text-sm text-muted-foreground uppercase tracking-widest mb-10">Our Approach</div>
-        <p className="font-body text-lg text-brand-navy/70 leading-relaxed max-w-3xl mb-14">
-          Traditional employee surveys tell you what people think at a particular point in time. Organisational health looks more broadly at the conditions affecting how people experience and perform within the organisation. We connect assessment with action. Assess → Understand → Intervene → Improve
+        <h2 className="font-display text-4xl md:text-5xl text-brand-navy mb-4 max-w-3xl">What we help organisations address</h2>
+        <p className="font-body text-lg text-brand-navy/70 max-w-3xl mb-12">
+          Before asking what is wrong with a person, we look at what is happening in the work.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {steps.map((s) => (
-            <div key={s.title} className="bg-brand-sky rounded-card p-8 flex flex-col gap-4">
-              <h3 className="font-display text-2xl text-brand-navy">{s.title}</h3>
-              <p className="font-body text-base text-brand-navy/70 leading-relaxed">{s.body}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {problems.map((p) => (
+            <div key={p.title} className="border-t border-brand-navy/25 pt-6">
+              <h3 className="font-display text-2xl text-brand-navy mb-2">{p.title}</h3>
+              <p className="font-body text-base text-brand-navy/75 leading-relaxed">{p.body}</p>
             </div>
           ))}
         </div>
       </div>
     </section>
 
-    {/* PARTNER TYPES */}
+    {/* ENGAGEMENT MODEL */}
+    <section className="py-24 bg-white">
+      <div className="container mx-auto px-6">
+        <h2 className="font-display text-4xl md:text-5xl text-brand-navy mb-4">How an engagement works</h2>
+        <p className="font-body text-lg text-brand-navy/70 leading-relaxed max-w-3xl mb-14">
+          We start with your context, then agree the questions, participants, safeguards, deliverables, timeline and budget. Assessment leads directly to action.
+        </p>
+        <ol className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {steps.map((s, i) => (
+            <li key={s.title} className="bg-brand-sky rounded-card p-8 flex flex-col gap-3">
+              <span className="font-ui text-sm font-medium text-brand-navy/60">Step {i + 1}</span>
+              <h3 className="font-display text-2xl text-brand-navy">{s.title}</h3>
+              <p className="font-body text-base text-brand-navy/70 leading-relaxed">{s.body}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+
+    {/* VALUE TO EMPLOYERS */}
+    <section className="py-24 bg-brand-sky">
+      <div className="container mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16">
+        <div>
+          <h2 className="font-display text-4xl md:text-5xl text-brand-navy mb-6">What employers gain</h2>
+          <p className="font-body text-lg text-brand-navy/70 leading-relaxed">
+            Outcomes depend on your context, so we agree measures with you rather than promise results.
+          </p>
+        </div>
+        <ul className="space-y-4">
+          {value.map((v) => (
+            <li key={v} className="flex items-start gap-3 border-b border-brand-navy/20 pb-4">
+              <Check className="h-5 w-5 text-brand-navy shrink-0 mt-1" />
+              <span className="font-body text-lg text-brand-navy">{v}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    {/* WHO WE WORK WITH */}
     <section className="py-24 bg-card border-y border-border">
       <div className="container mx-auto px-6">
-        <div className="inline-block border border-border rounded-full px-4 py-1.5 font-ui text-sm text-muted-foreground uppercase tracking-widest mb-10">Who we work with</div>
-        <p className="font-display text-3xl md:text-4xl text-foreground mb-10">Built for organisations that want to understand their people.</p>
+        <h2 className="font-display text-3xl md:text-4xl text-foreground mb-10">Who we work with</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {partnerTypes.map((p) => (
             <div key={p.title} className="bg-background border border-border rounded-card p-7 flex gap-5 shadow-card">
@@ -323,17 +408,20 @@ const Grow = () => {
             </div>
           ))}
         </div>
+        <p className="font-body text-base text-muted-foreground leading-relaxed max-w-3xl mt-10">
+          <span className="font-ui font-semibold text-foreground">Privacy and trust.</span>{' '}
+          Before any assessment, we agree with you what information is collected, why, who can access it and how results are reported, so employees can take part with confidence.
+        </p>
       </div>
     </section>
 
-    {/* CORPORATE PRICING */}
-    <section id="pricing" className="py-24 bg-background">
+    {/* PACKAGES AND PRICING — kept separate from the explainer above */}
+    <section id="pricing" className="py-24 bg-background scroll-mt-20">
       <div className="container mx-auto px-6">
-        <div className="inline-block border border-border rounded-full px-4 py-1.5 font-ui text-sm text-muted-foreground uppercase tracking-widest mb-6">Packages</div>
-        <h2 className="font-display text-5xl md:text-6xl text-brand-navy mb-4">Organisational Health Packages</h2>
-        <p className="font-body text-lg text-muted-foreground max-w-3xl mb-14">NAWE helps organisations understand the health of their people and workplace, identify areas of risk, and take informed action. Choose the level of support that fits your organisation.</p>
+        <div className="inline-block border border-border rounded-full px-4 py-1.5 font-ui text-sm text-muted-foreground uppercase tracking-widest mb-6">Pricing</div>
+        <h2 className="font-display text-5xl md:text-6xl text-brand-navy mb-4">Packages and pricing</h2>
+        <p className="font-body text-lg text-muted-foreground max-w-3xl mb-14">Choose the level of support that fits your organisation, or talk to us about a scope that suits your context.</p>
 
-        {/* Pricing cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
           {plans.map((plan) => (
             <div key={plan.id} className="relative pt-10">
@@ -343,17 +431,14 @@ const Grow = () => {
                 </div>
               )}
               <div className={`rounded-card overflow-hidden border shadow-card ${plan.highlight ? 'border-brand-navy shadow-soft' : 'border-border'}`}>
-              {/* Header */}
               <div className={`${plan.headerBg} px-8 text-center ${plan.popular ? 'pt-8 pb-5' : 'py-5'}`}>
                 <h3 className="font-ui text-sm font-bold text-white uppercase tracking-widest">{plan.name}</h3>
               </div>
-              {/* Price block */}
               <div className={`${plan.priceBg} px-8 py-8 text-center border-b border-black/10`}>
                 <p className={`font-display text-5xl font-bold ${plan.priceColor} mb-1`}>{plan.price}</p>
                 <p className={`font-ui text-sm ${plan.priceMeta} italic`}>{plan.period}</p>
                 <p className={`font-body text-sm ${plan.priceMeta} mt-4 leading-relaxed`}>{plan.description}</p>
               </div>
-              {/* Features */}
               <div className={`px-8 py-6 space-y-3 ${plan.featureBg}`}>
                 {plan.lead && <p className={`font-ui text-sm font-semibold ${plan.featureText}`}>{plan.lead}</p>}
                 {plan.features.map((f) => (
@@ -365,10 +450,9 @@ const Grow = () => {
                   </div>
                 ))}
               </div>
-              {/* CTA */}
               <div className={`px-8 pb-8 pt-4 ${plan.featureBg}`}>
                 <p className={`font-ui text-xs italic mb-4 ${plan.priceMeta}`}>Best for: {plan.bestFor}</p>
-                <Button onClick={() => setSelectedPlan(plan)} className={`w-full font-ui rounded-full ${plan.ctaBg}`}>
+                <Button onClick={() => openEnquiry(plan)} className={`w-full font-ui rounded-full ${plan.ctaBg}`}>
                   {plan.ctaLabel}
                 </Button>
               </div>
@@ -377,7 +461,6 @@ const Grow = () => {
           ))}
         </div>
 
-        {/* All plans include */}
         <div className="mt-8 bg-[#f7f0e8] border border-[#eaccac]/40 rounded-card px-8 py-4">
           <p className="font-ui text-sm text-brand-navy/70 text-center">
             <span className="font-semibold text-brand-navy">All plans include: </span>
@@ -387,40 +470,26 @@ const Grow = () => {
       </div>
     </section>
 
-    {/* CTA BANNER */}
+    {/* CLOSING CTA */}
     <section className="py-24 bg-brand-sky">
       <div className="container mx-auto px-6">
         <div className="max-w-2xl mx-auto text-center">
-          <DollarSign className="h-10 w-10 text-brand-navy/40 mx-auto mb-6" />
-          <h2 className="font-display text-4xl md:text-5xl text-brand-navy mb-4">Start with an assessment</h2>
+          <h2 className="font-display text-4xl md:text-5xl text-brand-navy mb-4">Start a conversation</h2>
           <p className="font-body text-lg text-brand-navy/70 mb-8 leading-relaxed">
-            Understand what your people need first, then we'll design a programme that fits your organisation's size, budget, and goals.
+            Tell us about your organisation, the people you support and the challenge you want to understand. We will discuss whether Nawe is a fit and what a responsible engagement could look like.
           </p>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <a href="mailto:connect@nawe.co.ke?subject=Organisational%20Health%20Assessment%20Enquiry">
-              <Button size="lg" className="font-ui text-base px-8 py-6 rounded-full bg-brand-navy hover:bg-brand-navy/90 text-white shadow-soft">
-                <Mail className="mr-2 h-5 w-5" /> Get a free assessment
-              </Button>
-            </a>
-            <Link to="/">
-              <Button size="lg" variant="outline" className="font-ui text-base px-8 py-6 rounded-full border-brand-navy/30 text-brand-navy hover:bg-brand-navy/8">
-                Back to Home
-              </Button>
-            </Link>
-          </div>
+          <PrimaryCta />
         </div>
       </div>
     </section>
 
   </div>
 
-  {selectedPlan && (
-    <CorporateEnquiryDialog
-      plan={selectedPlan}
-      open={!!selectedPlan}
-      onClose={() => setSelectedPlan(null)}
-    />
-  )}
+  <EnquiryDialog
+    plan={enquiry.plan}
+    open={enquiry.open}
+    onClose={() => setEnquiry({ open: false, plan: null })}
+  />
   </>
   );
 };

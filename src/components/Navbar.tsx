@@ -27,11 +27,8 @@ const Navbar = () => {
           <Link to="/people" className="font-ui text-sm text-muted-foreground hover:text-foreground transition-colors">
             Individuals
           </Link>
-          <Link to="/grow#pricing" className="font-ui text-sm text-muted-foreground hover:text-foreground transition-colors">
-            Corporate
-          </Link>
-          <Link to="/organizations" className="font-ui text-sm text-muted-foreground hover:text-foreground transition-colors">
-            Organizations
+          <Link to="/grow" className="font-ui text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Organisations
           </Link>
           <Link to="/therapists" className="font-ui text-sm text-muted-foreground hover:text-foreground transition-colors">
             For Therapists
@@ -85,11 +82,8 @@ const Navbar = () => {
           <Link to="/people" className="block font-ui text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             Individuals
           </Link>
-          <Link to="/grow#pricing" className="block font-ui text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
-            Corporate
-          </Link>
-          <Link to="/organizations" className="block font-ui text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
-            Organizations
+          <Link to="/grow" className="block font-ui text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
+            Organisations
           </Link>
           <Link to="/therapists" className="block font-ui text-sm text-muted-foreground" onClick={() => setMobileOpen(false)}>
             For Therapists

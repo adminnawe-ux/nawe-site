@@ -31,6 +31,7 @@ import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import Resources from "@/pages/Resources";
 import ResourceDownload from "@/pages/ResourceDownload";
 import Grow from "@/pages/Grow";
+import ScrollToHash from "@/components/ScrollToHash";
 import Events from "@/pages/Events";
 import EventDetail from "@/pages/EventDetail";
 import EventTicket from "@/pages/EventTicket";
@@ -45,7 +46,6 @@ import BookSession from "@/pages/BookSession";
 import Triage from "@/pages/Triage";
 import People from "@/pages/People";
 import Communities from "@/pages/Communities";
-import Organizations from "@/pages/Organizations";
 import Therapists from "@/pages/Therapists";
 
 // Therapist pages
@@ -77,6 +77,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ScrollToHash />
         <AuthProvider>
           <Routes>
             {/* Public routes — landing page with navbar + footer */}
@@ -94,7 +95,8 @@ const App = () => (
               <Route path="/grow" element={<Grow />} />
               <Route path="/people" element={<People />} />
               <Route path="/communities" element={<Communities />} />
-              <Route path="/organizations" element={<Organizations />} />
+              {/* Merged into /grow (Organisational Health) */}
+              <Route path="/organizations" element={<Navigate to="/grow" replace />} />
               <Route path="/therapists" element={<Therapists />} />
               {/* Browsing therapists is open to guests */}
               <Route path="/matches" element={<Matches />} />
