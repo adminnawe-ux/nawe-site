@@ -29,6 +29,7 @@ import Terms from "@/pages/Terms";
 import AboutUs from "@/pages/AboutUs";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import Resources from "@/pages/Resources";
+import ResourceDownload from "@/pages/ResourceDownload";
 import Grow from "@/pages/Grow";
 import Events from "@/pages/Events";
 import EventDetail from "@/pages/EventDetail";
@@ -88,6 +89,8 @@ const App = () => (
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/about" element={<AboutUs />} />
               <Route path="/resources" element={<Resources />} />
+              {/* Broadcast file download links */}
+              <Route path="/resource/:slug" element={<ResourceDownload />} />
               <Route path="/grow" element={<Grow />} />
               <Route path="/people" element={<People />} />
               <Route path="/communities" element={<Communities />} />

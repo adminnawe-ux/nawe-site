@@ -11,8 +11,17 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Megaphone, Users, History } from 'lucide-react';
+import { Megaphone, Users, History, Paperclip, X, Copy, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { APP_URL } from '@/lib/site';
+import {
+  MAX_RESOURCES_PER_BROADCAST, RESOURCE_ACCEPT, RESOURCE_BUCKET, formatBytes,
+  makeResourceSlug, mimeTypeForFilename, resourceUrl, validateResourceFile,
+} from '@/lib/resources';
+
+// `resources` isn't in the generated Database types yet
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 const ROLE_OPTIONS = [
   { value: 'client', label: 'Clients' },
@@ -29,6 +38,14 @@ interface BroadcastSend {
   recipient_count: number;
   failed_count: number;
   sent_at: string;
+  resource_ids: string[] | null;
+}
+
+interface Attachment {
+  id: string;
+  slug: string;
+  original_filename: string;
+  size_bytes: number;
 }
 
 const AdminBroadcast = () => {
@@ -43,6 +60,9 @@ const AdminBroadcast = () => {
   const [sending, setSending] = useState(false);
   const [history, setHistory] = useState<BroadcastSend[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [historyFileNames, setHistoryFileNames] = useState<Record<string, string>>({});
 
   const audienceSelected = roles.length > 0 || includeNewsletter;
   const canSend = subject.trim() && body && body !== '<p></p>' && audienceSelected;
@@ -50,11 +70,73 @@ const AdminBroadcast = () => {
   const fetchHistory = async () => {
     const { data } = await supabase
       .from('broadcast_sends')
-      .select('id, subject, audience_roles, include_newsletter, cc_addresses, recipient_count, failed_count, sent_at')
+      .select('id, subject, audience_roles, include_newsletter, cc_addresses, recipient_count, failed_count, sent_at, resource_ids')
       .order('sent_at', { ascending: false })
       .limit(20);
-    setHistory(data ?? []);
+    const rows = (data ?? []) as BroadcastSend[];
+    setHistory(rows);
     setLoadingHistory(false);
+
+    const ids = [...new Set(rows.flatMap(h => h.resource_ids ?? []))];
+    if (ids.length > 0) {
+      const { data: files } = await db.from('resources').select('id, original_filename').in('id', ids);
+      setHistoryFileNames(Object.fromEntries(
+        ((files ?? []) as { id: string; original_filename: string }[]).map(f => [f.id, f.original_filename]),
+      ));
+    }
+  };
+
+  // Each file is stored under a random-prefixed slug and recorded in `resources`;
+  // send-broadcast turns the ids into /resource/<slug> download links.
+  const handleFiles = async (files: File[]) => {
+    setUploading(true);
+    let count = attachments.length;
+    for (const file of files) {
+      const invalid = validateResourceFile(file);
+      if (invalid) {
+        toast({ title: 'File not attached', description: invalid, variant: 'destructive' });
+        continue;
+      }
+      if (count >= MAX_RESOURCES_PER_BROADCAST) {
+        toast({ title: `You can attach up to ${MAX_RESOURCES_PER_BROADCAST} files`, variant: 'destructive' });
+        break;
+      }
+      const slug = makeResourceSlug(file.name);
+      const mimeType = mimeTypeForFilename(file.name)!;
+      const storage = supabase.storage.from(RESOURCE_BUCKET);
+      const { error: uploadError } = await storage.upload(slug, file, { contentType: mimeType, upsert: false });
+      if (uploadError) {
+        toast({ title: `Upload failed: ${file.name}`, variant: 'destructive' });
+        continue;
+      }
+      const { data: row, error: insertError } = await db.from('resources')
+        .insert({ slug, original_filename: file.name, mime_type: mimeType, size_bytes: file.size })
+        .select('id, slug, original_filename, size_bytes')
+        .single();
+      if (insertError || !row) {
+        await storage.remove([slug]);
+        toast({ title: `Upload failed: ${file.name}`, variant: 'destructive' });
+        continue;
+      }
+      count++;
+      setAttachments(prev => [...prev, row as Attachment]);
+    }
+    setUploading(false);
+  };
+
+  const removeAttachment = async (a: Attachment) => {
+    setAttachments(prev => prev.filter(x => x.id !== a.id));
+    await db.from('resources').delete().eq('id', a.id);
+    await supabase.storage.from(RESOURCE_BUCKET).remove([a.slug]);
+  };
+
+  const copyLink = async (a: Attachment) => {
+    try {
+      await navigator.clipboard.writeText(resourceUrl(a.slug, APP_URL));
+      toast({ title: 'Link copied' });
+    } catch {
+      toast({ title: 'Could not copy link', variant: 'destructive' });
+    }
   };
 
   useEffect(() => { fetchHistory(); }, []);
@@ -68,7 +150,10 @@ const AdminBroadcast = () => {
   const invokeSendBroadcast = async (preview: boolean) => {
     const { data: sessionData } = await supabase.auth.getSession();
     return supabase.functions.invoke('send-broadcast', {
-      body: { subject, body, roles, include_newsletter: includeNewsletter, cc, preview },
+      body: {
+        subject, body, roles, include_newsletter: includeNewsletter, cc, preview,
+        resource_ids: attachments.map(a => a.id),
+      },
       headers: { Authorization: `Bearer ${sessionData.session?.access_token}` },
     });
   };
@@ -99,6 +184,7 @@ const AdminBroadcast = () => {
       setRoles([]);
       setIncludeNewsletter(false);
       setPreviewCount(null);
+      setAttachments([]);
       fetchHistory();
     } catch {
       toast({ title: 'Send failed', description: 'Please try again.', variant: 'destructive' });
@@ -123,6 +209,48 @@ const AdminBroadcast = () => {
           <RichTextEditor value={body} onChange={setBody} placeholder="Write your announcement… Use the link button to add hyperlinks." />
           <p className="font-ui text-xs text-muted-foreground">
             Tip: use <code className="bg-muted px-1 rounded">{'{{first_name}}'}</code> to greet each recipient by name — falls back to "there" if we don't have one on file.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="font-ui">Files (optional)</Label>
+          {attachments.length > 0 && (
+            <ul className="space-y-2">
+              {attachments.map(a => (
+                <li key={a.id} className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-3 py-2">
+                  <Paperclip className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-ui text-sm text-foreground truncate">{a.original_filename}</p>
+                    <p className="font-ui text-xs text-muted-foreground truncate">
+                      {formatBytes(a.size_bytes)} · <span>{resourceUrl(a.slug, APP_URL)}</span>
+                    </p>
+                  </div>
+                  <Button type="button" variant="ghost" size="icon" aria-label={`Copy link for ${a.original_filename}`} onClick={() => copyLink(a)}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button type="button" variant="ghost" size="icon" aria-label={`Remove ${a.original_filename}`} onClick={() => removeAttachment(a)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="flex items-center gap-3">
+            <input
+              id="broadcast-files" type="file" multiple accept={RESOURCE_ACCEPT} className="sr-only"
+              disabled={uploading || attachments.length >= MAX_RESOURCES_PER_BROADCAST}
+              onChange={(e) => { const files = Array.from(e.target.files ?? []); e.target.value = ''; if (files.length) handleFiles(files); }}
+            />
+            <Button type="button" variant="outline" className="font-ui gap-2" asChild
+              disabled={uploading || attachments.length >= MAX_RESOURCES_PER_BROADCAST}>
+              <label htmlFor="broadcast-files" className="cursor-pointer">
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                {uploading ? 'Uploading…' : 'Attach files'}
+              </label>
+            </Button>
+          </div>
+          <p className="font-ui text-xs text-muted-foreground">
+            Up to {MAX_RESOURCES_PER_BROADCAST} files, 25 MB each (PDF, PowerPoint, Word, Excel, PNG, JPG). Each email gets a download link. Anyone with the link can download the file.
           </p>
         </div>
 
@@ -212,6 +340,11 @@ const AdminBroadcast = () => {
                       </div>
                       {h.cc_addresses?.length > 0 && (
                         <p className="font-ui text-xs text-muted-foreground mt-1">CC: {h.cc_addresses.join(', ')}</p>
+                      )}
+                      {(h.resource_ids?.length ?? 0) > 0 && (
+                        <p className="font-ui text-xs text-muted-foreground mt-1">
+                          Files: {h.resource_ids!.map(id => historyFileNames[id] ?? 'deleted file').join(', ')}
+                        </p>
                       )}
                     </td>
                     <td className="p-4 font-ui text-sm text-foreground">{h.recipient_count}{h.failed_count > 0 && <span className="text-destructive"> / {h.failed_count} failed</span>}</td>

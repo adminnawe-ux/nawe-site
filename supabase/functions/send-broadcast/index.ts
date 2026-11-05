@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { buildDownloadsHtml, parseResourceIds, type BroadcastResource } from './resources.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': (Deno.env.get('APP_URL') ?? 'https://nawe.co.ke'),
@@ -23,6 +24,7 @@ interface BroadcastRequest {
   include_newsletter: boolean;
   cc?: string;
   preview?: boolean;
+  resource_ids?: string[];
 }
 
 interface Recipient {
@@ -177,6 +179,13 @@ Deno.serve(async (req) => {
   const includeNewsletter = payload.include_newsletter === true;
   const cc = parseCcList(payload.cc ?? '');
   const isPreview = payload.preview === true;
+  const parsedResources = parseResourceIds(payload.resource_ids);
+  if ('error' in parsedResources) {
+    return new Response(JSON.stringify({ error: parsedResources.error }), {
+      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  const resourceIds = parsedResources.ids;
 
   if (!isPreview && (!subject || !body || body === '<p></p>')) {
     return new Response(JSON.stringify({ error: 'Subject and body are required' }), {
@@ -253,6 +262,22 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Look files up server-side — links are built from our own rows, never from client input
+    let resources: BroadcastResource[] = [];
+    if (resourceIds.length > 0) {
+      const { data: resourceRows, error: resourceError } = await adminClient
+        .from('resources').select('id, slug, original_filename, size_bytes').in('id', resourceIds);
+      if (resourceError) throw resourceError;
+      if ((resourceRows ?? []).length !== resourceIds.length) {
+        return new Response(JSON.stringify({ error: 'One or more attached files were not found. Remove and re-attach them.' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const byId = new Map((resourceRows ?? []).map((r) => [r.id as string, r as unknown as BroadcastResource]));
+      resources = resourceIds.map((id) => byId.get(id)!);
+    }
+    const downloadsHtml = buildDownloadsHtml(resources, appUrl);
+
     let sent = 0;
     let failed = 0;
     const CONCURRENCY = 5;
@@ -264,6 +289,7 @@ Deno.serve(async (req) => {
           const html = `
             <div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937;max-width:600px">
               ${applyMergeTags(body, r)}
+              ${downloadsHtml}
               <p style="color:#6b7280;font-size:13px;margin-top:32px">
                 The Nawe Team · <a href="https://nawe.co.ke" style="color:#10b981">nawe.co.ke</a><br />
                 <a href="${unsubscribeUrl}" style="color:#6b7280">Unsubscribe from these emails</a>
@@ -284,6 +310,7 @@ Deno.serve(async (req) => {
       audience_roles: roles,
       include_newsletter: includeNewsletter,
       cc_addresses: cc,
+      resource_ids: resourceIds,
       recipient_count: sent,
       failed_count: failed,
       sent_by: userData.user.id,
