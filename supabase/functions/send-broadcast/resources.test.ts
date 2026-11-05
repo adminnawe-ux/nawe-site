@@ -49,9 +49,10 @@ Deno.test('buildDownloadsHtml: nothing attached → empty string', () => {
   assertEquals(buildDownloadsHtml([], 'https://nawe.co.ke'), '');
 });
 
+// Links end in "/" — Render 404s paths ending in .pdf/.png/.jpg/.doc instead of serving the app.
 Deno.test('buildDownloadsHtml: links each file on the site domain with name and size', () => {
   const html = buildDownloadsHtml([deck], 'https://nawe.co.ke');
-  assertStringIncludes(html, 'href="https://nawe.co.ke/resource/abcdefgh-q3-report.pptx"');
+  assertStringIncludes(html, 'href="https://nawe.co.ke/resource/abcdefgh-q3-report.pptx/"');
   assertStringIncludes(html, 'Q3 Report.pptx');
   assertStringIncludes(html, '5.0 MB');
   assertStringIncludes(html, 'Downloads');
@@ -62,7 +63,7 @@ Deno.test('buildDownloadsHtml: one link per file, in order', () => {
   const html = buildDownloadsHtml([deck, pdf], 'https://nawe.co.ke/');
   assertEquals(html.match(/href="/g)?.length, 2);
   assert(html.indexOf('Q3 Report.pptx') < html.indexOf('Agenda.pdf'));
-  assertStringIncludes(html, 'href="https://nawe.co.ke/resource/zzzzzzzz-agenda.pdf"');
+  assertStringIncludes(html, 'href="https://nawe.co.ke/resource/zzzzzzzz-agenda.pdf/"');
 });
 
 Deno.test('buildDownloadsHtml: escapes filenames — no HTML injection via an uploaded name', () => {

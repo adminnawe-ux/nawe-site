@@ -65,8 +65,10 @@ export function isValidResourceSlug(slug: string): boolean {
   return SLUG_RE.test(slug);
 }
 
+// Ends in "/" because Render's static host 404s paths ending in known file
+// extensions (.pdf, .png, .jpg, .doc…) instead of rewriting them to the app.
 export function resourceUrl(slug: string, appUrl: string): string {
-  return `${appUrl.replace(/\/+$/, '')}/resource/${slug}`;
+  return `${appUrl.replace(/\/+$/, '')}/resource/${slug}/`;
 }
 
 export function formatBytes(bytes: number): string {

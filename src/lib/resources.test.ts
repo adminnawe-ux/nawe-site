@@ -88,8 +88,10 @@ describe('mimeTypeForFilename', () => {
 
 describe('resourceUrl / formatBytes / limits', () => {
   it('builds the public link on the site domain', () => {
-    expect(resourceUrl('abcdefgh-doc.pdf', 'https://nawe.co.ke')).toBe('https://nawe.co.ke/resource/abcdefgh-doc.pdf');
-    expect(resourceUrl('abcdefgh-doc.pdf', 'https://nawe.co.ke/')).toBe('https://nawe.co.ke/resource/abcdefgh-doc.pdf');
+    // Trailing slash: Render's static host 404s paths ending in known file
+    // extensions (.pdf, .png, .jpg, .doc…) instead of rewriting them to the app.
+    expect(resourceUrl('abcdefgh-doc.pdf', 'https://nawe.co.ke')).toBe('https://nawe.co.ke/resource/abcdefgh-doc.pdf/');
+    expect(resourceUrl('abcdefgh-doc.pdf', 'https://nawe.co.ke/')).toBe('https://nawe.co.ke/resource/abcdefgh-doc.pdf/');
   });
 
   it('formats sizes for display', () => {

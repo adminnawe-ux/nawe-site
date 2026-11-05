@@ -44,6 +44,13 @@ describe('ResourceDownload (/resource/:slug)', () => {
     expect(screen.getByRole('link', { name: /download q3 report\.pptx/i })).toHaveAttribute('href', STORAGE_URL);
   });
 
+  it('handles the trailing-slash form used in emails', async () => {
+    rpc.mockResolvedValue({ data: [{ original_filename: 'Q3 Report.pptx', mime_type: 'x', size_bytes: 10 }], error: null });
+    renderAt(`/resource/${SLUG}/`);
+    await waitFor(() => expect(redirectTo).toHaveBeenCalledWith(STORAGE_URL));
+    expect(rpc).toHaveBeenCalledWith('get_resource', { p_slug: SLUG });
+  });
+
   it('shows "not found" for an unknown slug without redirecting', async () => {
     rpc.mockResolvedValue({ data: [], error: null });
     renderAt(`/resource/${SLUG}`);

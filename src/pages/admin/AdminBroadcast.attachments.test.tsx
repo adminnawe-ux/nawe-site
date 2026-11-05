@@ -75,7 +75,7 @@ describe('AdminBroadcast — file attachments', () => {
       mime_type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', size_bytes: 1024,
     });
     expect(await screen.findByText('Q3 Report.pptx')).toBeInTheDocument();
-    expect(screen.getByText(new RegExp(`/resource/${slug.replace('.', '\\.')}$`))).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(`/resource/${slug.replace('.', '\\.')}/$`))).toBeInTheDocument();
   });
 
   it('sends resource_ids with the broadcast', async () => {

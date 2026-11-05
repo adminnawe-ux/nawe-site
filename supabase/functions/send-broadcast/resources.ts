@@ -34,12 +34,14 @@ export interface BroadcastResource {
   size_bytes: number;
 }
 
+// Links end in "/" because Render's static host 404s paths ending in known file
+// extensions (.pdf, .png, .jpg, .doc…) instead of rewriting them to the app.
 export function buildDownloadsHtml(resources: BroadcastResource[], appUrl: string): string {
   if (resources.length === 0) return '';
   const base = appUrl.replace(/\/+$/, '');
   const rows = resources.map((r) => `
     <tr><td style="padding:6px 0">
-      <a href="${base}/resource/${encodeURIComponent(r.slug)}" style="display:inline-block;background:#10b981;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold">
+      <a href="${base}/resource/${encodeURIComponent(r.slug)}/" style="display:inline-block;background:#10b981;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold">
         Download: ${escapeHtml(r.original_filename)}
       </a>
       <span style="color:#6b7280;font-size:13px;margin-left:8px">${formatBytes(r.size_bytes)}</span>
